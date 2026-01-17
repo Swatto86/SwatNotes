@@ -127,7 +127,7 @@ impl BlobStore {
         &'a self,
         dir: &'a Path,
         hashes: &'a mut Vec<String>,
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + 'a>> {
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + Send + 'a>> {
         Box::pin(async move {
             if !dir.exists() {
                 return Ok(());
