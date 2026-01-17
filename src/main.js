@@ -76,6 +76,19 @@ function setupEventHandlers() {
     await loadBackupsList();
   });
 
+  // Settings modal close handlers
+  const settingsModal = document.getElementById('settings-modal');
+  const modalCloseBtn = settingsModal?.querySelector('.modal-action button');
+  const modalBackdrop = settingsModal?.querySelector('.modal-backdrop');
+
+  modalCloseBtn?.addEventListener('click', () => {
+    settingsModal?.close();
+  });
+
+  modalBackdrop?.addEventListener('click', () => {
+    settingsModal?.close();
+  });
+
   // Backup now button
   const backupNowBtn = document.getElementById('backup-now-btn');
   backupNowBtn?.addEventListener('click', async () => {
