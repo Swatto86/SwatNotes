@@ -7,6 +7,7 @@ mod app;
 mod commands;
 mod database;
 mod error;
+mod services;
 mod storage;
 
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -37,6 +38,12 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             commands::greet,
             commands::get_app_info,
+            commands::create_note,
+            commands::get_note,
+            commands::list_notes,
+            commands::update_note,
+            commands::delete_note,
+            commands::search_notes,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

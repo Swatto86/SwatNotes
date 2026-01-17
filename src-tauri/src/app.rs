@@ -5,6 +5,7 @@
 
 use crate::database::{create_pool, Repository};
 use crate::error::Result;
+use crate::services::NotesService;
 use crate::storage::BlobStore;
 use sqlx::SqlitePool;
 use std::path::PathBuf;
@@ -16,6 +17,7 @@ pub struct AppState {
     pub app_data_dir: PathBuf,
     pub db: Repository,
     pub blob_store: BlobStore,
+    pub notes_service: NotesService,
 }
 
 impl AppState {
@@ -29,10 +31,14 @@ impl AppState {
         let blob_store = BlobStore::new(app_data_dir.join("blobs"));
         blob_store.initialize().await?;
 
+        // Initialize services
+        let notes_service = NotesService::new(db.clone());
+
         Ok(Self {
             app_data_dir,
             db,
             blob_store,
+            notes_service,
         })
     }
 }
