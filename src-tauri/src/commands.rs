@@ -118,16 +118,25 @@ pub async fn open_note_window(
     // Create unique window label
     let window_label = format!("note-{}", note_id);
 
-    // Check if window already exists
+    // Check if window already exists and is still valid
     if let Some(window) = app.get_webview_window(&window_label) {
-        tracing::debug!("Window already exists, showing and focusing: {}", window_label);
-        // If it exists, ensure it's shown and focused
-        // Use unmaximize to ensure window is in normal state, then show and focus
-        let _ = window.unminimize();
-        let _ = window.show();
-        let _ = window.set_focus();
-        tracing::info!("Existing window shown: {}", window_label);
-        return Ok(());
+        // Check if window is actually valid (not in the process of being destroyed)
+        // by attempting to get its visibility state
+        match window.is_visible() {
+            Ok(_) => {
+                tracing::debug!("Window already exists and is valid, showing and focusing: {}", window_label);
+                // If it exists and is valid, ensure it's shown and focused
+                let _ = window.unminimize();
+                let _ = window.show();
+                let _ = window.set_focus();
+                tracing::info!("Existing window shown: {}", window_label);
+                return Ok(());
+            }
+            Err(_) => {
+                // Window exists but is invalid (being destroyed), fall through to create new one
+                tracing::debug!("Window exists but is invalid, will create new one: {}", window_label);
+            }
+        }
     }
 
     // Create new sticky note window (hidden initially to prevent white flash)

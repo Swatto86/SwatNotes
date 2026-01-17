@@ -116,16 +116,14 @@ async function init(): Promise<void> {
     // Setup event handlers
     setupEventHandlers();
 
-    // Show window after content is loaded - small delay to prevent white flash
-    setTimeout(async () => {
-      try {
-        await currentWindow.show();
-        await currentWindow.setFocus();
-        console.log('Window shown and focused');
-      } catch (e) {
-        console.error('Failed to show window:', e);
-      }
-    }, 50);
+    // Show window immediately after setup - no delay needed since window has background color
+    try {
+      await currentWindow.show();
+      await currentWindow.setFocus();
+      console.log('Window shown and focused');
+    } catch (e) {
+      console.error('Failed to show window:', e);
+    }
 
   } catch (error) {
     console.error('Failed to load note:', error);
