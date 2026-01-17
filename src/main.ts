@@ -11,15 +11,16 @@ import { renderNotesList } from './components/notesList';
 import type { AppInfo } from './types';
 
 /**
- * Test the backend connection
+ * Test the backend connection (disabled to reduce log noise)
  */
 async function testGreet(): Promise<void> {
-  try {
-    const result = await invoke<string>('greet', { name: 'World' });
-    console.log('Greet result:', result);
-  } catch (error) {
-    console.error('Error calling greet:', error);
-  }
+  // Disabled - uncomment for debugging backend connection
+  // try {
+  //   const result = await invoke<string>('greet', { name: 'World' });
+  //   console.log('Greet result:', result);
+  // } catch (error) {
+  //   console.error('Error calling greet:', error);
+  // }
 }
 
 /**
@@ -63,8 +64,7 @@ async function init(): Promise<void> {
   // Setup reminder notification listener
   await setupReminderListener();
 
-  // Test backend connection
-  await testGreet();
+  // Get app info
   const appInfo = await getAppInfo();
 
   if (appInfo) {

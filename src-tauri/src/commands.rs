@@ -120,10 +120,13 @@ pub async fn open_note_window(
 
     // Check if window already exists
     if let Some(window) = app.get_webview_window(&window_label) {
-        tracing::debug!("Window already exists, focusing: {}", window_label);
-        // If it exists, just show and focus it
+        tracing::debug!("Window already exists, showing and focusing: {}", window_label);
+        // If it exists, ensure it's shown and focused
+        // Use unmaximize to ensure window is in normal state, then show and focus
+        let _ = window.unminimize();
         let _ = window.show();
         let _ = window.set_focus();
+        tracing::info!("Existing window shown: {}", window_label);
         return Ok(());
     }
 
@@ -163,6 +166,8 @@ pub async fn create_new_sticky_note(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> Result<()> {
+    use tauri::Emitter;
+
     tracing::info!("Creating new sticky note");
 
     // Create a new note with default content
@@ -175,6 +180,11 @@ pub async fn create_new_sticky_note(
         .await?;
 
     tracing::info!("Created new note: {}, opening window", note.id);
+
+    // Emit event to refresh notes list in main window
+    if let Err(e) = app.emit("notes-list-changed", ()) {
+        tracing::warn!("Failed to emit notes-list-changed event: {}", e);
+    }
 
     // Open it in a floating window
     open_note_window(app, state, note.id).await?;

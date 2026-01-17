@@ -165,6 +165,12 @@ export async function setupReminderListener() {
       await loadBackupsList();
     }
   });
+
+  // Listen for notes list changes to auto-refresh
+  await listen('notes-list-changed', async () => {
+    console.log('Notes list changed, refreshing...');
+    await refreshNotesList();
+  });
 }
 
 /**
