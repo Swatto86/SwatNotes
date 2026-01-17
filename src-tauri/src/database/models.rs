@@ -67,7 +67,8 @@ pub struct Backup {
     pub manifest_hash: String,
 }
 
-/// Application setting
+/// Application setting (reserved for future use)
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Setting {
     pub key: String,

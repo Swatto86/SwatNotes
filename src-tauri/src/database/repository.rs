@@ -135,6 +135,7 @@ impl Repository {
     }
 
     /// Permanently delete a note (for testing/cleanup)
+    #[allow(dead_code)]
     pub async fn hard_delete_note(&self, id: &str) -> Result<()> {
         sqlx::query("DELETE FROM notes WHERE id = ?")
             .bind(id)
@@ -267,6 +268,7 @@ impl Repository {
         Ok(value)
     }
 
+    #[allow(dead_code)]
     pub async fn set_setting(&self, key: &str, value: &str) -> Result<()> {
         sqlx::query(
             r#"

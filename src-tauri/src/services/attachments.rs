@@ -51,7 +51,8 @@ impl AttachmentsService {
         Ok(attachment)
     }
 
-    /// Get attachment data
+    /// Get attachment data by ID (alternative to get_attachment_by_hash)
+    #[allow(dead_code)]
     pub async fn get_attachment_data(&self, attachment_id: &str) -> Result<Vec<u8>> {
         // Get attachment metadata
         let attachments = self.repo.list_attachments(attachment_id).await?;

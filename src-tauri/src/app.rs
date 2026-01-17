@@ -14,7 +14,11 @@ use tauri::{App, Emitter, Manager};
 #[derive(Clone)]
 pub struct AppState {
     pub app_data_dir: PathBuf,
+    /// Direct database access (use services instead when possible)
+    #[allow(dead_code)]
     pub db: Repository,
+    /// Direct blob store access (use services instead when possible)
+    #[allow(dead_code)]
     pub blob_store: BlobStore,
     pub notes_service: NotesService,
     pub attachments_service: AttachmentsService,
@@ -162,6 +166,14 @@ fn setup_global_hotkeys(app: &mut App) -> Result<()> {
 
     tracing::info!("Setting up global hotkeys");
 
+    // Unregister if already registered (from previous instance or crash)
+    if app.global_shortcut().is_registered(crate::config::GLOBAL_HOTKEY_NEW_NOTE) {
+        tracing::warn!("Hotkey {} already registered, unregistering first", crate::config::GLOBAL_HOTKEY_NEW_NOTE);
+        if let Err(e) = app.global_shortcut().unregister(crate::config::GLOBAL_HOTKEY_NEW_NOTE) {
+            tracing::error!("Failed to unregister existing hotkey: {}", e);
+        }
+    }
+
     // Register global hotkey for creating new notes
     app.global_shortcut().on_shortcut(crate::config::GLOBAL_HOTKEY_NEW_NOTE, move |app, _shortcut, event| {
         if event.state == ShortcutState::Pressed {
@@ -177,9 +189,17 @@ fn setup_global_hotkeys(app: &mut App) -> Result<()> {
     })
     .map_err(|e| crate::error::AppError::Generic(format!("Failed to register shortcut handler: {}", e)))?;
 
-    app.global_shortcut()
-        .register(crate::config::GLOBAL_HOTKEY_NEW_NOTE)
-        .map_err(|e| crate::error::AppError::Generic(format!("Failed to register {}: {}", crate::config::GLOBAL_HOTKEY_NEW_NOTE, e)))?;
+    // Register the hotkey
+    match app.global_shortcut().register(crate::config::GLOBAL_HOTKEY_NEW_NOTE) {
+        Ok(_) => {
+            tracing::info!("Global hotkey {} registered successfully", crate::config::GLOBAL_HOTKEY_NEW_NOTE);
+        }
+        Err(e) => {
+            tracing::warn!("Failed to register global hotkey {}: {}. The app will work but the global hotkey won't be available.",
+                crate::config::GLOBAL_HOTKEY_NEW_NOTE, e);
+            // Don't fail the entire app setup just because hotkey registration failed
+        }
+    }
 
     tracing::info!("Global hotkeys setup complete");
 
