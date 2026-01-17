@@ -225,7 +225,7 @@ impl BackupService {
         // Read and decrypt backup
         let encrypted_data = fs::read(backup_path).await?;
         let encrypted: crypto::EncryptedData = serde_json::from_slice(&encrypted_data)
-            .map_err(|e| AppError::Generic(format!("Invalid backup file format: {}", e)))?;
+            .map_err(|e| AppError::Restore(format!("Invalid backup file format: {}", e)))?;
 
         let zip_data = crypto::decrypt(&encrypted, password)?;
 
@@ -268,7 +268,7 @@ impl BackupService {
             if actual_checksum != file_entry.checksum {
                 // Cleanup temp dir
                 let _ = fs::remove_dir_all(&temp_restore_dir).await;
-                return Err(AppError::Generic(format!(
+                return Err(AppError::Restore(format!(
                     "Checksum mismatch for {}: expected {}, got {}",
                     file_entry.path, file_entry.checksum, actual_checksum
                 )));

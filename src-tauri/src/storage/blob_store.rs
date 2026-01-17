@@ -86,7 +86,8 @@ impl BlobStore {
         Ok(path.exists())
     }
 
-    /// Delete a blob
+    /// Delete a blob (reserved for future cleanup functionality)
+    #[allow(dead_code)]
     pub async fn delete(&self, hash: &str) -> Result<()> {
         let path = self.get_path(hash);
 
@@ -158,6 +159,7 @@ impl BlobStore {
     }
 
     /// Get blob store root directory
+    #[allow(dead_code)]
     pub fn root(&self) -> &Path {
         &self.root
     }

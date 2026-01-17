@@ -15,5 +15,7 @@ pub const WINDOW_BACKGROUND_COLOR: (u8, u8, u8, u8) = (255, 255, 255, 255);
 pub const GLOBAL_HOTKEY_NEW_NOTE: &str = "Ctrl+Shift+N";
 
 /// Application metadata
+#[allow(dead_code)]
 pub const APP_NAME: &str = "QuickNotes";
+#[allow(dead_code)]
 pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
