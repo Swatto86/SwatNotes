@@ -36,7 +36,9 @@
         "fullscreen": false,
         "decorations": true,
         "center": true,
-        "label": "main"
+        "label": "main",
+        "visible": false,
+        "backgroundColor": "#ffffff"
       }
     ],
     "security": {

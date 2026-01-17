@@ -1,4 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { listen } from '@tauri-apps/api/event';
 import { createNote, searchNotes } from './utils/notesApi.js';
 import { renderNotesList } from './components/notesList.js';
 import { createNoteEditor } from './components/noteEditor.js';
@@ -418,7 +420,7 @@ async function init() {
   setupEventHandlers();
 
   // Setup reminder notification listener
-  setupReminderListener();
+  await setupReminderListener();
 
   // Test backend connection
   await testGreet();
@@ -433,13 +435,15 @@ async function init() {
   await refreshNotesList();
 
   console.log('QuickNotes initialized successfully!');
+
+  // Show window after initialization to prevent white flash
+  const currentWindow = getCurrentWebviewWindow();
+  await currentWindow.show();
 }
 
 // Setup reminder notification listener
-function setupReminderListener() {
-  const { listen } = require('@tauri-apps/api/event');
-
-  listen('reminder-triggered', (event) => {
+async function setupReminderListener() {
+  await listen('reminder-triggered', (event) => {
     const { note_id, note_title } = event.payload;
     console.log('Reminder triggered for note:', note_title);
 
@@ -451,7 +455,7 @@ function setupReminderListener() {
   });
 
   // Listen for create-new-note event from tray/hotkey
-  listen('create-new-note', async () => {
+  await listen('create-new-note', async () => {
     console.log('Create new note triggered from tray/hotkey');
     await handleCreateNote();
   });
