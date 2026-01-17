@@ -77,9 +77,8 @@ async function init(): Promise<void> {
 
   console.log('QuickNotes initialized successfully!');
 
-  // Show window after initialization to prevent white flash
-  const currentWindow = getCurrentWebviewWindow();
-  await currentWindow.show();
+  // NOTE: Main window stays hidden - only accessible via system tray
+  // The app is tray-focused, not window-focused
 }
 
 // Run on DOM ready

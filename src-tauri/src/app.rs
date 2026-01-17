@@ -140,12 +140,16 @@ fn setup_tray(app: &mut App) -> Result<()> {
                     }
                 }
                 "new_note" => {
-                    // Emit event to frontend to create new note
-                    if let Some(window) = app.get_webview_window("main") {
-                        let _ = window.show();
-                        let _ = window.set_focus();
-                        let _ = window.emit("create-new-note", ());
-                    }
+                    // Create a new sticky note window
+                    let app_handle = app.clone();
+                    tauri::async_runtime::spawn(async move {
+                        if let Err(e) = crate::commands::create_new_sticky_note(
+                            app_handle.clone(),
+                            app_handle.state(),
+                        ).await {
+                            tracing::error!("Failed to create sticky note from tray menu: {}", e);
+                        }
+                    });
                 }
                 "quit" => {
                     app.exit(0);
@@ -174,17 +178,21 @@ fn setup_global_hotkeys(app: &mut App) -> Result<()> {
         }
     }
 
-    // Register global hotkey for creating new notes
+    // Register global hotkey for creating new sticky notes
     app.global_shortcut().on_shortcut(crate::config::GLOBAL_HOTKEY_NEW_NOTE, move |app, _shortcut, event| {
         if event.state == ShortcutState::Pressed {
             tracing::info!("Global hotkey triggered: {}", crate::config::GLOBAL_HOTKEY_NEW_NOTE);
 
-            // Show window and emit event to create new note
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.set_focus();
-                let _ = window.emit("create-new-note", ());
-            }
+            // Create a new sticky note window directly
+            let app_handle = app.clone();
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = crate::commands::create_new_sticky_note(
+                    app_handle.clone(),
+                    app_handle.state(),
+                ).await {
+                    tracing::error!("Failed to create sticky note from hotkey: {}", e);
+                }
+            });
         }
     })
     .map_err(|e| crate::error::AppError::Generic(format!("Failed to register shortcut handler: {}", e)))?;
