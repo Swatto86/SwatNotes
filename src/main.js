@@ -122,7 +122,8 @@ async function handleCreateNote() {
   try {
     const newNote = await createNote('Untitled', JSON.stringify({ ops: [{ insert: '\n' }] }));
     await refreshNotesList();
-    openNoteInEditor(newNote);
+    // Open new note in floating window instead of main editor
+    await invoke('open_note_window', { noteId: newNote.id });
   } catch (error) {
     console.error('Failed to create note:', error);
     alert('Failed to create note');
