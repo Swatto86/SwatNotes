@@ -87,6 +87,19 @@ pub fn setup(app: &mut App) -> Result<()> {
     // Register global hotkeys
     setup_global_hotkeys(app)?;
 
+    // Setup window close handler to hide to tray instead of closing
+    if let Some(window) = app.get_webview_window("main") {
+        let window_clone = window.clone();
+        window.on_window_event(move |event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                // Prevent window from closing
+                api.prevent_close();
+                // Hide window instead
+                let _ = window_clone.hide();
+            }
+        });
+    }
+
     app.manage(state);
 
     tracing::info!("Application initialized successfully");
@@ -145,33 +158,30 @@ fn setup_tray(app: &mut App) -> Result<()> {
 
 /// Setup global hotkeys
 fn setup_global_hotkeys(app: &mut App) -> Result<()> {
-    use tauri_plugin_global_shortcut::ShortcutState;
+    use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
 
     tracing::info!("Setting up global hotkeys");
 
     let handle = app.handle().clone();
 
     // Register Ctrl+Shift+N for new note
-    app.handle()
-        .plugin(
-            tauri_plugin_global_shortcut::Builder::new()
-                .with_shortcuts(["Ctrl+Shift+N"])
-                .map_err(|e| crate::error::AppError::Generic(format!("Failed to setup shortcuts: {}", e)))?
-                .with_handler(move |_app, shortcut, event| {
-                    if event.state == ShortcutState::Pressed {
-                        tracing::info!("Global hotkey triggered: {}", shortcut);
+    app.global_shortcut().on_shortcut("Ctrl+Shift+N", move |app, _shortcut, event| {
+        if event.state == ShortcutState::Pressed {
+            tracing::info!("Global hotkey triggered: Ctrl+Shift+N");
 
-                        // Show window and emit event to create new note
-                        if let Some(window) = handle.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                            let _ = window.emit("create-new-note", ());
-                        }
-                    }
-                })
-                .build(),
-        )
-        .map_err(|e| crate::error::AppError::Generic(format!("Failed to setup hotkeys: {}", e)))?;
+            // Show window and emit event to create new note
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+                let _ = window.emit("create-new-note", ());
+            }
+        }
+    })
+    .map_err(|e| crate::error::AppError::Generic(format!("Failed to register shortcut: {}", e)))?;
+
+    app.global_shortcut()
+        .register("Ctrl+Shift+N")
+        .map_err(|e| crate::error::AppError::Generic(format!("Failed to register Ctrl+Shift+N: {}", e)))?;
 
     tracing::info!("Global hotkeys setup complete");
 
