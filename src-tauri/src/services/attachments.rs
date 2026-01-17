@@ -108,7 +108,7 @@ fn sanitize_filename(filename: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::database::{create_pool, initialize_database, CreateNoteRequest, Repository};
+    use crate::database::{initialize_database, CreateNoteRequest, Repository};
     use crate::storage::BlobStore;
     use sqlx::sqlite::SqlitePoolOptions;
     use tempfile::TempDir;

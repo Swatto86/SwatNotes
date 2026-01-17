@@ -345,7 +345,7 @@ fn calculate_checksum(data: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::database::{create_pool, initialize_database, CreateNoteRequest, Repository};
+    use crate::database::{initialize_database, CreateNoteRequest, Repository};
     use sqlx::sqlite::SqlitePoolOptions;
     use tempfile::TempDir;
 
@@ -479,11 +479,11 @@ mod tests {
         // Modify data after backup
         service
             .repo
-            .update_note(
-                original_note.id.clone(),
-                Some("Modified Title".to_string()),
-                Some(r#"{"ops":[{"insert":"Modified content\n"}]}"#.to_string()),
-            )
+            .update_note(models::UpdateNoteRequest {
+                id: original_note.id.clone(),
+                title: Some("Modified Title".to_string()),
+                content_json: Some(r#"{"ops":[{"insert":"Modified content\n"}]}"#.to_string()),
+            })
             .await
             .unwrap();
 
