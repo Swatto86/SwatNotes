@@ -5,16 +5,17 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
-import { initTheme, setupThemeSwitcher } from './ui/theme.js';
-import { setupEventHandlers, setupReminderListener } from './events/handlers.js';
-import { renderNotesList } from './components/notesList.js';
+import { initTheme, setupThemeSwitcher } from './ui/theme';
+import { setupEventHandlers, setupReminderListener } from './events/handlers';
+import { renderNotesList } from './components/notesList';
+import type { AppInfo } from './types';
 
 /**
  * Test the backend connection
  */
-async function testGreet() {
+async function testGreet(): Promise<void> {
   try {
-    const result = await invoke('greet', { name: 'World' });
+    const result = await invoke<string>('greet', { name: 'World' });
     console.log('Greet result:', result);
   } catch (error) {
     console.error('Error calling greet:', error);
@@ -23,11 +24,11 @@ async function testGreet() {
 
 /**
  * Get application information from backend
- * @returns {Promise<Object|null>} App info object or null on error
+ * @returns App info object or null on error
  */
-async function getAppInfo() {
+async function getAppInfo(): Promise<AppInfo | null> {
   try {
-    const info = await invoke('get_app_info');
+    const info = await invoke<AppInfo>('get_app_info');
     console.log('App info:', info);
     return info;
   } catch (error) {
@@ -39,17 +40,17 @@ async function getAppInfo() {
 /**
  * Refresh the notes list display
  */
-async function refreshNotesList() {
+async function refreshNotesList(): Promise<void> {
   // Dummy callback since we don't open notes in main window anymore
   const dummyCallback = () => {};
-  await renderNotesList('notes-list', dummyCallback, null);
+  await renderNotesList('notes-list', dummyCallback);
 }
 
 /**
  * Initialize the application
  * Sets up all modules, loads data, and displays the window
  */
-async function init() {
+async function init(): Promise<void> {
   console.log('Initializing QuickNotes...');
 
   // Initialize theme

@@ -146,4 +146,83 @@ mod tests {
         assert_eq!(decrypted1, plaintext);
         assert_eq!(decrypted2, plaintext);
     }
+
+    #[test]
+    fn test_empty_plaintext() {
+        let plaintext = b"";
+        let password = "password";
+
+        let encrypted = encrypt(plaintext, password).unwrap();
+        let decrypted = decrypt(&encrypted, password).unwrap();
+
+        assert_eq!(plaintext.as_slice(), decrypted.as_slice());
+    }
+
+    #[test]
+    fn test_large_data() {
+        // Test with 1MB of data
+        let plaintext = vec![0x42u8; 1024 * 1024];
+        let password = "large_data_password";
+
+        let encrypted = encrypt(&plaintext, password).unwrap();
+        let decrypted = decrypt(&encrypted, password).unwrap();
+
+        assert_eq!(plaintext, decrypted);
+    }
+
+    #[test]
+    fn test_corrupted_ciphertext() {
+        let plaintext = b"Original message";
+        let password = "password123";
+
+        let mut encrypted = encrypt(plaintext, password).unwrap();
+
+        // Corrupt the ciphertext
+        if let Some(byte) = encrypted.ciphertext.get_mut(0) {
+            *byte ^= 0xFF;
+        }
+
+        // Decryption should fail due to authentication tag mismatch
+        let result = decrypt(&encrypted, password);
+        assert!(result.is_err(), "Decryption of corrupted data should fail");
+    }
+
+    #[test]
+    fn test_corrupted_nonce() {
+        let plaintext = b"Message";
+        let password = "pass";
+
+        let mut encrypted = encrypt(plaintext, password).unwrap();
+
+        // Corrupt the nonce
+        if let Some(byte) = encrypted.nonce.get_mut(0) {
+            *byte ^= 0xFF;
+        }
+
+        // Decryption should fail
+        let result = decrypt(&encrypted, password);
+        assert!(result.is_err(), "Decryption with corrupted nonce should fail");
+    }
+
+    #[test]
+    fn test_special_characters_in_password() {
+        let plaintext = b"Secret data";
+        let password = "p@ssw0rd!#$%^&*()_+-=[]{}|;':\",./<>?";
+
+        let encrypted = encrypt(plaintext, password).unwrap();
+        let decrypted = decrypt(&encrypted, password).unwrap();
+
+        assert_eq!(plaintext.as_slice(), decrypted.as_slice());
+    }
+
+    #[test]
+    fn test_unicode_password() {
+        let plaintext = b"Data";
+        let password = "пароль密码🔐";
+
+        let encrypted = encrypt(plaintext, password).unwrap();
+        let decrypted = decrypt(&encrypted, password).unwrap();
+
+        assert_eq!(plaintext.as_slice(), decrypted.as_slice());
+    }
 }

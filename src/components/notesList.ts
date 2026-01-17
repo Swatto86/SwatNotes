@@ -1,15 +1,23 @@
-// Notes List Component
+/**
+ * Notes List Component
+ * Renders and manages the notes list UI
+ */
 
-import { listNotes, deleteNote } from '../utils/notesApi.js';
+import { listNotes, deleteNote } from '../utils/notesApi';
 import { invoke } from '@tauri-apps/api/core';
+import type { Note } from '../types';
 
 /**
  * Render notes list
- * @param {string} containerId - Container element ID
- * @param {Function} onNoteClick - Callback when note is clicked (receives note)
- * @param {Function} onNotesChange - Callback when notes list changes
+ * @param containerId - Container element ID
+ * @param onNoteClick - Callback when note is clicked (receives note)
+ * @param onNotesChange - Callback when notes list changes
  */
-export async function renderNotesList(containerId, onNoteClick, onNotesChange) {
+export async function renderNotesList(
+  containerId: string,
+  onNoteClick: (note: Note) => void,
+  onNotesChange?: (notes: Note[]) => void
+): Promise<void> {
   const container = document.getElementById(containerId);
   if (!container) {
     throw new Error(`Container #${containerId} not found`);
@@ -72,7 +80,7 @@ export async function renderNotesList(containerId, onNoteClick, onNotesChange) {
   }
 }
 
-function createNoteCard(note) {
+function createNoteCard(note: Note): string {
   const preview = extractTextPreview(note.content_json);
   const date = formatDate(note.updated_at);
 
@@ -103,7 +111,7 @@ function createNoteCard(note) {
   `;
 }
 
-async function handlePopoutNote(noteId) {
+async function handlePopoutNote(noteId: string): Promise<void> {
   try {
     await invoke('open_note_window', { noteId });
   } catch (error) {
@@ -112,7 +120,12 @@ async function handlePopoutNote(noteId) {
   }
 }
 
-async function handleDeleteNote(noteId, containerId, onNoteClick, onNotesChange) {
+async function handleDeleteNote(
+  noteId: string,
+  containerId: string,
+  onNoteClick: (note: Note) => void,
+  onNotesChange?: (notes: Note[]) => void
+): Promise<void> {
   if (!confirm('Are you sure you want to delete this note?')) {
     return;
   }
@@ -127,13 +140,13 @@ async function handleDeleteNote(noteId, containerId, onNoteClick, onNotesChange)
   }
 }
 
-function extractTextPreview(contentJson) {
+function extractTextPreview(contentJson: string): string {
   try {
     const content = JSON.parse(contentJson);
     if (content.ops && Array.isArray(content.ops)) {
       // Extract text from Quill Delta
       const text = content.ops
-        .map(op => (typeof op.insert === 'string' ? op.insert : ''))
+        .map((op: any) => (typeof op.insert === 'string' ? op.insert : ''))
         .join('')
         .trim();
       return text.substring(0, 100) || 'Empty note';
@@ -144,13 +157,13 @@ function extractTextPreview(contentJson) {
   return 'Empty note';
 }
 
-function escapeHtml(text) {
+function escapeHtml(text: string): string {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
 }
 
-function formatDate(dateString) {
+function formatDate(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
   const diff = now - date;

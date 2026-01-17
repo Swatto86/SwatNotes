@@ -3,7 +3,7 @@
  * Handles theme selection, storage, and application
  */
 
-import { THEME_KEY, DEFAULT_THEME } from '../config.js';
+import { THEME_KEY, DEFAULT_THEME } from '../config';
 
 /**
  * Get the currently stored theme from localStorage

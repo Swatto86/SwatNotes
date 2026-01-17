@@ -5,11 +5,11 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { createNote, searchNotes } from '../utils/notesApi.js';
-import { renderNotesList } from '../components/notesList.js';
-import { DEFAULT_NOTE_CONTENT, DEFAULT_NOTE_TITLE, SEARCH_DEBOUNCE_MS } from '../config.js';
-import { getStoredTheme } from '../ui/theme.js';
-import { handleBackupNow, loadBackupsList } from '../ui/backup.js';
+import { createNote, searchNotes } from '../utils/notesApi';
+import { renderNotesList } from '../components/notesList';
+import { DEFAULT_NOTE_CONTENT, DEFAULT_NOTE_TITLE, SEARCH_DEBOUNCE_MS } from '../config';
+import { getStoredTheme } from '../ui/theme';
+import { handleBackupNow, loadBackupsList } from '../ui/backup';
 
 /**
  * Setup all event handlers for the application

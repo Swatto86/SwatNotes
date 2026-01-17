@@ -3,8 +3,8 @@
  * Handles backup creation and restore UI logic
  */
 
-import { createBackup, listBackups, restoreBackup } from '../utils/backupApi.js';
-import { MIN_PASSWORD_LENGTH, BACKUP_LIST_LIMIT } from '../config.js';
+import { createBackup, listBackups, restoreBackup } from '../utils/backupApi';
+import { MIN_PASSWORD_LENGTH, BACKUP_LIST_LIMIT } from '../config';
 
 /**
  * Handle backup creation from UI

@@ -1,21 +1,27 @@
+/**
+ * Sticky Note Window
+ * Standalone floating note window with auto-save and theme support
+ */
+
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import Quill from 'quill';
+import type { Note } from './types';
 
-let noteId = null;
-let currentNote = null;
-let editor = null;
-let saveTimeout = null;
+let noteId: string | null = null;
+let currentNote: Note | null = null;
+let editor: Quill | null = null;
+let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 let isDirty = false;
 
 // Theme management
 const THEME_KEY = 'quicknotes-theme';
 
-function getStoredTheme() {
+function getStoredTheme(): string {
   return localStorage.getItem(THEME_KEY) || 'light';
 }
 
-function applyTheme() {
+function applyTheme(): void {
   const theme = getStoredTheme();
   document.documentElement.setAttribute('data-theme', theme);
 }
@@ -26,14 +32,14 @@ const windowLabel = currentWindow.label;
 noteId = windowLabel.replace('note-', '');
 
 // Initialize
-async function init() {
+async function init(): Promise<void> {
   console.log('Initializing sticky note for ID:', noteId);
 
   // Apply theme first
   applyTheme();
 
   // Listen for theme changes from main window
-  window.addEventListener('storage', (e) => {
+  window.addEventListener('storage', (e: StorageEvent) => {
     if (e.key === THEME_KEY) {
       applyTheme();
     }
@@ -41,11 +47,14 @@ async function init() {
 
   // Load note
   try {
-    currentNote = await invoke('get_note', { id: noteId });
+    currentNote = await invoke<Note>('get_note', { id: noteId });
     console.log('Loaded note:', currentNote);
 
     // Update title
-    document.getElementById('sticky-note-title').textContent = currentNote.title || 'Untitled';
+    const titleElement = document.getElementById('sticky-note-title');
+    if (titleElement) {
+      titleElement.textContent = currentNote.title || 'Untitled';
+    }
     document.title = currentNote.title || 'Note';
 
     // Initialize Quill editor
@@ -97,14 +106,16 @@ async function init() {
   }
 }
 
-function setupEventHandlers() {
+function setupEventHandlers(): void {
   // Save button
-  document.getElementById('save-btn').addEventListener('click', async () => {
+  const saveBtn = document.getElementById('save-btn');
+  saveBtn?.addEventListener('click', async () => {
     await saveNote();
   });
 
   // Close button
-  document.getElementById('close-btn').addEventListener('click', async () => {
+  const closeBtn = document.getElementById('close-btn');
+  closeBtn?.addEventListener('click', async () => {
     if (isDirty) {
       await saveNote();
     }
@@ -112,7 +123,9 @@ function setupEventHandlers() {
   });
 
   // Delete button
-  document.getElementById('delete-btn').addEventListener('click', async () => {
+  const deleteBtn = document.getElementById('delete-btn');
+  deleteBtn?.addEventListener('click', async () => {
+    if (!currentNote) return;
     const confirmed = confirm(`Delete note "${currentNote.title}"?`);
     if (confirmed) {
       try {
@@ -126,19 +139,21 @@ function setupEventHandlers() {
   });
 
   // Save on window close
-  window.addEventListener('beforeunload', async (e) => {
+  window.addEventListener('beforeunload', async () => {
     if (isDirty) {
       await saveNote();
     }
   });
 }
 
-async function saveNote() {
-  if (!isDirty) return;
+async function saveNote(): Promise<void> {
+  if (!isDirty || !editor || !currentNote) return;
 
-  const saveBtn = document.getElementById('save-btn');
-  saveBtn.textContent = 'Saving...';
-  saveBtn.disabled = true;
+  const saveBtn = document.getElementById('save-btn') as HTMLButtonElement;
+  if (saveBtn) {
+    saveBtn.textContent = 'Saving...';
+    saveBtn.disabled = true;
+  }
 
   try {
     const content = editor.getContents();
@@ -151,17 +166,23 @@ async function saveNote() {
     });
 
     isDirty = false;
-    saveBtn.textContent = 'Saved';
+    if (saveBtn) {
+      saveBtn.textContent = 'Saved';
+    }
     console.log('Note saved successfully');
   } catch (error) {
     console.error('Failed to save note:', error);
-    saveBtn.textContent = 'Error';
-    setTimeout(() => updateSaveButton(), 2000);
+    if (saveBtn) {
+      saveBtn.textContent = 'Error';
+      setTimeout(() => updateSaveButton(), 2000);
+    }
   }
 }
 
-function updateSaveButton() {
-  const saveBtn = document.getElementById('save-btn');
+function updateSaveButton(): void {
+  const saveBtn = document.getElementById('save-btn') as HTMLButtonElement;
+  if (!saveBtn) return;
+
   if (isDirty) {
     saveBtn.textContent = 'Save';
     saveBtn.disabled = false;
