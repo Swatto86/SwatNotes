@@ -5,7 +5,9 @@
 
 mod app;
 mod commands;
+mod database;
 mod error;
+mod storage;
 
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
