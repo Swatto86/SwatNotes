@@ -133,3 +133,16 @@ pub async fn create_backup(state: State<'_, AppState>, password: String) -> Resu
 pub async fn list_backups(state: State<'_, AppState>) -> Result<Vec<Backup>> {
     state.backup_service.list_backups().await
 }
+
+#[tauri::command]
+pub async fn restore_backup(
+    state: State<'_, AppState>,
+    backup_path: String,
+    password: String,
+) -> Result<()> {
+    use std::path::Path;
+    state
+        .backup_service
+        .restore_backup(Path::new(&backup_path), &password)
+        .await
+}

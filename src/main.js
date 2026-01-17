@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { createNote, searchNotes } from './utils/notesApi.js';
 import { renderNotesList } from './components/notesList.js';
 import { createNoteEditor } from './components/noteEditor.js';
-import { createBackup, listBackups } from './utils/backupApi.js';
+import { createBackup, listBackups, restoreBackup } from './utils/backupApi.js';
 
 // Application state
 let currentEditor = null;
@@ -304,17 +304,26 @@ async function loadBackupsList() {
     listEl.innerHTML = backups
       .slice(0, 5) // Show last 5
       .map(
-        (backup) => `
+        (backup, index) => `
       <div class="flex justify-between items-center p-2 bg-base-200 rounded mb-2">
         <div>
           <p class="text-sm font-medium">${formatDate(backup.timestamp)}</p>
           <p class="text-xs text-base-content/50">${formatFileSize(backup.size)}</p>
         </div>
-        <button class="btn btn-ghost btn-xs" disabled>Restore</button>
+        <button class="btn btn-primary btn-xs restore-btn" data-backup-index="${index}">Restore</button>
       </div>
     `
       )
       .join('');
+
+    // Attach click listeners to restore buttons
+    const recentBackups = backups.slice(0, 5);
+    document.querySelectorAll('.restore-btn').forEach((btn, index) => {
+      btn.addEventListener('click', () => {
+        const backup = recentBackups[index];
+        handleRestoreBackup(backup.path, backup.timestamp);
+      });
+    });
   } catch (error) {
     console.error('Failed to load backups:', error);
     listEl.innerHTML = '<p class="text-sm text-error">Failed to load backups</p>';
@@ -332,6 +341,44 @@ function formatFileSize(bytes) {
 function formatDate(dateString) {
   const date = new Date(dateString);
   return date.toLocaleString();
+}
+
+// Restore backup handler
+async function handleRestoreBackup(backupPath, backupTimestamp) {
+  const confirmed = confirm(
+    `Are you sure you want to restore from backup created on ${formatDate(backupTimestamp)}?\n\n` +
+    `This will replace all current data. The application will need to restart after restore.`
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const password = prompt('Enter the backup password:');
+  if (!password) {
+    return;
+  }
+
+  const statusEl = document.getElementById('backup-status');
+
+  try {
+    statusEl.textContent = 'Restoring backup... Please wait.';
+    statusEl.className = 'text-sm text-info';
+
+    await restoreBackup(backupPath, password);
+
+    statusEl.textContent = 'Restore completed! Please restart the application.';
+    statusEl.className = 'text-sm text-success';
+
+    // Show restart prompt
+    setTimeout(() => {
+      alert('Restore completed successfully!\n\nPlease close and restart the application to see the restored data.');
+    }, 500);
+  } catch (error) {
+    console.error('Restore failed:', error);
+    statusEl.textContent = 'Restore failed: ' + error;
+    statusEl.className = 'text-sm text-error';
+  }
 }
 
 // Initialize app

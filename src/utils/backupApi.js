@@ -20,6 +20,16 @@ export async function listBackups() {
 }
 
 /**
+ * Restore from a backup
+ * @param {string} backupPath - Path to the backup file
+ * @param {string} password - Password to decrypt the backup
+ * @returns {Promise<void>}
+ */
+export async function restoreBackup(backupPath, password) {
+  return await invoke('restore_backup', { backupPath, password });
+}
+
+/**
  * @typedef {Object} Backup
  * @property {string} id
  * @property {string} timestamp
