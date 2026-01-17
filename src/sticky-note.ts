@@ -64,6 +64,16 @@ async function init(): Promise<void> {
     }
   });
 
+  // Always show window after a brief delay to prevent white flash but ensure visibility
+  setTimeout(async () => {
+    try {
+      await currentWindow.show();
+      await currentWindow.setFocus();
+    } catch (e) {
+      console.error('Failed to show window:', e);
+    }
+  }, 100);
+
   // Load note
   try {
     currentNote = await invoke<Note>('get_note', { id: noteId });
@@ -116,14 +126,15 @@ async function init(): Promise<void> {
     // Setup event handlers
     setupEventHandlers();
 
-    // Show window after content loads to prevent white flash
-    await currentWindow.show();
-    await currentWindow.setFocus();
-
   } catch (error) {
     console.error('Failed to load note:', error);
     alert('Failed to load note: ' + error);
-    currentWindow.close();
+    // Still show window so user can see the error
+    try {
+      await currentWindow.show();
+    } catch (e) {
+      console.error('Failed to show window after error:', e);
+    }
   }
 }
 
