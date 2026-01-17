@@ -8,6 +8,18 @@ let editor = null;
 let saveTimeout = null;
 let isDirty = false;
 
+// Theme management
+const THEME_KEY = 'quicknotes-theme';
+
+function getStoredTheme() {
+  return localStorage.getItem(THEME_KEY) || 'light';
+}
+
+function applyTheme() {
+  const theme = getStoredTheme();
+  document.documentElement.setAttribute('data-theme', theme);
+}
+
 // Get note ID from window label
 const currentWindow = getCurrentWebviewWindow();
 const windowLabel = currentWindow.label;
@@ -16,6 +28,16 @@ noteId = windowLabel.replace('note-', '');
 // Initialize
 async function init() {
   console.log('Initializing sticky note for ID:', noteId);
+
+  // Apply theme first
+  applyTheme();
+
+  // Listen for theme changes from main window
+  window.addEventListener('storage', (e) => {
+    if (e.key === THEME_KEY) {
+      applyTheme();
+    }
+  });
 
   // Load note
   try {
@@ -140,11 +162,13 @@ function updateSaveButton() {
   if (isDirty) {
     saveBtn.textContent = 'Save';
     saveBtn.disabled = false;
-    saveBtn.classList.add('sticky-btn-primary');
+    saveBtn.classList.add('btn-primary');
+    saveBtn.classList.remove('btn-ghost');
   } else {
     saveBtn.textContent = 'Saved';
     saveBtn.disabled = true;
-    saveBtn.classList.remove('sticky-btn-primary');
+    saveBtn.classList.remove('btn-primary');
+    saveBtn.classList.add('btn-ghost');
   }
 }
 
