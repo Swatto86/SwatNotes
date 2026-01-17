@@ -133,7 +133,6 @@ impl BackupService {
 
         // Finish ZIP
         zip.finish()?;
-        drop(zip); // Close the file
 
         tracing::info!("ZIP file created, encrypting...");
 
@@ -256,9 +255,13 @@ impl BackupService {
                 continue;
             }
 
-            let mut file = archive.by_name(&file_entry.path)?;
-            let mut contents = Vec::new();
-            std::io::Read::read_to_end(&mut file, &mut contents)?;
+            // Read file contents (drop file before any await)
+            let contents = {
+                let mut file = archive.by_name(&file_entry.path)?;
+                let mut contents = Vec::new();
+                std::io::Read::read_to_end(&mut file, &mut contents)?;
+                contents
+            };
 
             // Verify checksum
             let actual_checksum = calculate_checksum(&contents);

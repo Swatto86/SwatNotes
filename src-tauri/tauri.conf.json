@@ -1,7 +1,7 @@
 {
   "productName": "QuickNotes",
   "version": "0.1.0",
-  "identifier": "com.quicknotes.app",
+  "identifier": "com.quicknotes.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:5173",
