@@ -8,6 +8,7 @@ use crate::error::Result;
 use crate::services::{AttachmentsService, BackupService, NotesService, RemindersService};
 use crate::storage::BlobStore;
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use tauri::{App, Emitter, Manager};
 
 /// Central application state holding all services
@@ -24,6 +25,8 @@ pub struct AppState {
     pub attachments_service: AttachmentsService,
     pub backup_service: BackupService,
     pub reminders_service: RemindersService,
+    /// Last focused note window label for toggle hotkey
+    pub last_focused_note_window: Arc<Mutex<Option<String>>>,
 }
 
 impl AppState {
@@ -51,6 +54,7 @@ impl AppState {
             attachments_service,
             backup_service,
             reminders_service,
+            last_focused_note_window: Arc::new(Mutex::new(None)),
         })
     }
 }
@@ -216,6 +220,40 @@ fn setup_global_hotkeys(app: &mut App) -> Result<()> {
             tracing::warn!("Failed to register global hotkey {}: {}. The app will work but the global hotkey won't be available.",
                 crate::config::GLOBAL_HOTKEY_NEW_NOTE, e);
             // Don't fail the entire app setup just because hotkey registration failed
+        }
+    }
+
+    // Register global hotkey for toggling the last focused note window
+    // Unregister if already registered
+    if app.global_shortcut().is_registered(crate::config::GLOBAL_HOTKEY_TOGGLE_NOTE) {
+        tracing::warn!("Hotkey {} already registered, unregistering first", crate::config::GLOBAL_HOTKEY_TOGGLE_NOTE);
+        if let Err(e) = app.global_shortcut().unregister(crate::config::GLOBAL_HOTKEY_TOGGLE_NOTE) {
+            tracing::error!("Failed to unregister existing hotkey: {}", e);
+        }
+    }
+
+    app.global_shortcut().on_shortcut(crate::config::GLOBAL_HOTKEY_TOGGLE_NOTE, move |app, _shortcut, event| {
+        if event.state == ShortcutState::Pressed {
+            tracing::info!("Toggle hotkey triggered: {}", crate::config::GLOBAL_HOTKEY_TOGGLE_NOTE);
+
+            // Toggle the last focused note window
+            if let Err(e) = crate::commands::toggle_last_focused_note_window(
+                app.clone(),
+                app.state(),
+            ) {
+                tracing::error!("Failed to toggle note window from hotkey: {}", e);
+            }
+        }
+    })
+    .map_err(|e| crate::error::AppError::Generic(format!("Failed to register toggle shortcut handler: {}", e)))?;
+
+    match app.global_shortcut().register(crate::config::GLOBAL_HOTKEY_TOGGLE_NOTE) {
+        Ok(_) => {
+            tracing::info!("Global hotkey {} registered successfully", crate::config::GLOBAL_HOTKEY_TOGGLE_NOTE);
+        }
+        Err(e) => {
+            tracing::warn!("Failed to register global hotkey {}: {}. The app will work but the global hotkey won't be available.",
+                crate::config::GLOBAL_HOTKEY_TOGGLE_NOTE, e);
         }
     }
 
