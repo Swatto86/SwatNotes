@@ -172,6 +172,44 @@
           </div>
         </div>
 
+        <!-- Hotkey Settings -->
+        <div class="mb-6">
+          <h4 class="font-semibold text-md mb-3">Hotkeys</h4>
+          <div class="space-y-3">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">New Note</span>
+              </label>
+              <input
+                type="text"
+                id="hotkey-new-note"
+                placeholder="Ctrl+Shift+N"
+                class="input input-bordered input-sm w-full max-w-md text-base-content"
+                readonly
+              />
+              <label class="label">
+                <span class="label-text-alt text-base-content/50">Creates a new floating sticky note</span>
+              </label>
+            </div>
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Toggle Note</span>
+              </label>
+              <input
+                type="text"
+                id="hotkey-toggle-note"
+                placeholder="Ctrl+Shift+H"
+                class="input input-bordered input-sm w-full max-w-md text-base-content"
+                readonly
+              />
+              <label class="label">
+                <span class="label-text-alt text-base-content/50">Hides/shows the currently focused note</span>
+              </label>
+            </div>
+            <button id="reset-hotkeys-btn" class="btn btn-ghost btn-sm">Reset to Defaults</button>
+          </div>
+        </div>
+
         <div class="modal-action">
           <form method="dialog">
             <button class="btn">Close</button>

@@ -14,6 +14,9 @@ pub const WINDOW_BACKGROUND_COLOR: (u8, u8, u8, u8) = (255, 255, 255, 255);
 /// Global hotkey for creating new notes
 pub const GLOBAL_HOTKEY_NEW_NOTE: &str = "Ctrl+Shift+N";
 
+/// Global hotkey for toggling the last focused note window
+pub const GLOBAL_HOTKEY_TOGGLE_NOTE: &str = "Ctrl+Shift+H";
+
 /// Application metadata
 #[allow(dead_code)]
 pub const APP_NAME: &str = "SwatNotes";

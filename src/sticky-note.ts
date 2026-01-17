@@ -26,6 +26,25 @@ function applyTheme(): void {
   document.documentElement.setAttribute('data-theme', theme);
 }
 
+/**
+ * Generate a title from note content
+ * Takes the first line of text, up to 50 characters
+ */
+function generateTitleFromContent(quill: Quill): string {
+  const text = quill.getText().trim();
+  if (!text) {
+    return 'Untitled';
+  }
+
+  // Get first line or first 50 characters
+  const firstLine = text.split('\n')[0];
+  if (firstLine.length > 50) {
+    return firstLine.substring(0, 50) + '...';
+  }
+
+  return firstLine || 'Untitled';
+}
+
 // Get note ID from window label
 const currentWindow = getCurrentWebviewWindow();
 const windowLabel = currentWindow.label;
@@ -50,13 +69,6 @@ async function init(): Promise<void> {
     currentNote = await invoke<Note>('get_note', { id: noteId });
     console.log('Loaded note:', currentNote);
 
-    // Update title input
-    const titleInput = document.getElementById('sticky-note-title') as HTMLInputElement;
-    if (titleInput) {
-      titleInput.value = currentNote.title || 'Untitled';
-    }
-    document.title = currentNote.title || 'Note';
-
     // Initialize Quill editor
     editor = new Quill('#sticky-note-editor', {
       theme: 'snow',
@@ -79,11 +91,19 @@ async function init(): Promise<void> {
       console.error('Failed to parse note content:', e);
     }
 
+    // Update window title from content
+    const generatedTitle = generateTitleFromContent(editor);
+    document.title = generatedTitle;
+
     // Setup auto-save on content changes
     editor.on('text-change', (delta, oldDelta, source) => {
       if (source === 'user') {
         isDirty = true;
         updateSaveStatus('saving');
+
+        // Update window title from content
+        const newTitle = generateTitleFromContent(editor);
+        document.title = newTitle;
 
         // Debounce auto-save
         if (saveTimeout) clearTimeout(saveTimeout);
@@ -96,8 +116,8 @@ async function init(): Promise<void> {
     // Setup event handlers
     setupEventHandlers();
 
-    // Note: Window is already shown by Rust code to ensure visibility
-    // Just ensure focus in case needed
+    // Show window after content loads to prevent white flash
+    await currentWindow.show();
     await currentWindow.setFocus();
 
   } catch (error) {
@@ -108,23 +128,13 @@ async function init(): Promise<void> {
 }
 
 function setupEventHandlers(): void {
-  // Title input - auto-save on change
-  const titleInput = document.getElementById('sticky-note-title') as HTMLInputElement;
-  if (titleInput) {
-    titleInput.addEventListener('input', () => {
-      isDirty = true;
-      updateSaveStatus('saving');
-
-      // Update window title immediately
-      document.title = titleInput.value || 'Note';
-
-      // Debounce auto-save
-      if (saveTimeout) clearTimeout(saveTimeout);
-      saveTimeout = setTimeout(async () => {
-        await saveNote();
-      }, 1000);
-    });
-  }
+  // Track when this window gains focus for toggle hotkey
+  currentWindow.onFocusChanged(({ payload: focused }) => {
+    if (focused) {
+      invoke('set_last_focused_note_window', { windowLabel: windowLabel })
+        .catch(err => console.error('Failed to set last focused window:', err));
+    }
+  });
 
   // Close button - save and close
   const closeBtn = document.getElementById('close-btn');
@@ -138,13 +148,13 @@ function setupEventHandlers(): void {
   // Delete button - confirm and delete
   const deleteBtn = document.getElementById('delete-btn');
   deleteBtn?.addEventListener('click', async () => {
-    if (!currentNote) {
+    if (!currentNote || !editor) {
       console.error('No current note to delete');
       return;
     }
 
-    const titleInput = document.getElementById('sticky-note-title') as HTMLInputElement;
-    const noteTitle = titleInput?.value || currentNote.title || 'Untitled';
+    // Use generated title for confirmation
+    const noteTitle = generateTitleFromContent(editor);
 
     const confirmed = confirm(`Delete note "${noteTitle}"?`);
     if (!confirmed) {
@@ -154,14 +164,9 @@ function setupEventHandlers(): void {
 
     console.log('Deleting note:', noteId);
     try {
-      await invoke('delete_note', { id: noteId });
-      console.log('Note deleted successfully, closing window');
-
-      // Close window immediately after successful deletion
-      // Use setTimeout to ensure the invoke completes before closing
-      setTimeout(() => {
-        currentWindow.close();
-      }, 100);
+      // Use new command that both deletes and closes window
+      await invoke('delete_note_and_close_window', { id: noteId });
+      console.log('Note deleted and window closed');
     } catch (error) {
       console.error('Failed to delete note:', error);
       alert('Failed to delete note: ' + error);
@@ -179,8 +184,8 @@ function setupEventHandlers(): void {
 async function saveNote(): Promise<void> {
   if (!isDirty || !editor || !currentNote) return;
 
-  const titleInput = document.getElementById('sticky-note-title') as HTMLInputElement;
-  const title = titleInput?.value || currentNote.title || 'Untitled';
+  // Generate title from content
+  const title = generateTitleFromContent(editor);
 
   updateSaveStatus('saving');
 
@@ -202,7 +207,7 @@ async function saveNote(): Promise<void> {
 
     isDirty = false;
     updateSaveStatus('saved');
-    console.log('Note saved successfully');
+    console.log('Note saved successfully with title:', title);
   } catch (error) {
     console.error('Failed to save note:', error);
     updateSaveStatus('error');
