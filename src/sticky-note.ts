@@ -116,24 +116,17 @@ async function init(): Promise<void> {
     // Setup event handlers
     setupEventHandlers();
 
-    // Show window immediately after setup - no delay needed since window has background color
+    // Window is already shown by Rust - just ensure focus
     try {
-      await currentWindow.show();
       await currentWindow.setFocus();
-      console.log('Window shown and focused');
+      console.log('Window initialized and focused');
     } catch (e) {
-      console.error('Failed to show window:', e);
+      console.error('Failed to focus window:', e);
     }
 
   } catch (error) {
     console.error('Failed to load note:', error);
     alert('Failed to load note: ' + error);
-    // Still show window so user can see the error
-    try {
-      await currentWindow.show();
-    } catch (e) {
-      console.error('Failed to show window after error:', e);
-    }
   }
 }
 

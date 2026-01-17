@@ -139,9 +139,9 @@ pub async fn open_note_window(
         }
     }
 
-    // Create new sticky note window (hidden initially to prevent white flash)
+    // Create new sticky note window (visible from start with background color to prevent flash)
     tracing::debug!("Creating new sticky note window: {}", window_label);
-    let _window = WebviewWindowBuilder::new(
+    let window = WebviewWindowBuilder::new(
         &app,
         &window_label,
         WebviewUrl::App("sticky-note.html".into()),
@@ -153,7 +153,7 @@ pub async fn open_note_window(
     .decorations(true)
     .always_on_top(false)
     .skip_taskbar(false)
-    .visible(false)  // Hidden initially - JS will show after content loads
+    .visible(true)  // Visible from start - background color prevents white flash
     .background_color(Color(
         config::WINDOW_BACKGROUND_COLOR.0,
         config::WINDOW_BACKGROUND_COLOR.1,
@@ -162,9 +162,11 @@ pub async fn open_note_window(
     ))
     .build()?;
 
-    tracing::info!("Sticky note window created successfully (hidden): {}", window_label);
+    tracing::info!("Sticky note window created successfully: {}", window_label);
 
-    // Window will be shown by JS after content loads to prevent white flash
+    // Ensure window is shown and focused
+    let _ = window.show();
+    let _ = window.set_focus();
 
     Ok(())
 }
