@@ -118,7 +118,7 @@ fn setup_tray(app: &mut App) -> Result<()> {
 
     tracing::info!("Setting up system tray");
 
-    let show_item = MenuItem::with_id(app, "show", "Show QuickNotes", true, None::<&str>)?;
+    let show_item = MenuItem::with_id(app, "show", "Show SwatNotes", true, None::<&str>)?;
     let new_note_item = MenuItem::with_id(app, "new_note", "New Note", true, Some("Ctrl+Shift+N"))?;
     let separator = tauri::menu::PredefinedMenuItem::separator(app)?;
     let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;

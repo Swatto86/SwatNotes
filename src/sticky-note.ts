@@ -15,7 +15,7 @@ let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 let isDirty = false;
 
 // Theme management
-const THEME_KEY = 'quicknotes-theme';
+const THEME_KEY = 'swatnotes-theme';
 
 function getStoredTheme(): string {
   return localStorage.getItem(THEME_KEY) || 'light';

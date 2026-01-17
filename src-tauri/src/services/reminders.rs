@@ -103,7 +103,7 @@ impl RemindersService {
             if let Err(e) = handle
                 .notification()
                 .builder()
-                .title("QuickNotes Reminder")
+                .title("SwatNotes Reminder")
                 .body(format!("Reminder: {}", note.title))
                 .show()
             {

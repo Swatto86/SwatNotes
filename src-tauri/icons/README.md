@@ -1,6 +1,6 @@
 # Icons
 
-This directory should contain the following icon files for the QuickNotes application:
+This directory should contain the following icon files for the SwatNotes application:
 
 ## Required Icons
 

@@ -1,7 +1,7 @@
 {
-  "productName": "QuickNotes",
+  "productName": "SwatNotes",
   "version": "0.1.0",
-  "identifier": "com.quicknotes.desktop",
+  "identifier": "com.swatnotes.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:5173",
@@ -27,7 +27,7 @@
   "app": {
     "windows": [
       {
-        "title": "QuickNotes",
+        "title": "SwatNotes",
         "width": 1000,
         "height": 700,
         "minWidth": 800,

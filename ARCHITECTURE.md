@@ -1,7 +1,7 @@
-# QuickNotes Architecture
+# SwatNotes Architecture
 
 ## Overview
-QuickNotes is a production-grade desktop notes application built with Rust + Tauri v2, featuring a DaisyUI-themed UI with comprehensive backup, reminder, and system integration capabilities.
+SwatNotes is a production-grade desktop notes application built with Rust + Tauri v2, featuring a DaisyUI-themed UI with comprehensive backup, reminder, and system integration capabilities.
 
 ## Module Architecture
 
@@ -63,7 +63,7 @@ QuickNotes is a production-grade desktop notes application built with Rust + Tau
 │   ├── backup_2026-01-17_143022.zip
 │   └── backup_2026-01-17_150000.zip
 └── logs/
-    └── quicknotes.log
+    └── swatnotes.log
 ```
 
 #### 2.4 Notes Service (`src-tauri/src/services/notes.rs`)

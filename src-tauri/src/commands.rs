@@ -15,7 +15,7 @@ use tauri::window::Color;
 #[tauri::command]
 pub async fn greet(name: String) -> Result<String> {
     tracing::info!("Greet command called with name: {}", name);
-    Ok(format!("Hello, {}! Welcome to QuickNotes.", name))
+    Ok(format!("Hello, {}! Welcome to SwatNotes.", name))
 }
 
 #[tauri::command]

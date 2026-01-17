@@ -1,4 +1,4 @@
--- Initial schema for QuickNotes
+-- Initial schema for SwatNotes
 -- Creates all core tables with proper indexes and constraints
 
 -- Notes table
