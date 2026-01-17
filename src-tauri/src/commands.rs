@@ -97,7 +97,7 @@ pub async fn open_note_window(
         return Ok(());
     }
 
-    // Create new sticky note window
+    // Create new sticky note window (hidden initially to prevent white flash)
     let _window = WebviewWindowBuilder::new(
         &app,
         &window_label,
@@ -110,6 +110,8 @@ pub async fn open_note_window(
     .decorations(true)
     .always_on_top(false)
     .skip_taskbar(false)
+    .visible(false)
+    .background_color(tauri::Color(255, 255, 255, 255))
     .build()?;
 
     Ok(())

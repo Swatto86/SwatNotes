@@ -87,6 +87,9 @@ async function init() {
     // Setup event handlers
     setupEventHandlers();
 
+    // Show window after initialization to prevent white flash
+    await currentWindow.show();
+
   } catch (error) {
     console.error('Failed to load note:', error);
     alert('Failed to load note: ' + error);
