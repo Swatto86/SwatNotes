@@ -7,11 +7,8 @@ use crate::database::{create_pool, Repository};
 use crate::error::Result;
 use crate::services::{AttachmentsService, BackupService, NotesService, RemindersService};
 use crate::storage::BlobStore;
-use sqlx::SqlitePool;
 use std::path::PathBuf;
-use std::sync::Arc;
 use tauri::{App, Emitter, Manager};
-use tokio::sync::Mutex;
 
 /// Central application state holding all services
 #[derive(Clone)]
@@ -147,7 +144,7 @@ fn setup_tray(app: &mut App) -> Result<()> {
 
 /// Setup global hotkeys
 fn setup_global_hotkeys(app: &mut App) -> Result<()> {
-    use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
+    use tauri_plugin_global_shortcut::ShortcutState;
 
     tracing::info!("Setting up global hotkeys");
 

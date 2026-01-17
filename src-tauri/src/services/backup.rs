@@ -12,9 +12,7 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use tokio::fs;
-use tokio::io::AsyncWriteExt;
 use zip::write::FileOptions;
 use zip::ZipWriter;
 
@@ -80,7 +78,7 @@ impl BackupService {
         // Create ZIP file
         let temp_file = std::fs::File::create(&temp_zip_path)?;
         let mut zip = ZipWriter::new(temp_file);
-        let options = FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        let options = FileOptions::<()>::default().compression_method(zip::CompressionMethod::Deflated);
 
         // Add database file
         let db_path = self.app_data_dir.join("db.sqlite");
@@ -241,10 +239,12 @@ impl BackupService {
         let mut archive = zip::ZipArchive::new(cursor)?;
 
         // Read manifest first
-        let mut manifest_file = archive.by_name("manifest.json")?;
-        let mut manifest_data = String::new();
-        std::io::Read::read_to_string(&mut manifest_file, &mut manifest_data)?;
-        let manifest: BackupManifest = serde_json::from_str(&manifest_data)?;
+        let manifest = {
+            let mut manifest_file = archive.by_name("manifest.json")?;
+            let mut manifest_data = String::new();
+            std::io::Read::read_to_string(&mut manifest_file, &mut manifest_data)?;
+            serde_json::from_str::<BackupManifest>(&manifest_data)?
+        };
 
         tracing::info!("Backup version: {}, timestamp: {}, files: {}",
             manifest.version, manifest.timestamp, manifest.files.len());

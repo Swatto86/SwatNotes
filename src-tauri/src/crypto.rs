@@ -8,7 +8,7 @@ use aes_gcm::{
     Aes256Gcm, Nonce,
 };
 use argon2::{Argon2, PasswordHasher};
-use argon2::password_hash::{PasswordHash, SaltString};
+use argon2::password_hash::SaltString;
 use crate::error::{AppError, Result};
 use rand::RngCore;
 

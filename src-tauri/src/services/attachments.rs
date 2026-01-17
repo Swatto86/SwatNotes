@@ -80,7 +80,7 @@ impl AttachmentsService {
         tracing::info!("Deleting attachment: {}", attachment_id);
 
         // Get blob hash before deleting
-        let blob_hash = self.repo.delete_attachment(attachment_id).await?;
+        let _blob_hash = self.repo.delete_attachment(attachment_id).await?;
 
         // Check if blob is still referenced by other attachments
         // For simplicity, we'll keep blobs even if unreferenced (garbage collection is future work)
