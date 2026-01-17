@@ -1,4 +1,4 @@
-// QuickNotes - Production-grade desktop notes application
+// SwatNotes - Production-grade desktop notes application
 // Entry point and application setup
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
@@ -19,12 +19,12 @@ fn main() {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "quicknotes=debug,info".into()),
+                .unwrap_or_else(|_| "swatnotes=debug,info".into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    tracing::info!("Starting QuickNotes application");
+    tracing::info!("Starting SwatNotes application");
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())

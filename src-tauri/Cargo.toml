@@ -1,8 +1,8 @@
 [package]
-name = "quicknotes"
+name = "swatnotes"
 version = "0.1.0"
 description = "A production-grade desktop notes application"
-authors = ["QuickNotes Team"]
+authors = ["SwatNotes Team"]
 edition = "2021"
 
 [build-dependencies]

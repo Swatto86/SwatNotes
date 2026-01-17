@@ -1,5 +1,5 @@
 /**
- * QuickNotes - Main Application Entry Point
+ * SwatNotes - Main Application Entry Point
  * Coordinates application initialization and module setup
  */
 
@@ -51,7 +51,7 @@ async function refreshNotesList(): Promise<void> {
  * Sets up all modules, loads data, and displays the window
  */
 async function init(): Promise<void> {
-  console.log('Initializing QuickNotes...');
+  console.log('Initializing SwatNotes...');
 
   // Initialize theme
   initTheme();
@@ -75,7 +75,7 @@ async function init(): Promise<void> {
   // Load notes
   await refreshNotesList();
 
-  console.log('QuickNotes initialized successfully!');
+  console.log('SwatNotes initialized successfully!');
 
   // NOTE: Main window stays hidden - only accessible via system tray
   // The app is tray-focused, not window-focused

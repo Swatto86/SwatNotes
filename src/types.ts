@@ -1,5 +1,5 @@
 /**
- * TypeScript Type Definitions for QuickNotes
+ * TypeScript Type Definitions for SwatNotes
  */
 
 /** Note database model */

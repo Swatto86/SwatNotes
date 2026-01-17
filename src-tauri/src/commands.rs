@@ -15,7 +15,7 @@ use tauri::window::Color;
 #[tauri::command]
 pub async fn greet(name: String) -> Result<String> {
     tracing::info!("Greet command called with name: {}", name);
-    Ok(format!("Hello, {}! Welcome to QuickNotes.", name))
+    Ok(format!("Hello, {}! Welcome to SwatNotes.", name))
 }
 
 #[tauri::command]
@@ -105,7 +105,7 @@ pub async fn open_note_window(
 
     // Create new sticky note window (hidden initially to prevent white flash)
     tracing::debug!("Creating new sticky note window: {}", window_label);
-    let _window = WebviewWindowBuilder::new(
+    let window = WebviewWindowBuilder::new(
         &app,
         &window_label,
         WebviewUrl::App("sticky-note.html".into()),
@@ -117,7 +117,7 @@ pub async fn open_note_window(
     .decorations(true)
     .always_on_top(false)
     .skip_taskbar(false)
-    .visible(false)
+    .visible(true)  // Show immediately - background color prevents white flash
     .background_color(Color(
         config::WINDOW_BACKGROUND_COLOR.0,
         config::WINDOW_BACKGROUND_COLOR.1,
@@ -127,6 +127,10 @@ pub async fn open_note_window(
     .build()?;
 
     tracing::info!("Sticky note window created successfully: {}", window_label);
+
+    // Ensure window is shown and focused
+    let _ = window.show();
+    let _ = window.set_focus();
 
     Ok(())
 }

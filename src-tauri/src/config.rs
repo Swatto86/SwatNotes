@@ -16,6 +16,6 @@ pub const GLOBAL_HOTKEY_NEW_NOTE: &str = "Ctrl+Shift+N";
 
 /// Application metadata
 #[allow(dead_code)]
-pub const APP_NAME: &str = "QuickNotes";
+pub const APP_NAME: &str = "SwatNotes";
 #[allow(dead_code)]
 pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");

@@ -1,4 +1,4 @@
-//! Error types for QuickNotes application
+//! Error types for SwatNotes application
 //!
 //! All errors use thiserror for structured error handling.
 //! These errors can be serialized to the frontend.

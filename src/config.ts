@@ -4,7 +4,7 @@
  */
 
 // Theme configuration
-export const THEME_KEY = 'quicknotes-theme';
+export const THEME_KEY = 'swatnotes-theme';
 export const DEFAULT_THEME = 'light';
 
 // Window dimensions for sticky notes
@@ -37,4 +37,4 @@ export const DEFAULT_NOTE_TITLE = 'Untitled';
 
 // Application info
 export const APP_VERSION = '0.1.0';
-export const APP_NAME = 'QuickNotes';
+export const APP_NAME = 'SwatNotes';

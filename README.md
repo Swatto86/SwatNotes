@@ -1,6 +1,6 @@
-# QuickNotes
+# SwatNotes
 
-A production-grade desktop notes application built with Rust and Tauri v2. QuickNotes combines powerful features with a clean, intuitive interface for seamless note-taking.
+A production-grade desktop notes application built with Rust and Tauri v2. SwatNotes combines powerful features with a clean, intuitive interface for seamless note-taking.
 
 ![Version](https://img.shields.io/badge/version-0.1.0-blue)
 ![Rust](https://img.shields.io/badge/rust-1.70%2B-orange)
@@ -69,7 +69,7 @@ A production-grade desktop notes application built with Rust and Tauri v2. Quick
 ```bash
 # Clone repository
 git clone <repository-url>
-cd QuickNotes
+cd SwatNotes
 
 # Install dependencies
 npm install
@@ -121,7 +121,7 @@ Click theme dropdown in sidebar and select from 20+ themes
 ## Project Structure
 
 ```
-QuickNotes/
+SwatNotes/
 ├── src/                    # Frontend
 │   ├── components/         # UI components
 │   ├── utils/             # API wrappers
@@ -142,9 +142,9 @@ QuickNotes/
 ## Configuration
 
 ### Data Locations
-- **Windows:** `%APPDATA%\com.quicknotes.app\`
-- **macOS:** `~/Library/Application Support/com.quicknotes.app/`
-- **Linux:** `~/.local/share/com.quicknotes.app/`
+- **Windows:** `%APPDATA%\com.swatnotes.app\`
+- **macOS:** `~/Library/Application Support/com.swatnotes.app/`
+- **Linux:** `~/.local/share/com.swatnotes.app/`
 
 ### Database
 - File: `db.sqlite`
@@ -158,7 +158,7 @@ QuickNotes/
 
 ## Architecture
 
-QuickNotes follows production best practices:
+SwatNotes follows production best practices:
 
 - **Clean Architecture** - Repository pattern, service layer
 - **No Panics** - No `unwrap()`/`expect()` in production
@@ -239,7 +239,7 @@ rustup update
 
 **Database locked**
 - Close other instances
-- Check for zombies: `ps aux | grep quicknotes`
+- Check for zombies: `ps aux | grep swatnotes`
 
 **Reminders not working**
 - Check system notification permissions

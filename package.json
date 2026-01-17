@@ -1,7 +1,7 @@
 {
-  "name": "quicknotes-ui",
+  "name": "swatnotes-ui",
   "version": "0.1.0",
-  "description": "QuickNotes UI",
+  "description": "SwatNotes UI",
   "type": "module",
   "scripts": {
     "dev": "vite",

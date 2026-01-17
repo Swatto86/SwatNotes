@@ -1,14 +1,14 @@
-//! Integration tests for QuickNotes
+//! Integration tests for SwatNotes
 //!
 //! These tests verify end-to-end functionality including:
 //! - Database operations
 //! - Encryption/decryption
 //! - Backup and restore workflows
 
-use quicknotes::database::{create_pool, Repository};
-use quicknotes::services::NotesService;
-use quicknotes::storage::BlobStore;
-use quicknotes::services::BackupService;
+use swatnotes::database::{create_pool, Repository};
+use swatnotes::services::NotesService;
+use swatnotes::storage::BlobStore;
+use swatnotes::services::BackupService;
 use std::path::PathBuf;
 use tempfile::TempDir;
 
