@@ -1,0 +1,19 @@
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" rx="80" fill="#3B82F6"/>
+
+  <!-- Notepad lines -->
+  <rect x="100" y="120" width="312" height="4" fill="#FFFFFF" opacity="0.3"/>
+  <rect x="100" y="180" width="312" height="4" fill="#FFFFFF" opacity="0.3"/>
+  <rect x="100" y="240" width="312" height="4" fill="#FFFFFF" opacity="0.3"/>
+  <rect x="100" y="300" width="280" height="4" fill="#FFFFFF" opacity="0.3"/>
+
+  <!-- Pen/Pencil icon -->
+  <g transform="translate(320, 320)">
+    <rect x="0" y="0" width="40" height="140" rx="5" fill="#FCD34D" transform="rotate(-45 20 70)"/>
+    <polygon points="15,90 25,90 20,105" fill="#374151"/>
+  </g>
+
+  <!-- QN Text -->
+  <text x="256" y="420" font-family="Arial, sans-serif" font-size="120" font-weight="bold" fill="#FFFFFF" text-anchor="middle">QN</text>
+</svg>
