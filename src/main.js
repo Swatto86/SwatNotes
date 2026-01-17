@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { createNote, searchNotes } from './utils/notesApi.js';
 import { renderNotesList } from './components/notesList.js';
 import { createNoteEditor } from './components/noteEditor.js';
+import { createBackup, listBackups } from './utils/backupApi.js';
 
 // Application state
 let currentEditor = null;
@@ -68,9 +69,17 @@ function setupEventHandlers() {
 
   // Settings button
   const settingsBtn = document.getElementById('settings-btn');
-  settingsBtn?.addEventListener('click', () => {
+  settingsBtn?.addEventListener('click', async () => {
     const modal = document.getElementById('settings-modal');
     modal?.showModal();
+    // Load backups when modal opens
+    await loadBackupsList();
+  });
+
+  // Backup now button
+  const backupNowBtn = document.getElementById('backup-now-btn');
+  backupNowBtn?.addEventListener('click', async () => {
+    await handleBackupNow();
   });
 
   // Search input with debounce
@@ -225,6 +234,84 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+// Backup handlers
+async function handleBackupNow() {
+  const statusEl = document.getElementById('backup-status');
+  const btnEl = document.getElementById('backup-now-btn');
+
+  try {
+    btnEl.disabled = true;
+    statusEl.textContent = 'Creating backup...';
+    statusEl.className = 'text-sm text-info';
+
+    const backupPath = await createBackup();
+
+    statusEl.textContent = `Backup created successfully!`;
+    statusEl.className = 'text-sm text-success';
+
+    // Refresh backups list
+    await loadBackupsList();
+
+    setTimeout(() => {
+      statusEl.textContent = '';
+    }, 3000);
+  } catch (error) {
+    console.error('Backup failed:', error);
+    statusEl.textContent = 'Backup failed: ' + error;
+    statusEl.className = 'text-sm text-error';
+  } finally {
+    btnEl.disabled = false;
+  }
+}
+
+async function loadBackupsList() {
+  const listEl = document.getElementById('backups-list');
+  if (!listEl) return;
+
+  try {
+    const backups = await listBackups();
+
+    if (backups.length === 0) {
+      listEl.innerHTML = '<p class="text-sm text-base-content/50">No backups yet.</p>';
+      return;
+    }
+
+    // Sort by timestamp (newest first)
+    backups.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    listEl.innerHTML = backups
+      .slice(0, 5) // Show last 5
+      .map(
+        (backup) => `
+      <div class="flex justify-between items-center p-2 bg-base-200 rounded mb-2">
+        <div>
+          <p class="text-sm font-medium">${formatDate(backup.timestamp)}</p>
+          <p class="text-xs text-base-content/50">${formatFileSize(backup.size)}</p>
+        </div>
+        <button class="btn btn-ghost btn-xs" disabled>Restore</button>
+      </div>
+    `
+      )
+      .join('');
+  } catch (error) {
+    console.error('Failed to load backups:', error);
+    listEl.innerHTML = '<p class="text-sm text-error">Failed to load backups</p>';
+  }
+}
+
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+}
+
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  return date.toLocaleString();
 }
 
 // Initialize app

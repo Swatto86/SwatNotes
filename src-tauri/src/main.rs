@@ -48,6 +48,8 @@ fn main() {
             commands::list_attachments,
             commands::get_attachment_data,
             commands::delete_attachment,
+            commands::create_backup,
+            commands::list_backups,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

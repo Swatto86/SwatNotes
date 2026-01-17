@@ -118,3 +118,18 @@ pub async fn delete_attachment(state: State<'_, AppState>, attachment_id: String
         .delete_attachment(&attachment_id)
         .await
 }
+
+// ===== Backup Commands =====
+
+use crate::database::Backup;
+
+#[tauri::command]
+pub async fn create_backup(state: State<'_, AppState>) -> Result<String> {
+    let backup_path = state.backup_service.create_backup().await?;
+    Ok(backup_path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub async fn list_backups(state: State<'_, AppState>) -> Result<Vec<Backup>> {
+    state.backup_service.list_backups().await
+}

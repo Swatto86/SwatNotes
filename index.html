@@ -130,8 +130,35 @@
     <!-- Settings Modal -->
     <dialog id="settings-modal" class="modal">
       <div class="modal-box w-11/12 max-w-2xl">
-        <h3 class="font-bold text-lg">Settings</h3>
-        <p class="py-4">Settings will be implemented in later slices.</p>
+        <h3 class="font-bold text-lg mb-4">Settings</h3>
+
+        <!-- Backup Section -->
+        <div class="mb-6">
+          <h4 class="font-semibold text-md mb-3">Backups</h4>
+          <div class="space-y-3">
+            <button id="backup-now-btn" class="btn btn-primary btn-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+              Backup Now
+            </button>
+            <div id="backup-status" class="text-sm text-base-content/70"></div>
+
+            <div class="divider"></div>
+
+            <h5 class="font-medium text-sm mb-2">Recent Backups</h5>
+            <div id="backups-list" class="max-h-40 overflow-y-auto">
+              <p class="text-sm text-base-content/50">Loading...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Other Settings (Placeholder) -->
+        <div class="mb-6">
+          <h4 class="font-semibold text-md mb-3">General</h4>
+          <p class="text-sm text-base-content/50">More settings coming in later releases.</p>
+        </div>
+
         <div class="modal-action">
           <form method="dialog">
             <button class="btn">Close</button>

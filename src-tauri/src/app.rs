@@ -5,11 +5,13 @@
 
 use crate::database::{create_pool, Repository};
 use crate::error::Result;
-use crate::services::{AttachmentsService, NotesService};
+use crate::services::{AttachmentsService, BackupService, NotesService};
 use crate::storage::BlobStore;
 use sqlx::SqlitePool;
 use std::path::PathBuf;
+use std::sync::Arc;
 use tauri::{App, Manager};
+use tokio::sync::Mutex;
 
 /// Central application state holding all services
 #[derive(Clone)]
@@ -19,6 +21,7 @@ pub struct AppState {
     pub blob_store: BlobStore,
     pub notes_service: NotesService,
     pub attachments_service: AttachmentsService,
+    pub backup_service: BackupService,
 }
 
 impl AppState {
@@ -35,6 +38,7 @@ impl AppState {
         // Initialize services
         let notes_service = NotesService::new(db.clone());
         let attachments_service = AttachmentsService::new(db.clone(), blob_store.clone());
+        let backup_service = BackupService::new(db.clone(), blob_store.clone(), app_data_dir.clone());
 
         Ok(Self {
             app_data_dir,
@@ -42,6 +46,7 @@ impl AppState {
             blob_store,
             notes_service,
             attachments_service,
+            backup_service,
         })
     }
 }
