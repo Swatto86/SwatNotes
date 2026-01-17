@@ -134,7 +134,7 @@ struct ReminderEvent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::database::{create_pool, initialize_database, CreateNoteRequest, Repository};
+    use crate::database::{initialize_database, CreateNoteRequest, Repository};
     use chrono::Duration;
     use sqlx::sqlite::SqlitePoolOptions;
     use tempfile::TempDir;
@@ -177,7 +177,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(reminder.note_id, note.id);
-        assert_eq!(reminder.triggered, 0);
+        assert_eq!(reminder.triggered, false);
     }
 
     #[tokio::test]
@@ -217,7 +217,7 @@ mod tests {
 
         // Create reminder in the past
         let trigger_time = Utc::now() - Duration::minutes(5);
-        let reminder = service
+        let _reminder = service
             .create_reminder(&note.id, trigger_time)
             .await
             .unwrap();

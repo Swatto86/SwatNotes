@@ -25,6 +25,7 @@ pub enum AppError {
     #[error("Note not found: {0}")]
     NoteNotFound(String),
 
+    #[allow(dead_code)]
     #[error("Backup error: {0}")]
     Backup(String),
 
