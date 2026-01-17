@@ -40,9 +40,15 @@
   </head>
   <body class="bg-base-100">
     <div id="sticky-note-container" class="bg-base-100">
-      <!-- Header with title -->
+      <!-- Header with editable title -->
       <div class="bg-base-200 border-b border-base-300 p-3 flex justify-between items-center gap-2">
-        <div id="sticky-note-title" class="flex-1 text-sm font-semibold truncate text-base-content">Loading...</div>
+        <input
+          id="sticky-note-title"
+          type="text"
+          class="flex-1 text-sm font-semibold bg-transparent border-none outline-none text-base-content focus:bg-base-100 px-2 py-1 rounded"
+          placeholder="Untitled"
+          value="Loading..."
+        />
         <button class="btn btn-ghost btn-sm btn-circle" id="close-btn" title="Close">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -55,9 +61,15 @@
       <div id="sticky-note-editor" class="bg-base-100"></div>
 
       <!-- Toolbar -->
-      <div class="bg-base-200 border-t border-base-300 p-2 flex gap-2 justify-end">
-        <button class="btn btn-ghost btn-sm" id="delete-btn">Delete</button>
-        <button class="btn btn-primary btn-sm" id="save-btn" disabled>Saved</button>
+      <div class="bg-base-200 border-t border-base-300 p-2 flex gap-2 justify-between items-center">
+        <button class="btn btn-error btn-sm" id="delete-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          Delete
+        </button>
+        <span class="text-xs text-base-content/50" id="save-status">Auto-saving...</span>
       </div>
     </div>
 

@@ -50,10 +50,10 @@ async function init(): Promise<void> {
     currentNote = await invoke<Note>('get_note', { id: noteId });
     console.log('Loaded note:', currentNote);
 
-    // Update title
-    const titleElement = document.getElementById('sticky-note-title');
-    if (titleElement) {
-      titleElement.textContent = currentNote.title || 'Untitled';
+    // Update title input
+    const titleInput = document.getElementById('sticky-note-title') as HTMLInputElement;
+    if (titleInput) {
+      titleInput.value = currentNote.title || 'Untitled';
     }
     document.title = currentNote.title || 'Note';
 
@@ -79,14 +79,14 @@ async function init(): Promise<void> {
       console.error('Failed to parse note content:', e);
     }
 
-    // Setup auto-save on changes
+    // Setup auto-save on content changes
     editor.on('text-change', (delta, oldDelta, source) => {
       if (source === 'user') {
         isDirty = true;
-        updateSaveButton();
+        updateSaveStatus('saving');
 
         // Debounce auto-save
-        clearTimeout(saveTimeout);
+        if (saveTimeout) clearTimeout(saveTimeout);
         saveTimeout = setTimeout(async () => {
           await saveNote();
         }, 1000);
@@ -96,8 +96,9 @@ async function init(): Promise<void> {
     // Setup event handlers
     setupEventHandlers();
 
-    // Show window after initialization to prevent white flash
-    await currentWindow.show();
+    // Note: Window is already shown by Rust code to ensure visibility
+    // Just ensure focus in case needed
+    await currentWindow.setFocus();
 
   } catch (error) {
     console.error('Failed to load note:', error);
@@ -107,13 +108,25 @@ async function init(): Promise<void> {
 }
 
 function setupEventHandlers(): void {
-  // Save button
-  const saveBtn = document.getElementById('save-btn');
-  saveBtn?.addEventListener('click', async () => {
-    await saveNote();
-  });
+  // Title input - auto-save on change
+  const titleInput = document.getElementById('sticky-note-title') as HTMLInputElement;
+  if (titleInput) {
+    titleInput.addEventListener('input', () => {
+      isDirty = true;
+      updateSaveStatus('saving');
 
-  // Close button
+      // Update window title immediately
+      document.title = titleInput.value || 'Note';
+
+      // Debounce auto-save
+      if (saveTimeout) clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(async () => {
+        await saveNote();
+      }, 1000);
+    });
+  }
+
+  // Close button - save and close
   const closeBtn = document.getElementById('close-btn');
   closeBtn?.addEventListener('click', async () => {
     if (isDirty) {
@@ -122,14 +135,19 @@ function setupEventHandlers(): void {
     currentWindow.close();
   });
 
-  // Delete button
+  // Delete button - confirm and delete
   const deleteBtn = document.getElementById('delete-btn');
   deleteBtn?.addEventListener('click', async () => {
     if (!currentNote) return;
-    const confirmed = confirm(`Delete note "${currentNote.title}"?`);
+
+    const titleInput = document.getElementById('sticky-note-title') as HTMLInputElement;
+    const noteTitle = titleInput?.value || currentNote.title || 'Untitled';
+
+    const confirmed = confirm(`Delete note "${noteTitle}"?`);
     if (confirmed) {
       try {
         await invoke('delete_note', { id: noteId });
+        // Close window immediately after successful deletion
         currentWindow.close();
       } catch (error) {
         console.error('Failed to delete note:', error);
@@ -149,11 +167,10 @@ function setupEventHandlers(): void {
 async function saveNote(): Promise<void> {
   if (!isDirty || !editor || !currentNote) return;
 
-  const saveBtn = document.getElementById('save-btn') as HTMLButtonElement;
-  if (saveBtn) {
-    saveBtn.textContent = 'Saving...';
-    saveBtn.disabled = true;
-  }
+  const titleInput = document.getElementById('sticky-note-title') as HTMLInputElement;
+  const title = titleInput?.value || currentNote.title || 'Untitled';
+
+  updateSaveStatus('saving');
 
   try {
     const content = editor.getContents();
@@ -161,38 +178,47 @@ async function saveNote(): Promise<void> {
 
     await invoke('update_note', {
       id: noteId,
-      title: currentNote.title,
+      title: title,
       contentJson: contentJson
     });
 
-    isDirty = false;
-    if (saveBtn) {
-      saveBtn.textContent = 'Saved';
+    // Update current note reference
+    if (currentNote) {
+      currentNote.title = title;
+      currentNote.content_json = contentJson;
     }
+
+    isDirty = false;
+    updateSaveStatus('saved');
     console.log('Note saved successfully');
   } catch (error) {
     console.error('Failed to save note:', error);
-    if (saveBtn) {
-      saveBtn.textContent = 'Error';
-      setTimeout(() => updateSaveButton(), 2000);
-    }
+    updateSaveStatus('error');
+    setTimeout(() => {
+      if (!isDirty) {
+        updateSaveStatus('saved');
+      }
+    }, 3000);
   }
 }
 
-function updateSaveButton(): void {
-  const saveBtn = document.getElementById('save-btn') as HTMLButtonElement;
-  if (!saveBtn) return;
+function updateSaveStatus(status: 'saving' | 'saved' | 'error'): void {
+  const statusEl = document.getElementById('save-status');
+  if (!statusEl) return;
 
-  if (isDirty) {
-    saveBtn.textContent = 'Save';
-    saveBtn.disabled = false;
-    saveBtn.classList.add('btn-primary');
-    saveBtn.classList.remove('btn-ghost');
-  } else {
-    saveBtn.textContent = 'Saved';
-    saveBtn.disabled = true;
-    saveBtn.classList.remove('btn-primary');
-    saveBtn.classList.add('btn-ghost');
+  switch (status) {
+    case 'saving':
+      statusEl.textContent = 'Saving...';
+      statusEl.className = 'text-xs text-info';
+      break;
+    case 'saved':
+      statusEl.textContent = 'Saved';
+      statusEl.className = 'text-xs text-success';
+      break;
+    case 'error':
+      statusEl.textContent = 'Save failed';
+      statusEl.className = 'text-xs text-error';
+      break;
   }
 }
 
