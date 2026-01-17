@@ -10,7 +10,7 @@ use crate::storage::BlobStore;
 use sqlx::SqlitePool;
 use std::path::PathBuf;
 use std::sync::Arc;
-use tauri::{App, Manager};
+use tauri::{App, Emitter, Manager};
 use tokio::sync::Mutex;
 
 /// Central application state holding all services
@@ -157,7 +157,8 @@ fn setup_global_hotkeys(app: &mut App) -> Result<()> {
     app.handle()
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
-                .with_shortcuts(["Ctrl+Shift+N"])?
+                .with_shortcuts(["Ctrl+Shift+N"])
+                .map_err(|e| crate::error::AppError::Generic(format!("Failed to setup shortcuts: {}", e)))?
                 .with_handler(move |_app, shortcut, event| {
                     if event.state == ShortcutState::Pressed {
                         tracing::info!("Global hotkey triggered: {}", shortcut);

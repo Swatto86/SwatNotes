@@ -7,7 +7,7 @@ use crate::database::{Reminder, Repository};
 use crate::error::Result;
 use chrono::{DateTime, Utc};
 use std::sync::Arc;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 use tokio::sync::Mutex;
 
 /// Reminders service with background scheduler
@@ -69,11 +69,8 @@ impl RemindersService {
         let now = Utc::now();
 
         for reminder in reminders {
-            let trigger_time = DateTime::parse_from_rfc3339(&reminder.trigger_time)
-                .map_err(|e| crate::error::AppError::Generic(format!("Invalid trigger time: {}", e)))?
-                .with_timezone(&Utc);
-
-            if trigger_time <= now {
+            // trigger_time is already DateTime<Utc>
+            if reminder.trigger_time <= now {
                 tracing::info!("Triggering reminder {} for note {}", reminder.id, reminder.note_id);
 
                 // Mark as triggered in database

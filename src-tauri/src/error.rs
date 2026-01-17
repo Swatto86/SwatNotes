@@ -19,6 +19,9 @@ pub enum AppError {
     #[error("Tauri error: {0}")]
     Tauri(#[from] tauri::Error),
 
+    #[error("ZIP error: {0}")]
+    Zip(#[from] zip::result::ZipError),
+
     #[error("Note not found: {0}")]
     NoteNotFound(String),
 

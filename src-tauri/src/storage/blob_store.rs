@@ -123,18 +123,23 @@ impl BlobStore {
         Ok(hashes)
     }
 
-    async fn scan_directory(&self, dir: &Path, hashes: &mut Vec<String>) -> Result<()> {
-        if !dir.exists() {
-            return Ok(());
-        }
+    fn scan_directory<'a>(
+        &'a self,
+        dir: &'a Path,
+        hashes: &'a mut Vec<String>,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + 'a>> {
+        Box::pin(async move {
+            if !dir.exists() {
+                return Ok(());
+            }
 
-        let mut entries = fs::read_dir(dir).await?;
+            let mut entries = fs::read_dir(dir).await?;
 
-        while let Some(entry) = entries.next_entry().await? {
-            let path = entry.path();
+            while let Some(entry) = entries.next_entry().await? {
+                let path = entry.path();
 
-            if path.is_dir() {
-                self.scan_directory(&path, hashes).await?;
+                if path.is_dir() {
+                    self.scan_directory(&path, hashes).await?;
             } else if path.is_file() {
                 // Extract hash from filename
                 if let Some(filename) = path.file_name() {
@@ -148,7 +153,8 @@ impl BlobStore {
             }
         }
 
-        Ok(())
+            Ok(())
+        })
     }
 
     /// Get blob store root directory
