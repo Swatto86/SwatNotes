@@ -40,6 +40,11 @@ sha2 = "0.10"
 zip = { version = "2", default-features = false, features = ["deflate"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 
+# Encryption
+aes-gcm = "0.10"
+argon2 = "0.5"
+rand = "0.8"
+
 [dev-dependencies]
 tempfile = "3"
 

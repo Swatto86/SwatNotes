@@ -2,7 +2,9 @@
 //!
 //! Creates consistent snapshots of the database and blob store.
 //! Packages backups as ZIP files with manifest and checksums.
+//! All backups are encrypted with AES-256-GCM.
 
+use crate::crypto;
 use crate::database::Repository;
 use crate::error::{AppError, Result};
 use crate::storage::BlobStore;
@@ -53,20 +55,20 @@ impl BackupService {
         }
     }
 
-    /// Create a backup
-    pub async fn create_backup(&self) -> Result<PathBuf> {
-        tracing::info!("Creating backup");
+    /// Create an encrypted backup
+    pub async fn create_backup(&self, password: &str) -> Result<PathBuf> {
+        tracing::info!("Creating encrypted backup");
 
         // Ensure backups directory exists
         fs::create_dir_all(&self.backups_dir).await?;
 
         // Generate backup filename with timestamp
         let timestamp = Utc::now().format("%Y%m%d_%H%M%S").to_string();
-        let backup_filename = format!("backup_{}.zip", timestamp);
+        let backup_filename = format!("backup_{}.enc", timestamp); // .enc extension for encrypted
         let backup_path = self.backups_dir.join(&backup_filename);
 
-        // Create temporary file for atomic write
-        let temp_path = self.backups_dir.join(format!("{}.tmp", backup_filename));
+        // Create temporary ZIP file
+        let temp_zip_path = self.backups_dir.join(format!("{}.zip.tmp", timestamp));
 
         // Build manifest
         let mut manifest = BackupManifest {
@@ -76,7 +78,7 @@ impl BackupService {
         };
 
         // Create ZIP file
-        let temp_file = std::fs::File::create(&temp_path)?;
+        let temp_file = std::fs::File::create(&temp_zip_path)?;
         let mut zip = ZipWriter::new(temp_file);
         let options = FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
@@ -133,13 +135,30 @@ impl BackupService {
 
         // Finish ZIP
         zip.finish()?;
+        drop(zip); // Close the file
 
-        // Atomic rename
-        fs::rename(&temp_path, &backup_path).await?;
+        tracing::info!("ZIP file created, encrypting...");
+
+        // Read the ZIP file
+        let zip_data = fs::read(&temp_zip_path).await?;
+
+        // Encrypt the ZIP data
+        let encrypted = crypto::encrypt(&zip_data, password)?;
+
+        // Serialize encrypted data
+        let encrypted_json = serde_json::to_vec(&encrypted)?;
+
+        // Write encrypted data to final file
+        fs::write(&backup_path, &encrypted_json).await?;
+
+        // Clean up temporary ZIP file
+        fs::remove_file(&temp_zip_path).await?;
 
         // Get file size
         let metadata = fs::metadata(&backup_path).await?;
         let size = metadata.len() as i64;
+
+        tracing::info!("Backup encrypted successfully ({} bytes)", size);
 
         // Record backup in database
         self.repo
@@ -201,22 +220,6 @@ impl BackupService {
     pub async fn list_backups(&self) -> Result<Vec<crate::database::Backup>> {
         self.repo.list_backups().await
     }
-
-    /// Get backup info from ZIP file
-    pub async fn get_backup_info(&self, backup_path: &Path) -> Result<BackupManifest> {
-        let data = fs::read(backup_path).await?;
-        let cursor = std::io::Cursor::new(data);
-        let mut archive = zip::ZipArchive::new(cursor)?;
-
-        // Read manifest
-        let mut manifest_file = archive.by_name("manifest.json")?;
-        let mut manifest_data = String::new();
-        std::io::Read::read_to_string(&mut manifest_file, &mut manifest_data)?;
-
-        let manifest: BackupManifest = serde_json::from_str(&manifest_data)?;
-
-        Ok(manifest)
-    }
 }
 
 fn calculate_checksum(data: &[u8]) -> String {
@@ -266,20 +269,37 @@ mod tests {
             .await
             .unwrap();
 
-        // Create backup
-        let backup_path = service.create_backup().await.unwrap();
+        // Create encrypted backup
+        let password = "test_password_123";
+        let backup_path = service.create_backup(password).await.unwrap();
 
         assert!(backup_path.exists());
         assert!(backup_path.to_string_lossy().contains("backup_"));
+        assert!(backup_path.to_string_lossy().contains(".enc"));
     }
 
     #[tokio::test]
     async fn test_backup_contains_manifest() {
         let (service, _temp) = create_test_service().await;
 
-        let backup_path = service.create_backup().await.unwrap();
+        let password = "test_password_123";
+        let backup_path = service.create_backup(password).await.unwrap();
 
-        let manifest = service.get_backup_info(&backup_path).await.unwrap();
+        // Read encrypted backup
+        let encrypted_data = fs::read(&backup_path).await.unwrap();
+        let encrypted: crypto::EncryptedData = serde_json::from_slice(&encrypted_data).unwrap();
+
+        // Decrypt
+        let zip_data = crypto::decrypt(&encrypted, password).unwrap();
+
+        // Read manifest from decrypted ZIP
+        let cursor = std::io::Cursor::new(zip_data);
+        let mut archive = zip::ZipArchive::new(cursor).unwrap();
+        let mut manifest_file = archive.by_name("manifest.json").unwrap();
+        let mut manifest_data = String::new();
+        std::io::Read::read_to_string(&mut manifest_file, &mut manifest_data).unwrap();
+
+        let manifest: BackupManifest = serde_json::from_str(&manifest_data).unwrap();
 
         assert_eq!(manifest.version, env!("CARGO_PKG_VERSION"));
         assert!(!manifest.files.is_empty());
@@ -288,6 +308,8 @@ mod tests {
     #[tokio::test]
     async fn test_retention_policy() {
         let (service, _temp) = create_test_service().await;
+
+        let password = "test_password_123";
 
         // Set retention to 3
         service
@@ -298,7 +320,7 @@ mod tests {
 
         // Create 5 backups
         for _ in 0..5 {
-            service.create_backup().await.unwrap();
+            service.create_backup(password).await.unwrap();
             tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
         }
 

@@ -240,16 +240,36 @@ function escapeHtml(text) {
 async function handleBackupNow() {
   const statusEl = document.getElementById('backup-status');
   const btnEl = document.getElementById('backup-now-btn');
+  const passwordInput = document.getElementById('backup-password');
 
   try {
+    // Validate password
+    const password = passwordInput?.value?.trim();
+    if (!password) {
+      statusEl.textContent = 'Please enter a backup password';
+      statusEl.className = 'text-sm text-error';
+      return;
+    }
+
+    if (password.length < 8) {
+      statusEl.textContent = 'Password must be at least 8 characters';
+      statusEl.className = 'text-sm text-error';
+      return;
+    }
+
     btnEl.disabled = true;
-    statusEl.textContent = 'Creating backup...';
+    statusEl.textContent = 'Creating encrypted backup...';
     statusEl.className = 'text-sm text-info';
 
-    const backupPath = await createBackup();
+    const backupPath = await createBackup(password);
 
-    statusEl.textContent = `Backup created successfully!`;
+    statusEl.textContent = `Encrypted backup created successfully!`;
     statusEl.className = 'text-sm text-success';
+
+    // Clear password field
+    if (passwordInput) {
+      passwordInput.value = '';
+    }
 
     // Refresh backups list
     await loadBackupsList();

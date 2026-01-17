@@ -4,10 +4,11 @@ import { invoke } from '@tauri-apps/api/core';
 
 /**
  * Create a backup now
+ * @param {string} password - Password to encrypt the backup
  * @returns {Promise<string>} Backup file path
  */
-export async function createBackup() {
-  return await invoke('create_backup');
+export async function createBackup(password) {
+  return await invoke('create_backup', { password });
 }
 
 /**
