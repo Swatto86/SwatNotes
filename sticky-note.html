@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Note</title>
+    <link rel="stylesheet" href="/src/styles/main.css" />
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      #sticky-note-container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        background: var(--fallback-b1, #ffffff);
+      }
+      #sticky-note-header {
+        padding: 0.75rem;
+        background: var(--fallback-b2, #f3f4f6);
+        border-bottom: 1px solid var(--fallback-bc, #e5e7eb);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      #sticky-note-title {
+        flex: 1;
+        font-size: 0.95rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--fallback-bc, #1f2937);
+      }
+      #sticky-note-editor {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.75rem;
+      }
+      #sticky-note-toolbar {
+        padding: 0.5rem;
+        background: var(--fallback-b2, #f3f4f6);
+        border-top: 1px solid var(--fallback-bc, #e5e7eb);
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+      }
+      .sticky-btn {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+        border-radius: 0.375rem;
+        border: none;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+      .sticky-btn-primary {
+        background: var(--fallback-p, #3b82f6);
+        color: white;
+      }
+      .sticky-btn-primary:hover {
+        opacity: 0.9;
+      }
+      .sticky-btn-ghost {
+        background: transparent;
+        color: var(--fallback-bc, #1f2937);
+      }
+      .sticky-btn-ghost:hover {
+        background: var(--fallback-b3, #e5e7eb);
+      }
+      .sticky-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      /* Quill editor adjustments for sticky notes */
+      .ql-container {
+        font-size: 0.95rem;
+        min-height: 100px;
+      }
+      .ql-editor {
+        padding: 0.75rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="sticky-note-container">
+      <!-- Header with title -->
+      <div id="sticky-note-header">
+        <div id="sticky-note-title">Loading...</div>
+        <button class="sticky-btn sticky-btn-ghost" id="close-btn" title="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Editor -->
+      <div id="sticky-note-editor"></div>
+
+      <!-- Toolbar -->
+      <div id="sticky-note-toolbar">
+        <button class="sticky-btn sticky-btn-ghost" id="delete-btn">Delete</button>
+        <button class="sticky-btn sticky-btn-primary" id="save-btn" disabled>Saved</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/sticky-note.js"></script>
+  </body>
+</html>

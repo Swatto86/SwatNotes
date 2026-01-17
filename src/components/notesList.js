@@ -1,6 +1,7 @@
 // Notes List Component
 
 import { listNotes, deleteNote } from '../utils/notesApi.js';
+import { invoke } from '@tauri-apps/api/core';
 
 /**
  * Render notes list
@@ -34,10 +35,18 @@ export async function renderNotesList(containerId, onNoteClick, onNotesChange) {
       const card = document.getElementById(`note-${note.id}`);
       if (card) {
         card.addEventListener('click', (e) => {
-          // Don't trigger if clicking delete button
-          if (!e.target.closest('.delete-note-btn')) {
+          // Don't trigger if clicking action buttons
+          if (!e.target.closest('.delete-note-btn') && !e.target.closest('.popout-note-btn')) {
             onNoteClick(note);
           }
+        });
+      }
+
+      const popoutBtn = document.getElementById(`popout-${note.id}`);
+      if (popoutBtn) {
+        popoutBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          await handlePopoutNote(note.id);
         });
       }
 
@@ -75,15 +84,32 @@ function createNoteCard(note) {
           <p class="text-sm text-base-content/70 line-clamp-2 mt-1">${preview}</p>
           <p class="text-xs text-base-content/50 mt-2">${date}</p>
         </div>
-        <button id="delete-${note.id}" class="delete-note-btn btn btn-ghost btn-sm btn-circle ml-2"
-                title="Delete note">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </button>
+        <div class="flex gap-1">
+          <button id="popout-${note.id}" class="popout-note-btn btn btn-ghost btn-sm btn-circle"
+                  title="Open in sticky note window">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </button>
+          <button id="delete-${note.id}" class="delete-note-btn btn btn-ghost btn-sm btn-circle"
+                  title="Delete note">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   `;
+}
+
+async function handlePopoutNote(noteId) {
+  try {
+    await invoke('open_note_window', { noteId });
+  } catch (error) {
+    console.error('Failed to open sticky note:', error);
+    alert('Failed to open sticky note: ' + error);
+  }
 }
 
 async function handleDeleteNote(noteId, containerId, onNoteClick, onNotesChange) {

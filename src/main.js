@@ -27,14 +27,18 @@ function initTheme() {
 
 // Theme switcher
 function setupThemeSwitcher() {
-  const themeLinks = document.querySelectorAll('[data-theme]');
-  themeLinks.forEach(link => {
-    link.addEventListener('click', (e) => {
-      e.preventDefault();
-      const theme = link.getAttribute('data-theme');
+  const themeSelect = document.getElementById('theme-select');
+  if (themeSelect) {
+    // Set current theme as selected
+    const currentTheme = getStoredTheme();
+    themeSelect.value = currentTheme;
+
+    // Listen for changes
+    themeSelect.addEventListener('change', (e) => {
+      const theme = e.target.value;
       setTheme(theme);
     });
-  });
+  }
 }
 
 // Test Tauri command
@@ -72,6 +76,13 @@ function setupEventHandlers() {
   settingsBtn?.addEventListener('click', async () => {
     const modal = document.getElementById('settings-modal');
     modal?.showModal();
+
+    // Update theme selector to current theme
+    const themeSelect = document.getElementById('theme-select');
+    if (themeSelect) {
+      themeSelect.value = getStoredTheme();
+    }
+
     // Load backups when modal opens
     await loadBackupsList();
   });

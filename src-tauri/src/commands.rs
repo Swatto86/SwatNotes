@@ -74,6 +74,47 @@ pub async fn search_notes(state: State<'_, AppState>, query: String) -> Result<V
     state.notes_service.search_notes(&query).await
 }
 
+#[tauri::command]
+pub async fn open_note_window(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    note_id: String,
+) -> Result<()> {
+    use tauri::Manager;
+    use tauri::WebviewUrl;
+    use tauri::WebviewWindowBuilder;
+
+    // Get note to set window title
+    let note = state.notes_service.get_note(&note_id).await?;
+
+    // Create unique window label
+    let window_label = format!("note-{}", note_id);
+
+    // Check if window already exists
+    if let Some(window) = app.get_webview_window(&window_label) {
+        // If it exists, just focus it
+        let _ = window.set_focus();
+        return Ok(());
+    }
+
+    // Create new sticky note window
+    let _window = WebviewWindowBuilder::new(
+        &app,
+        &window_label,
+        WebviewUrl::App("sticky-note.html".into()),
+    )
+    .title(&note.title)
+    .inner_size(350.0, 400.0)
+    .min_inner_size(250.0, 300.0)
+    .resizable(true)
+    .decorations(true)
+    .always_on_top(false)
+    .skip_taskbar(false)
+    .build()?;
+
+    Ok(())
+}
+
 // ===== Attachment Commands =====
 
 use crate::database::Attachment;
