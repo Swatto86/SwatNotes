@@ -424,6 +424,12 @@ function setupReminderListener() {
     // Optionally open the note
     // You could add logic here to open the specific note
   });
+
+  // Listen for create-new-note event from tray/hotkey
+  listen('create-new-note', async () => {
+    console.log('Create new note triggered from tray/hotkey');
+    await handleCreateNote();
+  });
 }
 
 // Run on DOM ready

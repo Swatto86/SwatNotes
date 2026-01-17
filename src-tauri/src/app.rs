@@ -78,14 +78,103 @@ pub fn setup(app: &mut App) -> Result<()> {
 
     // Start reminders scheduler
     let scheduler_service = state.reminders_service.clone();
+    let app_handle = app.handle().clone();
     runtime.spawn(async move {
-        scheduler_service.set_app_handle(app.handle().clone()).await;
+        scheduler_service.set_app_handle(app_handle).await;
         scheduler_service.start_scheduler();
     });
+
+    // Setup system tray
+    setup_tray(app)?;
+
+    // Register global hotkeys
+    setup_global_hotkeys(app)?;
 
     app.manage(state);
 
     tracing::info!("Application initialized successfully");
+
+    Ok(())
+}
+
+/// Setup system tray with menu
+fn setup_tray(app: &mut App) -> Result<()> {
+    use tauri::menu::{Menu, MenuItem};
+    use tauri::tray::TrayIconBuilder;
+
+    tracing::info!("Setting up system tray");
+
+    let show_item = MenuItem::with_id(app, "show", "Show QuickNotes", true, None::<&str>)?;
+    let new_note_item = MenuItem::with_id(app, "new_note", "New Note", true, Some("Ctrl+Shift+N"))?;
+    let separator = tauri::menu::PredefinedMenuItem::separator(app)?;
+    let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+
+    let menu = Menu::with_items(
+        app,
+        &[&show_item, &new_note_item, &separator, &quit_item],
+    )?;
+
+    let _tray = TrayIconBuilder::new()
+        .menu(&menu)
+        .on_menu_event(|app, event| {
+            match event.id.as_ref() {
+                "show" => {
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                    }
+                }
+                "new_note" => {
+                    // Emit event to frontend to create new note
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                        let _ = window.emit("create-new-note", ());
+                    }
+                }
+                "quit" => {
+                    app.exit(0);
+                }
+                _ => {}
+            }
+        })
+        .build(app)?;
+
+    tracing::info!("System tray setup complete");
+
+    Ok(())
+}
+
+/// Setup global hotkeys
+fn setup_global_hotkeys(app: &mut App) -> Result<()> {
+    use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
+
+    tracing::info!("Setting up global hotkeys");
+
+    let handle = app.handle().clone();
+
+    // Register Ctrl+Shift+N for new note
+    app.handle()
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_shortcuts(["Ctrl+Shift+N"])?
+                .with_handler(move |_app, shortcut, event| {
+                    if event.state == ShortcutState::Pressed {
+                        tracing::info!("Global hotkey triggered: {}", shortcut);
+
+                        // Show window and emit event to create new note
+                        if let Some(window) = handle.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                            let _ = window.emit("create-new-note", ());
+                        }
+                    }
+                })
+                .build(),
+        )
+        .map_err(|e| crate::error::AppError::Generic(format!("Failed to setup hotkeys: {}", e)))?;
+
+    tracing::info!("Global hotkeys setup complete");
 
     Ok(())
 }
