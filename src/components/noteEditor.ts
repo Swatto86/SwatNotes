@@ -1,7 +1,10 @@
-// Note Editor Component with Quill.js integration and debounced autosave
+/**
+ * Note Editor Component
+ * Quill.js integration with debounced autosave, attachments, and reminders
+ */
 
 import Quill from 'quill';
-import { updateNote } from '../utils/notesApi.js';
+import { updateNote } from '../utils/notesApi';
 import {
   createAttachment,
   listAttachments,
@@ -9,17 +12,28 @@ import {
   deleteAttachment,
   createDataUrl,
   readFileAsBytes,
-} from '../utils/attachmentsApi.js';
-import { createReminder, listActiveReminders } from '../utils/remindersApi.js';
+} from '../utils/attachmentsApi';
+import { createReminder, listActiveReminders } from '../utils/remindersApi';
+import type { Note, Attachment, Reminder } from '../types';
+
+/** Editor instance with cleanup method */
+export interface NoteEditorInstance {
+  quill: Quill;
+  destroy: () => void;
+}
 
 /**
  * Create a note editor with autosave
- * @param {string} containerId - Container element ID
- * @param {Note} note - Note to edit
- * @param {Function} onSave - Callback after save (receives updated note)
- * @returns {Object} Editor instance with cleanup method
+ * @param containerId - Container element ID
+ * @param note - Note to edit
+ * @param onSave - Callback after save (receives updated note)
+ * @returns Editor instance with cleanup method
  */
-export function createNoteEditor(containerId, note, onSave) {
+export function createNoteEditor(
+  containerId: string,
+  note: Note,
+  onSave?: (note: Note) => void
+): NoteEditorInstance {
   const container = document.getElementById(containerId);
   if (!container) {
     throw new Error(`Container #${containerId} not found`);
@@ -108,10 +122,10 @@ export function createNoteEditor(containerId, note, onSave) {
   }
 
   // Debounced autosave
-  let saveTimeout = null;
+  let saveTimeout: ReturnType<typeof setTimeout> | null = null;
   let isSaving = false;
 
-  const debouncedSave = async () => {
+  const debouncedSave = async (): Promise<void> => {
     if (isSaving) return;
 
     clearTimeout(saveTimeout);
@@ -153,8 +167,8 @@ export function createNoteEditor(containerId, note, onSave) {
   titleInput.addEventListener('input', debouncedSave);
 
   // Save on blur (immediate)
-  const saveImmediately = async () => {
-    clearTimeout(saveTimeout);
+  const saveImmediately = async (): Promise<void> => {
+    if (saveTimeout) clearTimeout(saveTimeout);
     if (!isSaving) {
       await debouncedSave();
     }
@@ -164,7 +178,7 @@ export function createNoteEditor(containerId, note, onSave) {
   editorElement.addEventListener('blur', saveImmediately);
 
   // Clipboard paste handler for images
-  editorElement.addEventListener('paste', async (e) => {
+  editorElement.addEventListener('paste', async (e: ClipboardEvent) => {
     const clipboardData = e.clipboardData || window.clipboardData;
     const items = clipboardData.items;
 
@@ -178,7 +192,7 @@ export function createNoteEditor(containerId, note, onSave) {
     }
   });
 
-  async function handleImagePaste(blob) {
+  async function handleImagePaste(blob: Blob): Promise<void> {
     try {
       saveStatus.textContent = 'Uploading image...';
       saveStatus.classList.add('text-info');
@@ -190,8 +204,10 @@ export function createNoteEditor(containerId, note, onSave) {
       // Insert image into editor at cursor
       const range = quill.getSelection(true);
       const dataUrl = await loadAttachmentAsDataUrl(attachment);
-      quill.insertEmbed(range.index, 'image', dataUrl);
-      quill.setSelection(range.index + 1);
+      if (range) {
+        quill.insertEmbed(range.index, 'image', dataUrl);
+        quill.setSelection(range.index + 1);
+      }
 
       saveStatus.textContent = 'Image uploaded';
       saveStatus.classList.remove('text-info');
@@ -212,9 +228,10 @@ export function createNoteEditor(containerId, note, onSave) {
   }
 
   // File upload handler
-  const fileInput = document.getElementById(`file-upload-${note.id}`);
-  fileInput.addEventListener('change', async (e) => {
-    const files = e.target.files;
+  const fileInput = document.getElementById(`file-upload-${note.id}`) as HTMLInputElement;
+  fileInput.addEventListener('change', async (e: Event) => {
+    const target = e.target as HTMLInputElement;
+    const files = target.files;
     if (!files || files.length === 0) return;
 
     for (let file of files) {
@@ -248,12 +265,12 @@ export function createNoteEditor(containerId, note, onSave) {
   });
 
   // Load and display attachments
-  async function loadAttachments() {
+  async function loadAttachments(): Promise<void> {
     const attachmentsList = document.getElementById('attachments-list');
     if (!attachmentsList) return;
 
     try {
-      const attachments = await listAttachments(note.id);
+      const attachments: Attachment[] = await listAttachments(note.id);
 
       if (attachments.length === 0) {
         attachmentsList.innerHTML = '<p class="text-base-content/50 text-sm">No attachments yet. Paste images or add files.</p>';
@@ -297,7 +314,7 @@ export function createNoteEditor(containerId, note, onSave) {
     }
   }
 
-  async function loadAttachmentAsDataUrl(attachment) {
+  async function loadAttachmentAsDataUrl(attachment: Attachment): Promise<string> {
     const data = await getAttachmentData(attachment.blob_hash);
     return createDataUrl(data, attachment.mime_type);
   }
@@ -307,7 +324,7 @@ export function createNoteEditor(containerId, note, onSave) {
   const reminderForm = document.getElementById('reminder-form');
   const saveReminderBtn = document.getElementById('save-reminder-btn');
   const cancelReminderBtn = document.getElementById('cancel-reminder-btn');
-  const reminderDatetime = document.getElementById('reminder-datetime');
+  const reminderDatetime = document.getElementById('reminder-datetime') as HTMLInputElement;
 
   // Set minimum datetime to now
   const now = new Date();
@@ -342,13 +359,13 @@ export function createNoteEditor(containerId, note, onSave) {
   });
 
   // Load and display reminders
-  async function loadReminders() {
+  async function loadReminders(): Promise<void> {
     const remindersList = document.getElementById('reminders-list');
     if (!remindersList) return;
 
     try {
-      const allReminders = await listActiveReminders();
-      const noteReminders = allReminders.filter(r => r.note_id === note.id);
+      const allReminders: Reminder[] = await listActiveReminders();
+      const noteReminders = allReminders.filter((r: Reminder) => r.note_id === note.id);
 
       if (noteReminders.length === 0) {
         remindersList.innerHTML = '<p class="text-base-content/50 text-sm">No active reminders.</p>';
@@ -378,7 +395,7 @@ export function createNoteEditor(containerId, note, onSave) {
     }
   }
 
-  function formatReminderDate(isoString) {
+  function formatReminderDate(isoString: string): string {
     const date = new Date(isoString);
     return date.toLocaleString();
   }
@@ -391,7 +408,7 @@ export function createNoteEditor(containerId, note, onSave) {
   return {
     quill,
     destroy() {
-      clearTimeout(saveTimeout);
+      if (saveTimeout) clearTimeout(saveTimeout);
       // Perform final save if needed
       if (titleInput.value !== note.title || JSON.stringify(quill.getContents()) !== note.content_json) {
         saveImmediately();
@@ -400,18 +417,18 @@ export function createNoteEditor(containerId, note, onSave) {
   };
 }
 
-function escapeHtml(text) {
+function escapeHtml(text: string): string {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
 }
 
-function formatDate(dateString) {
+function formatDate(dateString: string): string {
   const date = new Date(dateString);
   return date.toLocaleString();
 }
 
-function formatFileSize(bytes) {
+function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 B';
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
@@ -419,7 +436,7 @@ function formatFileSize(bytes) {
   return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
 }
 
-function getFileIcon(mimeType) {
+function getFileIcon(mimeType: string): string {
   if (mimeType.startsWith('image/')) {
     return `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />

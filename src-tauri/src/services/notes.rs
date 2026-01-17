@@ -149,4 +149,108 @@ mod tests {
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].title, "Banana");
     }
+
+    #[tokio::test]
+    async fn test_update_note() {
+        let service = create_test_service().await;
+
+        let note = service
+            .create_note("Original".to_string(), r#"{"ops":[]}"#.to_string())
+            .await
+            .unwrap();
+
+        // Update title only
+        let updated = service
+            .update_note(note.id.clone(), Some("Updated Title".to_string()), None)
+            .await
+            .unwrap();
+
+        assert_eq!(updated.title, "Updated Title");
+        assert_eq!(updated.content_json, r#"{"ops":[]}"#);
+
+        // Update content only
+        let updated2 = service
+            .update_note(note.id.clone(), None, Some(r#"{"ops":[{"insert":"Hello"}]}"#.to_string()))
+            .await
+            .unwrap();
+
+        assert_eq!(updated2.title, "Updated Title");
+        assert_eq!(updated2.content_json, r#"{"ops":[{"insert":"Hello"}]}"#);
+    }
+
+    #[tokio::test]
+    async fn test_delete_note() {
+        let service = create_test_service().await;
+
+        let note = service
+            .create_note("To Delete".to_string(), "{}".to_string())
+            .await
+            .unwrap();
+
+        // Delete the note
+        service.delete_note(&note.id).await.unwrap();
+
+        // Note should still exist but with deleted_at set
+        let deleted_note = service.get_note(&note.id).await.unwrap();
+        assert!(deleted_note.deleted_at.is_some());
+
+        // Deleted notes should not appear in list
+        let notes = service.list_notes().await.unwrap();
+        assert!(!notes.iter().any(|n| n.id == note.id));
+    }
+
+    #[tokio::test]
+    async fn test_list_notes() {
+        let service = create_test_service().await;
+
+        // Empty list initially
+        let notes = service.list_notes().await.unwrap();
+        assert_eq!(notes.len(), 0);
+
+        // Create some notes
+        service.create_note("Note 1".to_string(), "{}".to_string()).await.unwrap();
+        service.create_note("Note 2".to_string(), "{}".to_string()).await.unwrap();
+        service.create_note("Note 3".to_string(), "{}".to_string()).await.unwrap();
+
+        let notes = service.list_notes().await.unwrap();
+        assert_eq!(notes.len(), 3);
+    }
+
+    #[tokio::test]
+    async fn test_search_notes_by_content() {
+        let service = create_test_service().await;
+
+        service
+            .create_note("Title A".to_string(), r#"{"ops":[{"insert":"Hello World"}]}"#.to_string())
+            .await
+            .unwrap();
+        service
+            .create_note("Title B".to_string(), r#"{"ops":[{"insert":"Goodbye"}]}"#.to_string())
+            .await
+            .unwrap();
+
+        // Search by content
+        let results = service.search_notes("Hello").await.unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Title A");
+    }
+
+    #[tokio::test]
+    async fn test_search_notes_case_insensitive() {
+        let service = create_test_service().await;
+
+        service
+            .create_note("UPPERCASE".to_string(), "{}".to_string())
+            .await
+            .unwrap();
+        service
+            .create_note("lowercase".to_string(), "{}".to_string())
+            .await
+            .unwrap();
+
+        // Search should be case-insensitive
+        let results = service.search_notes("upper").await.unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "UPPERCASE");
+    }
 }

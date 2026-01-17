@@ -158,16 +158,14 @@ fn setup_tray(app: &mut App) -> Result<()> {
 
 /// Setup global hotkeys
 fn setup_global_hotkeys(app: &mut App) -> Result<()> {
-    use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
+    use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
     tracing::info!("Setting up global hotkeys");
 
-    let handle = app.handle().clone();
-
-    // Register Ctrl+Shift+N for new note
-    app.global_shortcut().on_shortcut("Ctrl+Shift+N", move |app, _shortcut, event| {
+    // Register global hotkey for creating new notes
+    app.global_shortcut().on_shortcut(crate::config::GLOBAL_HOTKEY_NEW_NOTE, move |app, _shortcut, event| {
         if event.state == ShortcutState::Pressed {
-            tracing::info!("Global hotkey triggered: Ctrl+Shift+N");
+            tracing::info!("Global hotkey triggered: {}", crate::config::GLOBAL_HOTKEY_NEW_NOTE);
 
             // Show window and emit event to create new note
             if let Some(window) = app.get_webview_window("main") {
@@ -177,11 +175,11 @@ fn setup_global_hotkeys(app: &mut App) -> Result<()> {
             }
         }
     })
-    .map_err(|e| crate::error::AppError::Generic(format!("Failed to register shortcut: {}", e)))?;
+    .map_err(|e| crate::error::AppError::Generic(format!("Failed to register shortcut handler: {}", e)))?;
 
     app.global_shortcut()
-        .register("Ctrl+Shift+N")
-        .map_err(|e| crate::error::AppError::Generic(format!("Failed to register Ctrl+Shift+N: {}", e)))?;
+        .register(crate::config::GLOBAL_HOTKEY_NEW_NOTE)
+        .map_err(|e| crate::error::AppError::Generic(format!("Failed to register {}: {}", crate::config::GLOBAL_HOTKEY_NEW_NOTE, e)))?;
 
     tracing::info!("Global hotkeys setup complete");
 

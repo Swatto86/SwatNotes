@@ -5,6 +5,7 @@
 
 mod app;
 mod commands;
+mod config;
 mod crypto;
 mod database;
 mod error;

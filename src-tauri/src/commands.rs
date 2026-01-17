@@ -6,6 +6,7 @@
 //! - Are async when performing I/O
 
 use crate::app::AppState;
+use crate::config;
 use crate::database::Note;
 use crate::error::Result;
 use tauri::State;
@@ -105,14 +106,19 @@ pub async fn open_note_window(
         WebviewUrl::App("sticky-note.html".into()),
     )
     .title(&note.title)
-    .inner_size(350.0, 400.0)
-    .min_inner_size(250.0, 300.0)
+    .inner_size(config::STICKY_NOTE_DEFAULT_WIDTH, config::STICKY_NOTE_DEFAULT_HEIGHT)
+    .min_inner_size(config::STICKY_NOTE_MIN_WIDTH, config::STICKY_NOTE_MIN_HEIGHT)
     .resizable(true)
     .decorations(true)
     .always_on_top(false)
     .skip_taskbar(false)
     .visible(false)
-    .background_color(Color(255, 255, 255, 255))
+    .background_color(Color(
+        config::WINDOW_BACKGROUND_COLOR.0,
+        config::WINDOW_BACKGROUND_COLOR.1,
+        config::WINDOW_BACKGROUND_COLOR.2,
+        config::WINDOW_BACKGROUND_COLOR.3,
+    ))
     .build()?;
 
     Ok(())
