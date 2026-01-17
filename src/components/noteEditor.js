@@ -2,6 +2,14 @@
 
 import Quill from 'quill';
 import { updateNote } from '../utils/notesApi.js';
+import {
+  createAttachment,
+  listAttachments,
+  getAttachmentData,
+  deleteAttachment,
+  createDataUrl,
+  readFileAsBytes,
+} from '../utils/attachmentsApi.js';
 
 /**
  * Create a note editor with autosave
@@ -24,6 +32,21 @@ export function createNoteEditor(containerId, note, onSave) {
       <div id="note-editor" class="bg-base-100 min-h-[400px]"></div>
       <div class="mt-2 text-sm text-base-content/50" id="save-status">
         Last saved: ${formatDate(note.updated_at)}
+      </div>
+
+      <!-- Attachments Section -->
+      <div class="mt-6">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-bold text-lg">Attachments</h3>
+          <label for="file-upload-${note.id}" class="btn btn-sm btn-outline">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+            </svg>
+            Add File
+          </label>
+          <input type="file" id="file-upload-${note.id}" class="hidden" multiple>
+        </div>
+        <div id="attachments-list" class="space-y-2"></div>
       </div>
     </div>
   `;
@@ -113,6 +136,148 @@ export function createNoteEditor(containerId, note, onSave) {
   titleInput.addEventListener('blur', saveImmediately);
   editorElement.addEventListener('blur', saveImmediately);
 
+  // Clipboard paste handler for images
+  editorElement.addEventListener('paste', async (e) => {
+    const clipboardData = e.clipboardData || window.clipboardData;
+    const items = clipboardData.items;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        e.preventDefault();
+        const blob = items[i].getAsFile();
+        await handleImagePaste(blob);
+        break;
+      }
+    }
+  });
+
+  async function handleImagePaste(blob) {
+    try {
+      saveStatus.textContent = 'Uploading image...';
+      saveStatus.classList.add('text-info');
+
+      const data = await readFileAsBytes(blob);
+      const filename = `pasted-image-${Date.now()}.png`;
+      const attachment = await createAttachment(note.id, filename, blob.type, data);
+
+      // Insert image into editor at cursor
+      const range = quill.getSelection(true);
+      const dataUrl = await loadAttachmentAsDataUrl(attachment);
+      quill.insertEmbed(range.index, 'image', dataUrl);
+      quill.setSelection(range.index + 1);
+
+      saveStatus.textContent = 'Image uploaded';
+      saveStatus.classList.remove('text-info');
+      saveStatus.classList.add('text-success');
+
+      setTimeout(() => {
+        saveStatus.classList.remove('text-success');
+      }, 2000);
+
+      // Refresh attachments list
+      await loadAttachments();
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      saveStatus.textContent = 'Image upload failed';
+      saveStatus.classList.remove('text-info');
+      saveStatus.classList.add('text-error');
+    }
+  }
+
+  // File upload handler
+  const fileInput = document.getElementById(`file-upload-${note.id}`);
+  fileInput.addEventListener('change', async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    for (let file of files) {
+      try {
+        saveStatus.textContent = `Uploading ${file.name}...`;
+        saveStatus.classList.add('text-info');
+
+        const data = await readFileAsBytes(file);
+        await createAttachment(note.id, file.name, file.type || 'application/octet-stream', data);
+
+        saveStatus.textContent = `${file.name} uploaded`;
+        saveStatus.classList.remove('text-info');
+        saveStatus.classList.add('text-success');
+
+        setTimeout(() => {
+          saveStatus.classList.remove('text-success');
+        }, 2000);
+      } catch (error) {
+        console.error('Failed to upload file:', error);
+        saveStatus.textContent = `Failed to upload ${file.name}`;
+        saveStatus.classList.remove('text-info');
+        saveStatus.classList.add('text-error');
+      }
+    }
+
+    // Clear input
+    fileInput.value = '';
+
+    // Refresh attachments list
+    await loadAttachments();
+  });
+
+  // Load and display attachments
+  async function loadAttachments() {
+    const attachmentsList = document.getElementById('attachments-list');
+    if (!attachmentsList) return;
+
+    try {
+      const attachments = await listAttachments(note.id);
+
+      if (attachments.length === 0) {
+        attachmentsList.innerHTML = '<p class="text-base-content/50 text-sm">No attachments yet. Paste images or add files.</p>';
+        return;
+      }
+
+      attachmentsList.innerHTML = attachments
+        .map(
+          (att) => `
+        <div class="flex items-center justify-between p-3 bg-base-200 rounded-lg">
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            ${getFileIcon(att.mime_type)}
+            <div class="flex-1 min-w-0">
+              <p class="font-medium truncate">${escapeHtml(att.filename)}</p>
+              <p class="text-xs text-base-content/50">${formatFileSize(att.size)} • ${formatDate(att.created_at)}</p>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-sm btn-circle delete-attachment" data-id="${att.id}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      `
+        )
+        .join('');
+
+      // Attach delete handlers
+      attachmentsList.querySelectorAll('.delete-attachment').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          if (confirm('Delete this attachment?')) {
+            await deleteAttachment(id);
+            await loadAttachments();
+          }
+        });
+      });
+    } catch (error) {
+      console.error('Failed to load attachments:', error);
+      attachmentsList.innerHTML = '<p class="text-error text-sm">Failed to load attachments</p>';
+    }
+  }
+
+  async function loadAttachmentAsDataUrl(attachment) {
+    const data = await getAttachmentData(attachment.blob_hash);
+    return createDataUrl(data, attachment.mime_type);
+  }
+
+  // Load attachments on init
+  loadAttachments();
+
   // Cleanup function
   return {
     quill,
@@ -122,7 +287,7 @@ export function createNoteEditor(containerId, note, onSave) {
       if (titleInput.value !== note.title || JSON.stringify(quill.getContents()) !== note.content_json) {
         saveImmediately();
       }
-    }
+    },
   };
 }
 
@@ -135,4 +300,32 @@ function escapeHtml(text) {
 function formatDate(dateString) {
   const date = new Date(dateString);
   return date.toLocaleString();
+}
+
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+function getFileIcon(mimeType) {
+  if (mimeType.startsWith('image/')) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>`;
+  } else if (mimeType.startsWith('video/')) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+    </svg>`;
+  } else if (mimeType.includes('pdf')) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+    </svg>`;
+  } else {
+    return `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>`;
+  }
 }

@@ -44,6 +44,10 @@ fn main() {
             commands::update_note,
             commands::delete_note,
             commands::search_notes,
+            commands::create_attachment,
+            commands::list_attachments,
+            commands::get_attachment_data,
+            commands::delete_attachment,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

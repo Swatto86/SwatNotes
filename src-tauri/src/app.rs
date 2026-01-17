@@ -5,7 +5,7 @@
 
 use crate::database::{create_pool, Repository};
 use crate::error::Result;
-use crate::services::NotesService;
+use crate::services::{AttachmentsService, NotesService};
 use crate::storage::BlobStore;
 use sqlx::SqlitePool;
 use std::path::PathBuf;
@@ -18,6 +18,7 @@ pub struct AppState {
     pub db: Repository,
     pub blob_store: BlobStore,
     pub notes_service: NotesService,
+    pub attachments_service: AttachmentsService,
 }
 
 impl AppState {
@@ -33,12 +34,14 @@ impl AppState {
 
         // Initialize services
         let notes_service = NotesService::new(db.clone());
+        let attachments_service = AttachmentsService::new(db.clone(), blob_store.clone());
 
         Ok(Self {
             app_data_dir,
             db,
             blob_store,
             notes_service,
+            attachments_service,
         })
     }
 }
