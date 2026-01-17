@@ -148,4 +148,22 @@ export async function setupReminderListener() {
     console.log('Create new note triggered from tray/hotkey');
     await handleCreateNote();
   });
+
+  // Listen for open-settings event from tray menu
+  await listen('open-settings', async () => {
+    console.log('Open settings triggered from tray menu');
+    const modal = document.getElementById('settings-modal') as HTMLDialogElement;
+    if (modal) {
+      modal.showModal();
+
+      // Update theme selector to current theme
+      const themeSelect = document.getElementById('theme-select') as HTMLSelectElement;
+      if (themeSelect) {
+        themeSelect.value = getStoredTheme();
+      }
+
+      // Load backups when modal opens
+      await loadBackupsList();
+    }
+  });
 }

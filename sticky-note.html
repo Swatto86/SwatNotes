@@ -30,11 +30,46 @@
       }
       .ql-editor {
         padding: 0.75rem;
+        /* Use theme colors for text */
+        color: oklch(var(--bc));
+      }
+      /* Center placeholder text */
+      .ql-editor.ql-blank::before {
+        color: oklch(var(--bc) / 0.4);
+        font-style: normal;
+        text-align: center;
+        display: block;
+        padding-top: 2rem;
       }
       .ql-toolbar {
         border: none;
         border-bottom: 1px solid oklch(var(--bc) / 0.2);
         background: oklch(var(--b2));
+      }
+      /* Ensure toolbar buttons use theme colors */
+      .ql-toolbar button {
+        color: oklch(var(--bc));
+      }
+      .ql-toolbar button:hover {
+        color: oklch(var(--p));
+      }
+      .ql-toolbar .ql-stroke {
+        stroke: oklch(var(--bc));
+      }
+      .ql-toolbar .ql-fill {
+        fill: oklch(var(--bc));
+      }
+      .ql-toolbar button:hover .ql-stroke {
+        stroke: oklch(var(--p));
+      }
+      .ql-toolbar button:hover .ql-fill {
+        fill: oklch(var(--p));
+      }
+      .ql-toolbar button.ql-active .ql-stroke {
+        stroke: oklch(var(--p));
+      }
+      .ql-toolbar button.ql-active .ql-fill {
+        fill: oklch(var(--p));
       }
     </style>
   </head>
