@@ -9,6 +9,7 @@ use crate::app::AppState;
 use crate::database::Note;
 use crate::error::Result;
 use tauri::State;
+use tauri::window::Color;
 
 #[tauri::command]
 pub async fn greet(name: String) -> Result<String> {
@@ -111,7 +112,7 @@ pub async fn open_note_window(
     .always_on_top(false)
     .skip_taskbar(false)
     .visible(false)
-    .background_color(tauri::Color(255, 255, 255, 255))
+    .background_color(Color(255, 255, 255, 255))
     .build()?;
 
     Ok(())
