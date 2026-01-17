@@ -120,12 +120,13 @@ fn setup_tray(app: &mut App) -> Result<()> {
 
     let show_item = MenuItem::with_id(app, "show", "Show SwatNotes", true, None::<&str>)?;
     let new_note_item = MenuItem::with_id(app, "new_note", "New Note", true, Some("Ctrl+Shift+N"))?;
+    let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
     let separator = tauri::menu::PredefinedMenuItem::separator(app)?;
     let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
 
     let menu = Menu::with_items(
         app,
-        &[&show_item, &new_note_item, &separator, &quit_item],
+        &[&show_item, &new_note_item, &settings_item, &separator, &quit_item],
     )?;
 
     let _tray = TrayIconBuilder::new()
@@ -150,6 +151,15 @@ fn setup_tray(app: &mut App) -> Result<()> {
                             tracing::error!("Failed to create sticky note from tray menu: {}", e);
                         }
                     });
+                }
+                "settings" => {
+                    // Show main window and open settings modal
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                        // Emit event to open settings modal
+                        let _ = window.emit("open-settings", ());
+                    }
                 }
                 "quit" => {
                     app.exit(0);

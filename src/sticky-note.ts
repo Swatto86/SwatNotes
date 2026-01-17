@@ -138,21 +138,33 @@ function setupEventHandlers(): void {
   // Delete button - confirm and delete
   const deleteBtn = document.getElementById('delete-btn');
   deleteBtn?.addEventListener('click', async () => {
-    if (!currentNote) return;
+    if (!currentNote) {
+      console.error('No current note to delete');
+      return;
+    }
 
     const titleInput = document.getElementById('sticky-note-title') as HTMLInputElement;
     const noteTitle = titleInput?.value || currentNote.title || 'Untitled';
 
     const confirmed = confirm(`Delete note "${noteTitle}"?`);
-    if (confirmed) {
-      try {
-        await invoke('delete_note', { id: noteId });
-        // Close window immediately after successful deletion
+    if (!confirmed) {
+      console.log('Delete cancelled by user');
+      return;
+    }
+
+    console.log('Deleting note:', noteId);
+    try {
+      await invoke('delete_note', { id: noteId });
+      console.log('Note deleted successfully, closing window');
+
+      // Close window immediately after successful deletion
+      // Use setTimeout to ensure the invoke completes before closing
+      setTimeout(() => {
         currentWindow.close();
-      } catch (error) {
-        console.error('Failed to delete note:', error);
-        alert('Failed to delete note: ' + error);
-      }
+      }, 100);
+    } catch (error) {
+      console.error('Failed to delete note:', error);
+      alert('Failed to delete note: ' + error);
     }
   });
 
