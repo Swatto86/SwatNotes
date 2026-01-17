@@ -392,6 +392,9 @@ async function init() {
   // Setup event handlers
   setupEventHandlers();
 
+  // Setup reminder notification listener
+  setupReminderListener();
+
   // Test backend connection
   await testGreet();
   const appInfo = await getAppInfo();
@@ -405,6 +408,22 @@ async function init() {
   await refreshNotesList();
 
   console.log('QuickNotes initialized successfully!');
+}
+
+// Setup reminder notification listener
+function setupReminderListener() {
+  const { listen } = require('@tauri-apps/api/event');
+
+  listen('reminder-triggered', (event) => {
+    const { note_id, note_title } = event.payload;
+    console.log('Reminder triggered for note:', note_title);
+
+    // Show in-app alert
+    alert(`Reminder: ${note_title}`);
+
+    // Optionally open the note
+    // You could add logic here to open the specific note
+  });
 }
 
 // Run on DOM ready

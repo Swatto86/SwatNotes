@@ -146,3 +146,29 @@ pub async fn restore_backup(
         .restore_backup(Path::new(&backup_path), &password)
         .await
 }
+
+// ===== Reminder Commands =====
+
+use crate::database::Reminder;
+
+#[tauri::command]
+pub async fn create_reminder(
+    state: State<'_, AppState>,
+    note_id: String,
+    trigger_time: String,
+) -> Result<Reminder> {
+    use chrono::DateTime;
+    let trigger_dt = DateTime::parse_from_rfc3339(&trigger_time)
+        .map_err(|e| crate::error::AppError::Generic(format!("Invalid datetime: {}", e)))?
+        .with_timezone(&chrono::Utc);
+
+    state
+        .reminders_service
+        .create_reminder(&note_id, trigger_dt)
+        .await
+}
+
+#[tauri::command]
+pub async fn list_active_reminders(state: State<'_, AppState>) -> Result<Vec<Reminder>> {
+    state.reminders_service.list_active_reminders().await
+}

@@ -10,6 +10,7 @@ import {
   createDataUrl,
   readFileAsBytes,
 } from '../utils/attachmentsApi.js';
+import { createReminder, listActiveReminders } from '../utils/remindersApi.js';
 
 /**
  * Create a note editor with autosave
@@ -32,6 +33,32 @@ export function createNoteEditor(containerId, note, onSave) {
       <div id="note-editor" class="bg-base-100 min-h-[400px]"></div>
       <div class="mt-2 text-sm text-base-content/50" id="save-status">
         Last saved: ${formatDate(note.updated_at)}
+      </div>
+
+      <!-- Reminders Section -->
+      <div class="mt-6">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-bold text-lg">Reminders</h3>
+          <button id="add-reminder-btn" class="btn btn-sm btn-outline">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            Set Reminder
+          </button>
+        </div>
+        <div id="reminders-list" class="space-y-2"></div>
+        <div id="reminder-form" class="hidden mt-3 p-3 bg-base-200 rounded">
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Remind me on:</span>
+            </label>
+            <input type="datetime-local" id="reminder-datetime" class="input input-bordered input-sm w-full max-w-xs">
+          </div>
+          <div class="mt-3 flex gap-2">
+            <button id="save-reminder-btn" class="btn btn-primary btn-sm">Save</button>
+            <button id="cancel-reminder-btn" class="btn btn-ghost btn-sm">Cancel</button>
+          </div>
+        </div>
       </div>
 
       <!-- Attachments Section -->
@@ -275,7 +302,89 @@ export function createNoteEditor(containerId, note, onSave) {
     return createDataUrl(data, attachment.mime_type);
   }
 
-  // Load attachments on init
+  // Reminder handling
+  const addReminderBtn = document.getElementById('add-reminder-btn');
+  const reminderForm = document.getElementById('reminder-form');
+  const saveReminderBtn = document.getElementById('save-reminder-btn');
+  const cancelReminderBtn = document.getElementById('cancel-reminder-btn');
+  const reminderDatetime = document.getElementById('reminder-datetime');
+
+  // Set minimum datetime to now
+  const now = new Date();
+  const localDatetime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  reminderDatetime.min = localDatetime;
+
+  addReminderBtn?.addEventListener('click', () => {
+    reminderForm.classList.remove('hidden');
+    reminderDatetime.value = localDatetime;
+  });
+
+  cancelReminderBtn?.addEventListener('click', () => {
+    reminderForm.classList.add('hidden');
+  });
+
+  saveReminderBtn?.addEventListener('click', async () => {
+    const datetimeValue = reminderDatetime.value;
+    if (!datetimeValue) {
+      alert('Please select a date and time');
+      return;
+    }
+
+    try {
+      const triggerDate = new Date(datetimeValue);
+      await createReminder(note.id, triggerDate);
+      reminderForm.classList.add('hidden');
+      await loadReminders();
+    } catch (error) {
+      console.error('Failed to create reminder:', error);
+      alert('Failed to create reminder: ' + error);
+    }
+  });
+
+  // Load and display reminders
+  async function loadReminders() {
+    const remindersList = document.getElementById('reminders-list');
+    if (!remindersList) return;
+
+    try {
+      const allReminders = await listActiveReminders();
+      const noteReminders = allReminders.filter(r => r.note_id === note.id);
+
+      if (noteReminders.length === 0) {
+        remindersList.innerHTML = '<p class="text-base-content/50 text-sm">No active reminders.</p>';
+        return;
+      }
+
+      remindersList.innerHTML = noteReminders
+        .map(
+          (reminder) => `
+        <div class="flex items-center justify-between p-3 bg-base-200 rounded-lg">
+          <div class="flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <div>
+              <p class="font-medium">${formatReminderDate(reminder.trigger_time)}</p>
+              <p class="text-xs text-base-content/50">Reminder will notify you at this time</p>
+            </div>
+          </div>
+        </div>
+      `
+        )
+        .join('');
+    } catch (error) {
+      console.error('Failed to load reminders:', error);
+      remindersList.innerHTML = '<p class="text-error text-sm">Failed to load reminders</p>';
+    }
+  }
+
+  function formatReminderDate(isoString) {
+    const date = new Date(isoString);
+    return date.toLocaleString();
+  }
+
+  // Load reminders and attachments on init
+  loadReminders();
   loadAttachments();
 
   // Cleanup function

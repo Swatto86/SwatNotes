@@ -52,6 +52,8 @@ fn main() {
             commands::create_backup,
             commands::list_backups,
             commands::restore_backup,
+            commands::create_reminder,
+            commands::list_active_reminders,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -5,7 +5,7 @@
 
 use crate::database::{create_pool, Repository};
 use crate::error::Result;
-use crate::services::{AttachmentsService, BackupService, NotesService};
+use crate::services::{AttachmentsService, BackupService, NotesService, RemindersService};
 use crate::storage::BlobStore;
 use sqlx::SqlitePool;
 use std::path::PathBuf;
@@ -22,6 +22,7 @@ pub struct AppState {
     pub notes_service: NotesService,
     pub attachments_service: AttachmentsService,
     pub backup_service: BackupService,
+    pub reminders_service: RemindersService,
 }
 
 impl AppState {
@@ -39,6 +40,7 @@ impl AppState {
         let notes_service = NotesService::new(db.clone());
         let attachments_service = AttachmentsService::new(db.clone(), blob_store.clone());
         let backup_service = BackupService::new(db.clone(), blob_store.clone(), app_data_dir.clone());
+        let reminders_service = RemindersService::new(db.clone());
 
         Ok(Self {
             app_data_dir,
@@ -47,6 +49,7 @@ impl AppState {
             notes_service,
             attachments_service,
             backup_service,
+            reminders_service,
         })
     }
 }
@@ -72,6 +75,14 @@ pub fn setup(app: &mut App) -> Result<()> {
     // Initialize application state asynchronously
     let runtime = tokio::runtime::Runtime::new()?;
     let state = runtime.block_on(AppState::new(app_data_dir))?;
+
+    // Start reminders scheduler
+    let scheduler_service = state.reminders_service.clone();
+    runtime.spawn(async move {
+        scheduler_service.set_app_handle(app.handle().clone()).await;
+        scheduler_service.start_scheduler();
+    });
+
     app.manage(state);
 
     tracing::info!("Application initialized successfully");
