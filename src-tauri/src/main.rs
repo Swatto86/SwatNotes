@@ -47,6 +47,7 @@ fn main() {
             commands::delete_note,
             commands::search_notes,
             commands::open_note_window,
+            commands::create_new_sticky_note,
             commands::create_attachment,
             commands::list_attachments,
             commands::get_attachment_data,

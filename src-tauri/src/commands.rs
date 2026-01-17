@@ -86,6 +86,8 @@ pub async fn open_note_window(
     use tauri::WebviewUrl;
     use tauri::WebviewWindowBuilder;
 
+    tracing::info!("Opening note window for note: {}", note_id);
+
     // Get note to set window title
     let note = state.notes_service.get_note(&note_id).await?;
 
@@ -94,12 +96,15 @@ pub async fn open_note_window(
 
     // Check if window already exists
     if let Some(window) = app.get_webview_window(&window_label) {
-        // If it exists, just focus it
+        tracing::debug!("Window already exists, focusing: {}", window_label);
+        // If it exists, just show and focus it
+        let _ = window.show();
         let _ = window.set_focus();
         return Ok(());
     }
 
     // Create new sticky note window (hidden initially to prevent white flash)
+    tracing::debug!("Creating new sticky note window: {}", window_label);
     let _window = WebviewWindowBuilder::new(
         &app,
         &window_label,
@@ -120,6 +125,33 @@ pub async fn open_note_window(
         config::WINDOW_BACKGROUND_COLOR.3,
     ))
     .build()?;
+
+    tracing::info!("Sticky note window created successfully: {}", window_label);
+
+    Ok(())
+}
+
+/// Create a new note and open it in a floating window
+#[tauri::command]
+pub async fn create_new_sticky_note(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<()> {
+    tracing::info!("Creating new sticky note");
+
+    // Create a new note with default content
+    let note = state
+        .notes_service
+        .create_note(
+            "Untitled".to_string(),
+            r#"{"ops":[{"insert":"\n"}]}"#.to_string(),
+        )
+        .await?;
+
+    tracing::info!("Created new note: {}, opening window", note.id);
+
+    // Open it in a floating window
+    open_note_window(app, state, note.id).await?;
 
     Ok(())
 }
