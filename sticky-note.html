@@ -45,6 +45,13 @@
         border: none;
         border-bottom: 1px solid oklch(var(--bc) / 0.2);
         background: oklch(var(--b2));
+        /* Make toolbar draggable for frameless window */
+        cursor: move;
+      }
+      /* Prevent dragging when over toolbar buttons */
+      .ql-toolbar button,
+      .ql-toolbar .ql-picker {
+        cursor: pointer;
       }
       /* Ensure toolbar buttons use theme colors */
       .ql-toolbar button {
@@ -75,20 +82,10 @@
   </head>
   <body class="bg-base-100">
     <div id="sticky-note-container" class="bg-base-100">
-      <!-- Header with close button -->
-      <div class="bg-base-200 border-b border-base-300 p-2 flex justify-end items-center">
-        <button class="btn btn-ghost btn-sm btn-circle" id="close-btn" title="Close">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-
-      <!-- Editor -->
+      <!-- Toolbar at top with formatting and delete -->
       <div id="sticky-note-editor" class="bg-base-100"></div>
 
-      <!-- Toolbar -->
+      <!-- Bottom bar with delete and save status -->
       <div class="bg-base-200 border-t border-base-300 p-2 flex gap-2 justify-between items-center">
         <button class="btn btn-error btn-sm" id="delete-btn">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

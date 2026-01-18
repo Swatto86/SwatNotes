@@ -139,7 +139,7 @@ pub async fn open_note_window(
         }
     }
 
-    // Create new sticky note window (visible from start with background color to prevent flash)
+    // Create new sticky note window (frameless, visible from start)
     tracing::debug!("Creating new sticky note window: {}", window_label);
     let window = WebviewWindowBuilder::new(
         &app,
@@ -150,7 +150,7 @@ pub async fn open_note_window(
     .inner_size(config::STICKY_NOTE_DEFAULT_WIDTH, config::STICKY_NOTE_DEFAULT_HEIGHT)
     .min_inner_size(config::STICKY_NOTE_MIN_WIDTH, config::STICKY_NOTE_MIN_HEIGHT)
     .resizable(true)
-    .decorations(true)
+    .decorations(false)  // Frameless window - no OS decorations
     .always_on_top(false)
     .skip_taskbar(false)
     .visible(true)  // Visible from start - background color prevents white flash
