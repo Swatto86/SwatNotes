@@ -51,6 +51,7 @@ fn main() {
             commands::create_new_sticky_note,
             commands::set_last_focused_note_window,
             commands::toggle_last_focused_note_window,
+            commands::open_settings_window,
             commands::create_attachment,
             commands::list_attachments,
             commands::get_attachment_data,

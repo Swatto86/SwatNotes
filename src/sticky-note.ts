@@ -83,6 +83,12 @@ async function init(): Promise<void> {
       placeholder: 'Start typing...'
     });
 
+    // Make toolbar draggable for frameless window
+    const toolbar = document.querySelector('.ql-toolbar');
+    if (toolbar) {
+      toolbar.setAttribute('data-tauri-drag-region', '');
+    }
+
     // Load content
     try {
       const content = JSON.parse(currentNote.content_json);
@@ -137,15 +143,6 @@ function setupEventHandlers(): void {
       invoke('set_last_focused_note_window', { windowLabel: windowLabel })
         .catch(err => console.error('Failed to set last focused window:', err));
     }
-  });
-
-  // Close button - save and close
-  const closeBtn = document.getElementById('close-btn');
-  closeBtn?.addEventListener('click', async () => {
-    if (isDirty) {
-      await saveNote();
-    }
-    currentWindow.close();
   });
 
   // Delete button - confirm and delete
