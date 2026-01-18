@@ -299,7 +299,7 @@ pub fn open_settings_window(app: tauri::AppHandle) -> Result<()> {
     .min_inner_size(500.0, 600.0)
     .resizable(true)
     .decorations(true)
-    .center(true)
+    .center()
     .visible(true)
     .build()?;
 
