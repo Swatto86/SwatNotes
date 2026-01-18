@@ -260,6 +260,57 @@ pub fn toggle_last_focused_note_window(
     Ok(())
 }
 
+/// Open the settings window
+#[tauri::command]
+pub fn open_settings_window(app: tauri::AppHandle) -> Result<()> {
+    use tauri::Manager;
+    use tauri::WebviewUrl;
+    use tauri::WebviewWindowBuilder;
+
+    tracing::info!("Opening settings window");
+
+    let window_label = "settings";
+
+    // Check if window already exists
+    if let Some(window) = app.get_webview_window(window_label) {
+        match window.is_visible() {
+            Ok(_) => {
+                tracing::debug!("Settings window already exists, showing and focusing");
+                let _ = window.unminimize();
+                let _ = window.show();
+                let _ = window.set_focus();
+                return Ok(());
+            }
+            Err(_) => {
+                tracing::debug!("Settings window exists but is invalid, will create new one");
+            }
+        }
+    }
+
+    // Create new settings window
+    tracing::debug!("Creating new settings window");
+    let window = WebviewWindowBuilder::new(
+        &app,
+        window_label,
+        WebviewUrl::App("settings.html".into()),
+    )
+    .title("Settings - SwatNotes")
+    .inner_size(600.0, 700.0)
+    .min_inner_size(500.0, 600.0)
+    .resizable(true)
+    .decorations(true)
+    .center(true)
+    .visible(true)
+    .build()?;
+
+    tracing::info!("Settings window created successfully");
+
+    let _ = window.show();
+    let _ = window.set_focus();
+
+    Ok(())
+}
+
 // ===== Attachment Commands =====
 
 use crate::database::Attachment;

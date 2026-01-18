@@ -8,9 +8,6 @@ import { listen } from '@tauri-apps/api/event';
 import { createNote, searchNotes } from '../utils/notesApi';
 import { renderNotesList } from '../components/notesList';
 import { DEFAULT_NOTE_CONTENT, DEFAULT_NOTE_TITLE, SEARCH_DEBOUNCE_MS } from '../config';
-import { getStoredTheme } from '../ui/theme';
-import { handleBackupNow, loadBackupsList } from '../ui/backup';
-import { loadSettings, saveSettings, type AppSettings } from '../utils/settings';
 
 /**
  * Setup all event handlers for the application
@@ -20,42 +17,6 @@ export function setupEventHandlers() {
   const newNoteBtn = document.getElementById('new-note-btn');
   newNoteBtn?.addEventListener('click', async () => {
     await handleCreateNote();
-  });
-
-  // Settings button
-  const settingsBtn = document.getElementById('settings-btn');
-  settingsBtn?.addEventListener('click', async () => {
-    const modal = document.getElementById('settings-modal');
-    modal?.showModal();
-
-    // Load current settings
-    loadCurrentSettings();
-
-    // Load backups when modal opens
-    await loadBackupsList();
-  });
-
-  // Settings modal close handlers
-  const settingsModal = document.getElementById('settings-modal');
-  const modalCloseBtn = settingsModal?.querySelector('.modal-action button');
-  const modalBackdrop = settingsModal?.querySelector('.modal-backdrop');
-
-  modalCloseBtn?.addEventListener('click', () => {
-    // Save settings when modal closes
-    saveCurrentSettings();
-    settingsModal?.close();
-  });
-
-  modalBackdrop?.addEventListener('click', () => {
-    // Save settings when modal closes
-    saveCurrentSettings();
-    settingsModal?.close();
-  });
-
-  // Backup now button
-  const backupNowBtn = document.getElementById('backup-now-btn');
-  backupNowBtn?.addEventListener('click', async () => {
-    await handleBackupNow();
   });
 
   // Search input with debounce
@@ -151,79 +112,9 @@ export async function setupReminderListener() {
     await handleCreateNote();
   });
 
-  // Listen for open-settings event from tray menu
-  await listen('open-settings', async () => {
-    console.log('Open settings triggered from tray menu');
-    const modal = document.getElementById('settings-modal') as HTMLDialogElement;
-    if (modal) {
-      modal.showModal();
-
-      // Load current settings
-      loadCurrentSettings();
-
-      // Load backups when modal opens
-      await loadBackupsList();
-    }
-  });
-
   // Listen for notes list changes to auto-refresh
   await listen('notes-list-changed', async () => {
     console.log('Notes list changed, refreshing...');
     await refreshNotesList();
   });
-}
-
-/**
- * Load current settings into UI elements
- */
-function loadCurrentSettings(): void {
-  const settings = loadSettings();
-
-  // Update theme selector
-  const themeSelect = document.getElementById('theme-select') as HTMLSelectElement;
-  if (themeSelect) {
-    themeSelect.value = getStoredTheme();
-  }
-
-  // Behavior settings
-  const startHidden = document.getElementById('start-hidden') as HTMLInputElement;
-  if (startHidden) startHidden.checked = settings.startHidden;
-
-  const minimizeToTray = document.getElementById('minimize-to-tray') as HTMLInputElement;
-  if (minimizeToTray) minimizeToTray.checked = settings.minimizeToTray;
-
-  const closeToTray = document.getElementById('close-to-tray') as HTMLInputElement;
-  if (closeToTray) closeToTray.checked = settings.closeToTray;
-
-  // Auto-save settings
-  const autoSaveDelay = document.getElementById('autosave-delay') as HTMLInputElement;
-  if (autoSaveDelay) autoSaveDelay.value = settings.autoSaveDelay.toString();
-
-  // Automatic backup settings
-  const autoBackupEnabled = document.getElementById('auto-backup-enabled') as HTMLInputElement;
-  if (autoBackupEnabled) autoBackupEnabled.checked = settings.autoBackupEnabled;
-
-  const backupFrequency = document.getElementById('backup-frequency') as HTMLSelectElement;
-  if (backupFrequency) backupFrequency.value = settings.backupFrequency;
-
-  const backupRetention = document.getElementById('backup-retention') as HTMLSelectElement;
-  if (backupRetention) backupRetention.value = settings.backupRetentionDays.toString();
-}
-
-/**
- * Save current settings from UI elements
- */
-function saveCurrentSettings(): void {
-  const settings: AppSettings = {
-    startHidden: (document.getElementById('start-hidden') as HTMLInputElement)?.checked ?? true,
-    minimizeToTray: (document.getElementById('minimize-to-tray') as HTMLInputElement)?.checked ?? true,
-    closeToTray: (document.getElementById('close-to-tray') as HTMLInputElement)?.checked ?? true,
-    autoSaveDelay: parseInt((document.getElementById('autosave-delay') as HTMLInputElement)?.value ?? '1000'),
-    autoBackupEnabled: (document.getElementById('auto-backup-enabled') as HTMLInputElement)?.checked ?? false,
-    backupFrequency: (document.getElementById('backup-frequency') as HTMLSelectElement)?.value as 'hourly' | 'daily' | 'weekly' ?? 'daily',
-    backupRetentionDays: parseInt((document.getElementById('backup-retention') as HTMLSelectElement)?.value ?? '30'),
-  };
-
-  saveSettings(settings);
-  console.log('Settings saved:', settings);
 }

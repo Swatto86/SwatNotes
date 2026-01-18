@@ -157,12 +157,9 @@ fn setup_tray(app: &mut App) -> Result<()> {
                     });
                 }
                 "settings" => {
-                    // Show main window and open settings modal
-                    if let Some(window) = app.get_webview_window("main") {
-                        let _ = window.show();
-                        let _ = window.set_focus();
-                        // Emit event to open settings modal
-                        let _ = window.emit("open-settings", ());
+                    // Open settings window
+                    if let Err(e) = crate::commands::open_settings_window(app.clone()) {
+                        tracing::error!("Failed to open settings window: {}", e);
                     }
                 }
                 "quit" => {

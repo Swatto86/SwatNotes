@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Settings - SwatNotes</title>
+    <link rel="stylesheet" href="/src/styles/main.css" />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      #settings-container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+      #settings-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+      }
+      .settings-section {
+        margin-bottom: 2rem;
+      }
+      .settings-section:last-child {
+        margin-bottom: 0;
+      }
+      .settings-section h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: oklch(var(--bc));
+      }
+      .settings-row {
+        margin-bottom: 1rem;
+      }
+      .settings-row:last-child {
+        margin-bottom: 0;
+      }
+    </style>
+  </head>
+  <body class="bg-base-100">
+    <div id="settings-container" class="bg-base-100">
+      <!-- Header with drag region -->
+      <div class="bg-base-200 border-b border-base-300 p-4 flex justify-between items-center" data-tauri-drag-region>
+        <h1 class="text-xl font-bold text-base-content" data-tauri-drag-region>Settings</h1>
+        <button class="btn btn-ghost btn-sm btn-circle" id="close-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Settings content -->
+      <div id="settings-content" class="bg-base-100">
+        <!-- Appearance Section -->
+        <div class="settings-section">
+          <h2>Appearance</h2>
+          <div class="settings-row">
+            <label class="label">
+              <span class="label-text">Theme</span>
+            </label>
+            <select class="select select-bordered w-full text-base-content" id="theme-select">
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+              <option value="cupcake">Cupcake</option>
+              <option value="bumblebee">Bumblebee</option>
+              <option value="emerald">Emerald</option>
+              <option value="corporate">Corporate</option>
+              <option value="synthwave">Synthwave</option>
+              <option value="retro">Retro</option>
+              <option value="cyberpunk">Cyberpunk</option>
+              <option value="valentine">Valentine</option>
+              <option value="halloween">Halloween</option>
+              <option value="garden">Garden</option>
+              <option value="forest">Forest</option>
+              <option value="aqua">Aqua</option>
+              <option value="lofi">Lo-Fi</option>
+              <option value="pastel">Pastel</option>
+              <option value="fantasy">Fantasy</option>
+              <option value="wireframe">Wireframe</option>
+              <option value="black">Black</option>
+              <option value="luxury">Luxury</option>
+              <option value="dracula">Dracula</option>
+              <option value="cmyk">CMYK</option>
+              <option value="autumn">Autumn</option>
+              <option value="business">Business</option>
+              <option value="acid">Acid</option>
+              <option value="lemonade">Lemonade</option>
+              <option value="night">Night</option>
+              <option value="coffee">Coffee</option>
+              <option value="winter">Winter</option>
+              <option value="dim">Dim</option>
+              <option value="nord">Nord</option>
+              <option value="sunset">Sunset</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Behavior Section -->
+        <div class="settings-section">
+          <h2>Behavior</h2>
+          <div class="settings-row">
+            <label class="label cursor-pointer justify-start gap-3">
+              <input type="checkbox" class="checkbox" id="start-hidden-checkbox" />
+              <span class="label-text">Start application hidden (tray only)</span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <label class="label cursor-pointer justify-start gap-3">
+              <input type="checkbox" class="checkbox" id="minimize-to-tray-checkbox" />
+              <span class="label-text">Minimize to system tray</span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <label class="label cursor-pointer justify-start gap-3">
+              <input type="checkbox" class="checkbox" id="close-to-tray-checkbox" />
+              <span class="label-text">Close to system tray</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Auto-save Section -->
+        <div class="settings-section">
+          <h2>Auto-save</h2>
+          <div class="settings-row">
+            <label class="label">
+              <span class="label-text">Auto-save delay (milliseconds)</span>
+            </label>
+            <input type="number" class="input input-bordered w-full text-base-content" id="autosave-delay-input" value="1000" min="100" step="100" />
+            <label class="label">
+              <span class="label-text-alt">Notes automatically save after you stop typing (default: 1000ms)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Hotkeys Section -->
+        <div class="settings-section">
+          <h2>Keyboard Shortcuts</h2>
+          <div class="settings-row">
+            <div class="bg-base-200 rounded-lg p-3">
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-base-content">Create new note</span>
+                <kbd class="kbd kbd-sm">Ctrl+Shift+N</kbd>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-base-content">Toggle last focused note</span>
+                <kbd class="kbd kbd-sm">Ctrl+Shift+T</kbd>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Automatic Backups Section -->
+        <div class="settings-section">
+          <h2>Automatic Backups</h2>
+          <div class="settings-row">
+            <label class="label cursor-pointer justify-start gap-3">
+              <input type="checkbox" class="checkbox" id="auto-backup-enabled-checkbox" />
+              <span class="label-text">Enable automatic backups</span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <label class="label">
+              <span class="label-text">Backup frequency</span>
+            </label>
+            <select class="select select-bordered w-full text-base-content" id="backup-frequency-select">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <label class="label">
+              <span class="label-text">Keep backups for</span>
+            </label>
+            <select class="select select-bordered w-full text-base-content" id="backup-retention-select">
+              <option value="7">7 days</option>
+              <option value="30">30 days</option>
+              <option value="90">90 days</option>
+              <option value="365">1 year</option>
+              <option value="0">Forever</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Manual Backup Section -->
+        <div class="settings-section">
+          <h2>Manual Backup</h2>
+          <div class="settings-row">
+            <label class="label">
+              <span class="label-text">Backup password</span>
+            </label>
+            <input type="password" class="input input-bordered w-full text-base-content" id="backup-password-input" placeholder="Enter backup password" />
+          </div>
+          <div class="settings-row">
+            <button class="btn btn-primary w-full" id="create-backup-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Create Backup Now
+            </button>
+          </div>
+        </div>
+
+        <!-- Recent Backups Section -->
+        <div class="settings-section">
+          <h2>Recent Backups</h2>
+          <div id="backups-list" class="space-y-2">
+            <div class="text-base-content/50 text-sm text-center py-4">No backups found</div>
+          </div>
+        </div>
+
+        <!-- About Section -->
+        <div class="settings-section">
+          <h2>About</h2>
+          <div class="bg-base-200 rounded-lg p-3">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-base-content">Version</span>
+              <span class="text-base-content/70" id="app-version">Loading...</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-base-content">Data Directory</span>
+              <button class="btn btn-ghost btn-xs" id="open-data-dir-btn">Open</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/settings.js"></script>
+  </body>
+</html>
