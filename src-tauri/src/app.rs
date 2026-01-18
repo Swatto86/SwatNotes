@@ -9,7 +9,7 @@ use crate::services::{AttachmentsService, BackupService, NotesService, Reminders
 use crate::storage::BlobStore;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use tauri::{App, Emitter, Manager};
+use tauri::{App, Manager};
 
 /// Central application state holding all services
 #[derive(Clone)]
