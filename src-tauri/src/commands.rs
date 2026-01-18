@@ -139,7 +139,7 @@ pub async fn open_note_window(
         }
     }
 
-    // Create new sticky note window (frameless, visible from start)
+    // Create new sticky note window with standard decorations
     tracing::debug!("Creating new sticky note window: {}", window_label);
     let window = WebviewWindowBuilder::new(
         &app,
@@ -150,16 +150,10 @@ pub async fn open_note_window(
     .inner_size(config::STICKY_NOTE_DEFAULT_WIDTH, config::STICKY_NOTE_DEFAULT_HEIGHT)
     .min_inner_size(config::STICKY_NOTE_MIN_WIDTH, config::STICKY_NOTE_MIN_HEIGHT)
     .resizable(true)
-    .decorations(false)  // Frameless window - no OS decorations
+    .decorations(true)  // Standard window with close button
     .always_on_top(false)
     .skip_taskbar(false)
-    .visible(true)  // Visible from start - background color prevents white flash
-    .background_color(Color(
-        config::WINDOW_BACKGROUND_COLOR.0,
-        config::WINDOW_BACKGROUND_COLOR.1,
-        config::WINDOW_BACKGROUND_COLOR.2,
-        config::WINDOW_BACKGROUND_COLOR.3,
-    ))
+    .visible(false)  // Hidden until content loads to prevent flash
     .build()?;
 
     tracing::info!("Sticky note window created successfully: {}", window_label);
@@ -295,8 +289,8 @@ pub fn open_settings_window(app: tauri::AppHandle) -> Result<()> {
         WebviewUrl::App("settings.html".into()),
     )
     .title("Settings - SwatNotes")
-    .inner_size(600.0, 700.0)
-    .min_inner_size(500.0, 600.0)
+    .inner_size(700.0, 650.0)
+    .min_inner_size(650.0, 600.0)
     .resizable(true)
     .decorations(true)
     .center()
