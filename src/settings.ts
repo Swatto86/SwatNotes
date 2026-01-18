@@ -5,6 +5,8 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { open } from '@tauri-apps/plugin-shell';
+import { message, ask } from '@tauri-apps/plugin-dialog';
 import type { AppInfo } from './types';
 
 const THEME_KEY = 'swatnotes-theme';
@@ -240,7 +242,7 @@ function setupEventHandlers(): void {
     const password = backupPasswordInput?.value || '';
 
     if (!password) {
-      alert('Please enter a backup password');
+      await message('Please enter a backup password', { title: 'Backup Password Required', kind: 'warning' });
       return;
     }
 
@@ -250,7 +252,7 @@ function setupEventHandlers(): void {
 
       const backupPath = await invoke<string>('create_backup', { password });
 
-      alert(`Backup created successfully:\n${backupPath}`);
+      await message(`Backup created successfully:\n${backupPath}`, { title: 'Backup Created', kind: 'info' });
 
       // Clear password
       if (backupPasswordInput) {
@@ -261,7 +263,7 @@ function setupEventHandlers(): void {
       await loadBackupsList();
     } catch (error) {
       console.error('Failed to create backup:', error);
-      alert('Failed to create backup: ' + error);
+      await message('Failed to create backup: ' + error, { title: 'Backup Error', kind: 'error' });
     } finally {
       createBackupBtn.removeAttribute('disabled');
       createBackupBtn.innerHTML = `
@@ -281,10 +283,10 @@ function setupEventHandlers(): void {
     const dataDir = openDataDirBtn.getAttribute('data-dir');
     if (dataDir) {
       try {
-        await invoke('plugin:shell|open', { path: dataDir });
+        await open(dataDir);
       } catch (error) {
         console.error('Failed to open data directory:', error);
-        alert('Failed to open data directory: ' + error);
+        await message('Failed to open data directory: ' + error, { title: 'Error', kind: 'error' });
       }
     }
   });
@@ -325,9 +327,9 @@ if (document.readyState === 'loading') {
 
   try {
     await invoke('restore_backup', { backupPath: backupId, password });
-    alert('Backup restored successfully. Please restart the application.');
+    await message('Backup restored successfully. Please restart the application.', { title: 'Backup Restored', kind: 'info' });
   } catch (error) {
     console.error('Failed to restore backup:', error);
-    alert('Failed to restore backup: ' + error);
+    await message('Failed to restore backup: ' + error, { title: 'Restore Error', kind: 'error' });
   }
 };
