@@ -1,0 +1,162 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-base-200;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-base-300 rounded;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-base-content/30;
+}
+
+/* Quill editor customization */
+.ql-container {
+  font-size: 16px;
+}
+
+.ql-editor {
+  min-height: 300px;
+}
+
+/* Note card hover effect */
+.note-card {
+  @apply transition-all duration-200;
+}
+
+.note-card:hover {
+  @apply shadow-md;
+}
+
+/* Shake animation for reminders */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+  20%, 40%, 60%, 80% { transform: translateX(10px); }
+}
+
+.shake {
+  animation: shake 0.5s;
+}
+
+/* Drag and drop styling */
+.drag-over {
+  @apply ring-2 ring-primary ring-offset-2 bg-primary/5;
+}
+
+.drag-over::before {
+  content: 'Drop files here';
+  @apply absolute inset-0 flex items-center justify-center;
+  @apply bg-primary/10 text-primary font-medium z-10;
+  @apply pointer-events-none;
+}
+
+#note-editor,
+#sticky-note-editor {
+  @apply relative;
+}
+
+/* Custom attachment blot styles */
+.ql-attachment-image {
+  @apply my-2;
+}
+
+.attachment-image-wrapper {
+  @apply inline-block max-w-full;
+}
+
+.attachment-image {
+  @apply max-w-full h-auto rounded cursor-pointer;
+  @apply transition-transform duration-200;
+}
+
+.attachment-image:hover {
+  @apply scale-[1.02];
+  @apply ring-2 ring-primary ring-offset-2;
+}
+
+.ql-attachment-file {
+  @apply my-2;
+}
+
+.attachment-file-chip {
+  @apply inline-flex items-center gap-2;
+  @apply px-3 py-2 rounded-lg;
+  @apply bg-base-200 hover:bg-base-300;
+  @apply cursor-pointer transition-colors;
+  @apply max-w-full;
+}
+
+/* Ensure Quill doesn't remove our custom embeds */
+.ql-editor .ql-attachment-image,
+.ql-editor .ql-attachment-file {
+  @apply block;
+}
+
+/* Loading state for images */
+.attachment-image-loading {
+  @apply flex items-center gap-2 p-3;
+  @apply bg-base-200 rounded;
+  @apply text-sm text-base-content/70;
+}
+
+/* Quill link tooltip styling */
+.ql-tooltip {
+  @apply bg-base-100 border border-base-300;
+  @apply shadow-lg rounded-lg p-3 z-50;
+}
+
+.ql-tooltip input[type="text"] {
+  @apply bg-base-200 border border-base-300;
+  @apply text-base-content rounded px-2 py-1;
+}
+
+.ql-tooltip a {
+  @apply text-primary;
+}
+
+.ql-tooltip a.ql-action::after,
+.ql-tooltip a.ql-remove::before {
+  @apply text-primary;
+}
+
+.ql-tooltip.ql-editing a.ql-action::after {
+  content: 'Save' !important;
+}
+
+.ql-snow .ql-tooltip::before {
+  @apply text-base-content;
+}
+
+/* Ensure Quill pickers/dropdowns are visible */
+.ql-snow .ql-picker-options {
+  @apply bg-base-100 border border-base-300;
+  @apply shadow-lg rounded;
+  z-index: 100;
+}
