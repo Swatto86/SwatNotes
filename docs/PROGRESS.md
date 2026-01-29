@@ -16,7 +16,7 @@
 
 **Last Updated**: January 29, 2026
 
-**Book Status**: 20/25 chapters complete (80% complete)
+**Book Status**: 25/25 chapters complete (100% complete)
 
 ### Chapters Completed
 
@@ -413,9 +413,247 @@
 - Real code from commands/updater.rs, update-required.ts, updateApi.ts, scripts/update-application.ps1, app.rs
 - **Status**: Complete, ready for reader use
 
+#### ✅ Chapter 20: Error Handling Patterns (`chapters/20-error-handling-patterns.md`)
+- Airport luggage analogy: errors flow upward with appropriate context at each level
+- AppError enum with thiserror: custom error types with automatic Display/Error trait implementation
+- Automatic error conversion with #[from]: enables ? operator to convert third-party errors
+- Result<T> type alias: shorthand for std::result::Result<T, AppError>
+- Error propagation with ? operator: automatic early return and type conversion
+- Domain-specific errors: NoteNotFound(id), Backup(msg), Restore(msg) instead of generic errors
+- map_err pattern: adding context to errors ("Failed to read file X: error")
+- Graceful degradation: non-critical operations (FTS sync) log warnings instead of propagating errors
+- Error serialization for IPC: custom Serialize impl converts errors to user-friendly strings
+- Frontend error handling: try-catch with logging, nested try-catch for cleanup, user-friendly modals
+- Modal-based error display: DaisyUI modals with type styling (info/warning/error/success)
+- Complete error flow diagram: happy path vs error path through all layers
+- Best practices: be specific, include context, don't swallow errors, propagate critical errors, actionable messages
+- Testing error scenarios: unit tests for error types, integration tests for propagation, E2E tests for UI
+- Common mistakes: unwrap() in production, ignoring background task errors, not testing unhappy paths
+- Performance considerations: lazy error creation with closures, appropriate log levels
+- Real code from error.rs, services/notes.rs, repository.rs, commands/notes.rs, utils/modal.ts
+- **Status**: Complete, ready for reader use
+
+#### ✅ Chapter 21: Testing Strategies (`chapters/21-testing-strategies.md`)
+- Safety net analogy: circus tightrope walker with three layers of nets (unit, integration, E2E)
+- Testing pyramid: many fast unit tests (base), fewer integration tests (middle), minimal E2E tests (top)
+- SwatNotes distribution: 100+ unit tests, 15 integration tests, 50 E2E tests
+- Vitest configuration: happy-dom environment, globals, V8 coverage provider, path aliases
+- TypeScript unit tests: pure functions (formatters), stateful components (appState), DOM interaction (modal)
+- Testing patterns: beforeEach reset, vi.mock() for dependencies, helper functions, cleanup verification
+- vi.useFakeTimers(): controlling setTimeout/setInterval for fast async tests
+- Rust unit tests: #[cfg(test)] modules, #[test] attribute, assert_eq!/assert! macros
+- Testing error types: Display trait, serialization, automatic conversions from #[from]
+- Integration tests: NotesService with in-memory SQLite, testing service → repository → SQLx → database
+- #[tokio::test]: async Rust tests with Tokio runtime
+- E2E tests with WebdriverIO: testing real user workflows in built Tauri application
+- WebdriverIO setup: WebView2 remote debugging, msedgedriver, debuggerAddress connection
+- E2E test patterns: element selectors, await expect, browser.execute(), real app interactions
+- Test organization: *.test.ts next to source, *.spec.ts in e2e/, #[cfg(test)] at file end
+- Running tests: npm test (Vitest), cargo test (Rust), npm run test:e2e (WebdriverIO)
+- Mocking strategies: vi.mock() for TypeScript dependencies, in-memory SQLite for Rust (no mocking needed)
+- Testing async code: async test functions, vi.advanceTimersByTime(), #[tokio::test], fake timers
+- Edge case testing: empty inputs, boundary values, invalid data, large inputs, error paths
+- AAA pattern: Arrange (setup), Act (perform action), Assert (verify results)
+- Best practices: descriptive test names, test independence, fast tests (<100ms), one assertion per test (guideline)
+- Common mistakes: testing implementation details, brittle selectors, not cleaning up, flaky tests, testing the framework
+- Coverage goals: 80%+ for utilities/components, all service methods, critical user paths
+- Continuous integration: GitHub Actions example for automated testing on every commit
+- Real code from vitest.config.ts, wdio.conf.cjs, formatters.test.ts, appState.test.ts, modal.test.ts, error.rs tests, notes.rs integration tests, app.spec.ts, notes.spec.ts
+- **Status**: Complete, ready for reader use
+
+#### ✅ Chapter 22: Building and Distribution (`chapters/22-building-and-distribution.md`)
+- Publishing house analogy: writing (development) → typesetting (compilation) → binding (installer) → signature (code signing) → distribution (GitHub Releases)
+- Build process stages: TypeScript compilation → Vite bundling → Rust compilation → binary executable → bundle resources → installer creation → code signing → upload
+- Mermaid diagram: source code → TypeScript/Vite → Rust compilation → bundle → NSIS installer → code signing → GitHub Releases
+- tauri.conf.json build configuration: beforeDevCommand (npm run dev), beforeBuildCommand (npm run build), frontendDist (../dist)
+- Dev vs Build flow: dev mode (Vite HMR at localhost:5173) vs build mode (static files bundled into executable)
+- Bundle configuration: targets (nsis), publisher (Swatto), icon files (.png/.icns/.ico), certificateThumbprint, digestAlgorithm (sha256)
+- NSIS vs MSI comparison table: customization, file size, install UI, corporate policies, auto-update support
+- Code signing purpose: authenticity (verified publisher) + integrity (no tampering), prevents "Unknown Publisher" warnings
+- Code signing workflow: developer → Certificate Authority → verify identity → issue certificate → sign installer → user downloads → Windows verifies signature → shows publisher name
+- Certificate Authority (CA) trust chain: Windows trusts CA, CA vouches for developer, therefore Windows trusts signature
+- Code signing options: Extended Validation ($300-500/year, immediate trust, hardware token), Standard ($100-200/year, SmartScreen warnings initially), open source (free options)
+- Tauri updater signing vs OS code signing: Tauri signing protects update integrity (free), Windows code signing prevents SmartScreen (paid certificate)
+- Generating Tauri signing keys: npx @tauri-apps/cli signer generate → private key (GitHub Secrets) + public key (embedded in app)
+- Update integrity flow: CI signs latest.json with private key → app downloads manifest → verifies signature with public key → accepts/rejects update
+- Manual release process with PowerShell script (update-application.ps1): validate version → update Cargo.toml/tauri.conf.json → git commit → create annotated tag with release notes → git push
+- Annotated Git tags with temp file: multi-line release notes stored in tag annotation for GitHub Actions extraction
+- GitHub Actions release.yml workflow: 3 jobs (create-release, build-tauri, publish-release)
+- Job 1 (create-release): extract version from tag name → extract release notes from tag annotation (git tag -l -n1000) → create GitHub Release as draft → output release_id
+- Job 2 (build-tauri): setup Rust/Node → cache dependencies → npm ci → tauri-action builds app → signs update manifest with TAURI_SIGNING_PRIVATE_KEY → uploads installer to draft release
+- Job 3 (publish-release): mark release as public (draft → published) so users can download
+- Complete release flow Mermaid sequence diagram: developer → PowerShell script → Git push → GitHub Actions → build installer → sign → upload → publish → users download
+- Build output artifacts: swatnotes.exe (unsigned binary) + swatnotes_1.0.0_x64-setup.exe (NSIS installer 10-15 MB) + portable ZIP
+- Installer details: size (~10-15 MB), install location (C:\Program Files\SwatNotes\), uninstaller, Start Menu shortcuts, optional desktop shortcut
+- WebView2 distribution options: bootstrapper (small installer, downloads on first run), fixed version (large installer ~140 MB, no internet required), evergreen (assume pre-installed)
+- Semantic versioning (SemVer): MAJOR.MINOR.PATCH format, breaking changes (MAJOR), new features (MINOR), bug fixes (PATCH)
+- Pre-release versions: alpha, beta, rc (release candidate) suffixes
+- Git tagging strategy: annotated tags (recommended, contains metadata/release notes) vs lightweight tags (just commit pointer)
+- Release notes guidelines: group by category (New Features, Bug Fixes, Performance, Breaking Changes), be specific, mention user impact
+- Caching dependencies in CI: Rust cache (rust-cache@v2 caches ~/.cargo and target/, 10 min → 2 min), npm cache (setup-node with cache: 'npm', 2 min → 10 sec)
+- Build matrix for multi-platform: matrix strategy with windows-latest, macos-latest, ubuntu-latest for parallel builds
+- Platform-specific installers: Windows (.exe NSIS/MSI), macOS (.dmg/.app), Linux (.AppImage/.deb/.rpm)
+- Testing before release: add test job before create-release, only proceed if tests pass (cargo test + npm test)
+- GitHub Releases advantages: free hosting, unlimited bandwidth (public repos), download tracking, release notes, works with Tauri updater
+- Alternative distribution channels: Microsoft Store ($20 fee, review process), Chocolatey (IT admin package manager), Winget (Windows Package Manager), self-hosted (S3/DigitalOcean Spaces)
+- Security: protect private keys (never commit to Git, use GitHub Secrets, rotate yearly, strong passwords, encrypted backups), key compromise response
+- Build environment security: isolated runners, secret redaction in logs, HTTPS only, audit logs
+- Security best practices: pin action versions (@v4 not @latest), review dependencies, use dependabot, limit GITHUB_TOKEN permissions
+- Update integrity with signature verification: prevents man-in-the-middle attacks, GitHub compromise, DNS hijacking
+- Common build errors: WebView2 not found (install runtime), bundling failed (run npm run build), signing failed (remove certificateThumbprint or install cert), Rust compilation errors (cargo check)
+- Build performance issues: slow Rust compilation (use caching, disable LTO in dev, incremental compilation), slow npm install (use caching, npm ci), large installer (tree shaking, remove debug symbols, compress assets)
+- Advanced topics: cross-compilation (rustup target add for ARM64), custom NSIS installer scripts (pre-install checks, post-install tasks), silent installation (/S flag), Group Policy deployment
+- Key takeaways: automated build process, installer types comparison, code signing levels, release automation with PowerShell + GitHub Actions, semantic versioning, GitHub Releases distribution, security for signing keys
+- Real code from tauri.conf.json (bundle config, updater pubkey), Cargo.toml (version field), release.yml (complete CI/CD workflow), update-application.ps1 (PowerShell release script)
+- **Status**: Complete, ready for reader use
+
+#### ✅ Chapter 23: Performance Optimization (`chapters/23-performance-optimization.md`)
+- Race car analogy: stock car (no optimization) → measuring lap times (profiling) → finding bottlenecks → targeted tuning → trade-offs (complexity vs speed)
+- Performance metrics table: startup time (<1s), query latency (<10ms), autosave delay (<100ms), memory usage (<300 MB), bundle size (<500 KB), installer size (<15 MB)
+- 80/20 rule (Pareto Principle): 80% of execution time in 20% of code, optimize the hot paths (search, autosave, list rendering, Delta parsing)
+- EXPLAIN QUERY PLAN: analyzing SQLite query execution, interpreting SCAN vs SEARCH, detecting temp B-trees, verifying index usage
+- Composite index optimization: creating indexes on multiple columns (deleted_at, updated_at DESC) to eliminate temp sorting
+- SwatNotes index strategy: idx_notes_updated_at (main list query), idx_notes_deleted_at (soft delete filtering), idx_attachments_note_id (foreign key lookup), idx_reminders_triggered (polling query)
+- Index cost: 10-20% write overhead per index, only create for common queries
+- N+1 query problem: fetching N items then N individual queries for related data (N+1 total queries)
+- Batch query solution: collect all IDs, single query with IN clause (2 total queries), QueryBuilder for type-safe dynamic SQL
+- FTS5 query optimization: prefix matching (budget*), BM25 ranking for relevance, empty query fast path (skip FTS overhead)
+- Search deduplication: HashSet for O(1) lookups preventing duplicate results from FTS + attachment search
+- Rust release profile: lto = true (link-time optimization, -10% size, +5-10% speed), codegen-units = 1 (-5% size, +2-5% speed), panic = "abort" (-5% size), strip = true (-30% size, removes debug symbols)
+- Combined release effect: 40-50% smaller binary, 2x slower compilation, 10-15% faster runtime
+- Arc memory management: clone is cheap (5 CPU cycles, increments atomic counter), no data copy
+- Mutex lock cost: 50 CPU cycles, minimize lock scope by cloning data out before expensive operations
+- Lock contention best practice: acquire lock, clone data, release lock immediately, perform expensive operation without lock
+- Async task spawning: Arc clone before move into closure, Box::pin for pinned Future, error handling without panicking
+- Vite bundle optimization: target esnext (modern JavaScript, smaller), minify with esbuild (10x faster than Terser), sourcemap only in debug, multi-page code splitting
+- Build output: ~310 KB JavaScript total, ~90 KB gzipped, tree shaking removes unused imports automatically
+- Debouncing pattern: delay function until user stops typing, search debouncing (300ms) reduces 6 queries to 1 for "budget" search
+- Autosave debouncing: 1-second delay, 11x fewer save operations for "Hello world" typing, 10ms overhead vs 110ms without debouncing
+- DOM manipulation efficiency: build HTML string in memory (fast), single innerHTML assignment (one reflow), event delegation (one listener on container)
+- Rendering performance: 1,000 notes in ~50ms (vs ~500ms with individual DOM operations)
+- Memory leak sources: unremoved event listeners, unclosed database connections, unbounded caches, circular references
+- Memory leak prevention: provide destroy() cleanup methods, remove event listeners on cleanup, Chrome DevTools heap snapshots for detection
+- Chrome DevTools workflow: take snapshot → perform action 10 times → take snapshot → compare for detached DOM nodes, growing listener counts
+- SwatNotes memory usage: 80 MB idle, 120 MB with 10 notes, 250 MB with 100 notes, no unbounded growth
+- Rust memory profiling tools: Valgrind (leak detection), Heaptrack (flamegraphs), Task Manager (simple baseline comparison)
+- Startup time benchmarks: cold start 650ms (Defender scan + WebView2 init + DB + UI), warm start 170ms (cached WebView2)
+- Query performance (10,000 notes): list all 15ms, FTS search 20ms, get by ID <1ms, update 5ms, soft delete 3ms, create 8ms
+- Autosave performance: 11 saves without debouncing (110ms overhead) vs 1 save with debouncing (10ms overhead)
+- Bundle size breakdown: Quill.js 180 KB (largest, necessary), Tauri API 40 KB, application code 212 KB, total gzipped 125 KB
+- Flamegraph interpretation: width = CPU time, widest boxes are hotspots, identify bottlenecks visually
+- Chrome Performance tab: record action → analyze timeline → identify long tasks (>50ms), layout thrashing, scripting time
+- DocumentFragment optimization: faster than innerHTML for large lists (~30% improvement for 100+ notes), trade-off of code complexity
+- EXPLAIN QUERY PLAN workflow: analyze current plan → identify temp B-trees/table scans → add composite index → verify improvement (40% faster)
+- Optimization checklist: profile first, identify bottleneck, set target, benchmark baseline, measure after, compare to target, document trade-offs
+- Database optimization checklist: indexes on foreign keys, indexes on WHERE columns, composite indexes, batch queries, EXPLAIN verification, FTS5 for text search
+- Rust optimization checklist: release profile tuning, minimize lock scope, Arc clone freely, async for I/O, batch operations
+- Frontend optimization checklist: debounce frequent operations, event delegation, minimize reflows, lazy load dependencies, tree shaking
+- Memory optimization checklist: remove listeners, destroy components, heap snapshots, avoid circular Arc (use Weak<T>)
+- When NOT to optimize: code executed once, operations <10ms, micro-optimizations, unclear bottleneck, premature optimization is evil (Donald Knuth)
+- Rule of thumb: if users don't complain and metrics are reasonable, don't optimize
+- Real code from Cargo.toml (release profile), vite.config.js (bundle optimization), config.ts (debounce constants), events/handlers.ts (debouncing implementation), repository.rs (batch queries with QueryBuilder), 001_initial_schema.sql (indexes)
+- **Status**: Complete, ready for reader use
+
+#### ✅ Chapter 24: Advanced Patterns (`chapters/24-advanced-patterns.md`)
+- Custom plugins, IPC patterns, trait system, derive macros
+- Trait system deep dive: derive macros vs manual trait implementations
+- Automatic trait implementation with #[derive]: Clone, Debug, Serialize, Deserialize, PartialEq, Default
+- AppState Clone pattern: Arc-wrapped services for cheap cloning (5 CPU cycles), no data duplication
+- Custom trait implementations for domain logic:
+  - Default trait for sensible defaults (HotkeySettings with working hotkeys out of box)
+  - FromStr trait for string parsing (BackupFrequency from "weekly" → Days(7))
+  - Custom Serialize for IPC compatibility (AppError as string for frontend)
+- thiserror crate: automatic Error trait implementation, #[derive(Error, Debug)], #[from] for automatic conversions
+- Tauri plugin architecture: official plugins (global-shortcut, notification, dialog, fs, shell, clipboard-manager)
+- Plugin integration patterns: extension traits, closure callbacks, event filtering, async spawning
+- Builder pattern in plugins: .on_shortcut() registers shortcut and sets up handler in one call
+- Event system for decoupled communication: Emitter trait, custom event types (ReminderEvent), serialization to JSON
+- Bidirectional IPC: commands (invoke) for request/response, events (emit/listen) for broadcasts
+- Custom event types with type safety: Rust struct → JSON → TypeScript interface
+- Event patterns: window-specific listeners, built-in Tauri events (tauri://focus), multiple listeners
+- Builder patterns: WebviewWindowBuilder, TrayIconBuilder for fluent configuration
+- Builder anatomy: constructor (required params), configuration methods (optional), terminal method (.build())
+- Builder advantages: named methods (self-documenting), optional parameters, type safety, future-proof
+- Custom builders: WindowConfig pattern (configuration object + builder function)
+- Arc patterns for sharing state safely:
+  - Arc alone for immutable shared data (Arc<BackupService>)
+  - Arc<Mutex<T>> for mutable shared data (last_focused_note_window)
+  - Arc<RwLock<T>> for many readers, one writer (JobScheduler)
+  - Arc<Mutex<Option<T>>> for optional shared state (late-initialized AppHandle)
+- Arc cloning performance: 5 CPU cycles, no allocations, just reference count increment
+- When to use each Arc pattern: Arc (immutable), Mutex (write-heavy), RwLock (read-heavy 10+ reads per write)
+- Command pattern for async Rust ↔ sync TypeScript: async commands for I/O, sync commands for pure computation
+- Spawning background tasks from commands: fire-and-forget events, non-blocking async spawn
+- Integration patterns: tracing complete user flow (Ctrl+Shift+N new note) through all pattern layers
+- Full pattern stack: plugin → Arc clone → async spawn → command → service → repository → error conversion → event emission → builder → window creation → IPC → event listener → mutex update
+- Best practices: derive traits when possible, Arc for immutable/Arc<Mutex> for mutable, clone Arc before spawning, events for decoupling/commands for data fetching
+- Anti-patterns: don't hold Mutex locks across await points (deadlock risk), don't use Arc<Mutex> for everything (over-synchronization), don't ignore builder return values, don't emit events in tight loops (UI freeze)
+- Pattern composition recipes:
+  - Late-initialized service with Arc<Mutex<Option<AppHandle>>>
+  - Custom event with type safety (Rust struct + TypeScript interface)
+  - Builder with validation (check config before building)
+  - Plugin-based feature flag (Option<Arc<SchedulerService>> for graceful degradation)
+- Pattern decision guide: configuration → builder, shared state → Arc/Mutex, cross-boundary communication → events/commands, extend capabilities → plugins/traits, I/O → async, custom serialization → manual Serialize, errors → thiserror
+- Pattern table: 11 patterns with purpose and when to use (derive macros, custom traits, thiserror, plugins, events, commands, builders, Arc, Arc<Mutex>, Arc<RwLock>, Arc<Mutex<Option>>)
+- Key insight: every SwatNotes feature composes multiple patterns (Reminders = Plugin + Events + Arc + Async, Hotkeys = Plugin + Async spawn + Commands, Windows = Builder + Events + IPC, Settings = Traits + State + Commands)
+- Real code from app.rs (AppState, setup_tray, setup_global_hotkeys), error.rs (AppError with thiserror, custom Serialize), services/settings.rs (Default implementations), services/scheduler.rs (FromStr for BackupFrequency, Arc<RwLock<JobScheduler>>), services/reminders.rs (Arc<Mutex<Option<AppHandle>>>, ReminderEvent, Emitter trait), commands/windows.rs (WebviewWindowBuilder, WindowConfig pattern), events/handlers.ts (listen/emit patterns), sticky-note.ts (window-specific event listeners)
+- **Status**: Complete, ready for reader use
+
+#### ✅ Chapter 25: Production Readiness (`chapters/25-production-readiness.md`)
+- Logging, monitoring, maintenance, deployment strategies for long-term production
+- Observability stack: logs (narrative timeline), metrics (quantitative data), traces (request flow)
+- Structured logging with tracing crate: log levels (ERROR, WARN, INFO, DEBUG, TRACE), filtering, performance
+- tracing_subscriber initialization: EnvFilter for dynamic filtering, fmt::layer for pretty-print, RUST_LOG environment variable
+- Log levels guide: ERROR (unrecoverable failures), WARN (recoverable issues), INFO (state changes), DEBUG (execution flow), TRACE (verbose detail)
+- Logging strategy in services: INFO at operation start/end, WARN for graceful degradation, DEBUG for context
+- Async task logging: log task boundaries, context fields, completion/failure states
+- Frontend TypeScript logger: LogLevel enum, timestamps in dev, WARN+ only in production, formatMessage with context
+- Log file rotation: RollingFileAppender (DAILY/HOURLY/SIZE), retention policy (delete logs >30 days)
+- Graceful degradation patterns:
+  - Optional features with Option<Arc<T>> (scheduler can fail without crashing app)
+  - FTS rebuild as non-critical (warn on failure, don't block startup)
+  - Update check failure (continue without blocking, show main window)
+  - Attachment search fallback (partial results better than error)
+- Graceful degradation checklist: can app function without feature? is there fallback? log degradation? can user retry?
+- Critical vs non-critical features: database/window/IPC must work, FTS/backups/updates can degrade
+- Error monitoring: track most common errors, frequency, context
+- Frontend error tracking: log every user-facing error, showAlert with logger.error
+- Error aggregation services: Sentry (stack traces, breadcrumbs), LogRocket (session replay), Application Insights (Azure monitoring)
+- Backend error tracking: tracing::error for failures, hypothetical sentry::capture_error integration
+- Desktop app error reporting challenges: no internet, privacy concerns (PII), user consent required
+- Health checks: verify database (SELECT 1), FTS index (query count), blob store (directory exists)
+- When to run health checks: on startup, periodically (every 5 minutes), on user request
+- Health indicators table: database connection, FTS query, blob store writable, scheduler jobs, network ping
+- Performance metrics as health: note creation >100ms (slow database), search >500ms (rebuild index), memory >500 MB (leak)
+- Version management: database migrations with schema_version table, incremental migration execution
+- Migration best practices: never modify old migrations, test on production data copy, support rollback, version in filename
+- Settings migration: load → check version → migrate → save, add fields with Option<T> or defaults
+- Compatibility strategy: add don't remove, deprecate then remove (2 versions warning), track schema version
+- Update compatibility: check for breaking changes, requires_clean_install() for major migrations
+- User support: export diagnostic info (version, OS, counts, error logs), bundle logs (last 7 days ZIP)
+- Privacy in diagnostics: never include note content/titles/full paths, include version/OS/counts/errors
+- Support workflow: user reports bug → export logs → developer inspects → fix released
+- Dependency updates: security patches (24 hours), minor versions (monthly), major versions (quarterly)
+- Tools: cargo outdated, cargo update, cargo audit (security), cargo upgrade (breaking updates)
+- Database maintenance: VACUUM (monthly, reclaim space), ANALYZE (weekly, optimize queries)
+- Blob store garbage collection: walk directory, delete unreferenced blobs (referenced_hashes HashSet)
+- Crash recovery: crash marker file (.crash_recovery), WAL replay on next startup, remove marker on clean shutdown
+- Feature flags: gradual rollout (developers → beta users → 10% → 100%), FeatureFlags struct with bool toggles
+- Deployment checklist: test suite, manual smoke test, clean machine test, offline mode, large dataset, performance profiling, security audit
+- Release artifacts: installer (NSIS/MSI), portable ZIP, code signature, checksums (SHA-256), release notes
+- Post-release monitoring: error rates (first 24 hours critical), download counts, user feedback, crash reports, performance trends
+- Rollback plan: yank release (mark pre-release), hotfix or revert, communicate to users, root cause analysis
+- Incident severity levels: P0 (data loss, immediate), P1 (app unusable, <1h), P2 (major feature, <4h), P3 (minor, <24h), P4 (cosmetic, next release)
+- Incident response workflow: acknowledge → diagnose → mitigate → communicate → resolve → post-mortem
+- Example incident: crash with long titles (>1000 chars), timeline from report to fix (1 hour), root cause (missing validation), prevention (add test)
+- Key takeaways: structured logging with levels, graceful degradation for non-critical features, error monitoring with privacy, health checks for critical systems, version/schema migration, user support with diagnostics, regular maintenance, deployment checklist, incident response
+- Book completion message: from zero to production-ready app, learned Rust/Tauri/SQLite/frontend/production patterns, ready to build amazing desktop apps
+- Real code from main.rs (tracing_subscriber initialization), app.rs (graceful degradation patterns, scheduler Option<Arc>, FTS rebuild warning), services/notes.rs (WARN logging for FTS/attachment failures), logger.ts (TypeScript logger with levels)
+- **Status**: Complete, ready for reader use - **BOOK 100% COMPLETE!**
+
 ### Chapters In Progress
 
-**None** - Ready to start Chapter 20 or any requested chapter.
+**None** - All 25 chapters complete! 🎉
 
 ---
 
@@ -443,12 +681,12 @@
 | **Ch 17** | **System Integration** | ✅ Complete | Global hotkeys, system tray, hide-to-tray, autostart |
 | **Ch 18** | **Collections and Organization** | ✅ Complete | Hierarchical data, color-coded folders, filtering |
 | **Ch 19** | **Auto-Update System** | ✅ Complete | GitHub Releases, semver, downloads, installation |
-| Ch 20 | Error Handling Patterns | 📝 Planned | Custom errors, propagation, user-facing messages |
-| Ch 21 | Testing Strategies | 📝 Planned | Unit, integration, E2E tests |
-| Ch 22 | Testing Strategies | 📝 Planned | Unit, integration, E2E tests |
-| Ch 23 | Building and Distribution | 📝 Planned | Installers, code signing, CI/CD |
-| Ch 24 | Performance Optimization | 📝 Planned | Profiling, query optimization |
-| Ch 25 | Production Readiness | 📝 Planned | Logging, monitoring, maintenance |
+| **Ch 20** | **Error Handling Patterns** | ✅ Complete | Custom errors, propagation, user-facing messages |
+| **Ch 21** | **Testing Strategies** | ✅ Complete | Unit, integration, E2E tests |
+| **Ch 22** | **Building and Distribution** | ✅ Complete | Installers, code signing, CI/CD |
+| **Ch 23** | **Performance Optimization** | ✅ Complete | Profiling, query optimization |
+| **Ch 24** | **Advanced Patterns** | ✅ Complete | Traits, plugins, IPC, builders, Arc patterns |
+| **Ch 25** | **Production Readiness** | ✅ Complete | Logging, monitoring, maintenance |
 
 ---
 
@@ -958,6 +1196,95 @@ From `src-tauri/Cargo.toml`:
 | **Delta update** | Updating software by applying only the differences (binary diff) instead of full replacement | Ch 19 |
 | **Code signing certificate** | Digital certificate proving software publisher identity; prevents "Unknown Publisher" warnings | Ch 19 |
 | **UAC (User Account Control)** | Windows security feature requiring admin approval for system changes | Ch 19 |
+| **thiserror** | Rust crate for deriving Error trait on custom error types; reduces boilerplate | Ch 20 |
+| **#[from]** | Attribute enabling automatic error conversion via From trait; used with thiserror | Ch 20 |
+| **Result type alias** | Custom type alias for Result<T, CustomError>; shortens function signatures | Ch 20 |
+| **? operator** | Rust operator for early return on errors; automatically converts via From trait | Ch 20 |
+| **Error propagation** | Passing errors up the call stack instead of handling locally; done with ? operator | Ch 20 |
+| **map_err** | Combinator transforming one error type to another; adds context to errors | Ch 20 |
+| **Domain-specific error** | Custom error variant for specific failure cases (NoteNotFound vs Generic) | Ch 20 |
+| **Error serialization** | Converting error types to JSON/strings for sending across boundaries (IPC) | Ch 20 |
+| **unwrap()** | Rust method that panics if Result/Option is Err/None; avoid in production | Ch 20 |
+| **expect()** | Like unwrap() but with custom panic message; use for truly impossible errors | Ch 20 |
+| **ok_or_else** | Converts Option<T> to Result<T, E>; lazy closure only runs if None | Ch 20 |
+| **Unit test** | Test verifying single function or module in isolation; fast, focused, easy to debug | Ch 21 |
+| **Integration test** | Test verifying multiple components working together (e.g., service + repository + database) | Ch 21 |
+| **E2E test (End-to-End)** | Test simulating real user workflows in fully built application | Ch 21 |
+| **Testing pyramid** | Strategy with many fast unit tests (base), fewer integration tests (middle), minimal E2E tests (top) | Ch 21 |
+| **Vitest** | Modern test framework for Vite projects with fast execution and TypeScript support | Ch 21 |
+| **happy-dom** | Lightweight DOM simulation for testing (faster than jsdom) | Ch 21 |
+| **WebdriverIO** | E2E testing framework for browser automation | Ch 21 |
+| **Mocking** | Replacing real dependencies with controlled fakes for test isolation | Ch 21 |
+| **vi.mock()** | Vitest function for mocking entire modules or specific dependencies | Ch 21 |
+| **vi.useFakeTimers()** | Vitest function for controlling setTimeout/setInterval in tests (instant time travel) | Ch 21 |
+| **#[cfg(test)]** | Rust attribute compiling code only in test mode | Ch 21 |
+| **#[test]** | Rust attribute marking function as test (discovered by cargo test) | Ch 21 |
+| **#[tokio::test]** | Async Rust test with Tokio runtime for testing async functions | Ch 21 |
+| **assert_eq!** | Rust macro verifying equality with helpful diff on failure | Ch 21 |
+| **In-memory SQLite** | SQLite database in RAM (sqlite::memory:) for fast isolated integration tests | Ch 21 |
+| **Test coverage** | Percentage of code executed by tests; SwatNotes targets 80%+ for utilities/components | Ch 21 |
+| **AAA pattern** | Arrange (setup) → Act (perform action) → Assert (verify results) test structure | Ch 21 |
+| **Test independence** | Each test runs in isolation with no shared state or order dependencies | Ch 21 |
+| **beforeEach** | Hook running before each test to reset state and ensure isolation | Ch 21 |
+| **Flaky test** | Test that sometimes passes and sometimes fails without code changes (timing issues) | Ch 21 |
+| **Brittle test** | Test that breaks easily when implementation details change (testing internals) | Ch 21 |
+| **Test double** | Generic term for mocks, stubs, fakes, spies used to replace real dependencies | Ch 21 |
+| **WebView2 remote debugging** | Microsoft Edge DevTools Protocol for debugging and testing WebView2 apps | Ch 21 |
+| **msedgedriver** | WebDriver implementation for Microsoft Edge and WebView2 (enables E2E testing) | Ch 21 |
+| **debuggerAddress** | WebDriver capability connecting to already-running WebView2 via debug port | Ch 21 |
+| **Build process** | Multi-stage compilation transforming source code to executable installer (TypeScript → Vite → Rust → installer) | Ch 22 |
+| **NSIS (Nullsoft Scriptable Install System)** | Windows installer builder creating customizable .exe setup files; smaller than MSI | Ch 22 |
+| **MSI (Microsoft Installer)** | Windows installer format preferred by enterprises for Group Policy deployment | Ch 22 |
+| **Code signing** | Adding digital signature to software proving authenticity and integrity; prevents SmartScreen warnings | Ch 22 |
+| **Certificate Authority (CA)** | Trusted third party (DigiCert, Sectigo) that verifies publisher identity and issues code signing certificates | Ch 22 |
+| **Extended Validation (EV) certificate** | Highest-trust code signing cert ($300-500/year) with hardware token; immediate trust, no SmartScreen warnings | Ch 22 |
+| **SmartScreen** | Windows security filter showing warnings for unsigned or low-reputation software | Ch 22 |
+| **Tauri updater signing** | Free cryptographic signing system for update integrity (different from OS code signing) | Ch 22 |
+| **minisign** | Cryptographic signature system used by Tauri updater (Ed25519 keys) | Ch 22 |
+| **Public key cryptography** | Asymmetric encryption: private key signs, public key verifies; foundation of code signing | Ch 22 |
+| **Annotated Git tag** | Git tag with embedded metadata (author, date, message); used for release notes in CI/CD | Ch 22 |
+| **Semantic versioning (SemVer)** | Version format MAJOR.MINOR.PATCH; breaking changes increment MAJOR, features MINOR, fixes PATCH | Ch 22 |
+| **GitHub Actions** | CI/CD automation platform running workflows on git events (push, tag, PR) | Ch 22 |
+| **CI/CD (Continuous Integration/Continuous Deployment)** | Automated pipeline testing and deploying code on every commit/tag | Ch 22 |
+| **Workflow** | GitHub Actions automation defined in .github/workflows/*.yml; triggered by events | Ch 22 |
+| **Job** | Individual unit of work in GitHub Actions workflow; runs on specific runner OS | Ch 22 |
+| **Runner** | Virtual machine executing GitHub Actions jobs (windows-latest, ubuntu-latest, macos-latest) | Ch 22 |
+| **GitHub Secrets** | Encrypted repository variables for sensitive data (API keys, signing keys); masked in logs | Ch 22 |
+| **tauri-action** | Official GitHub Action for building Tauri apps; handles compilation, bundling, signing, uploading | Ch 22 |
+| **Draft release** | GitHub Release created but not public; allows uploading assets before publishing | Ch 22 |
+| **Release asset** | File attached to GitHub Release (installer, changelog, checksum); downloadable by users | Ch 22 |
+| **latest.json** | Update manifest JSON file with version, download URL, signature; checked by Tauri updater | Ch 22 |
+| **WebView2 bootstrapper** | Small installer that downloads WebView2 runtime if not present (~100 MB download) | Ch 22 |
+| **Caching (CI)** | Storing dependencies/build artifacts between workflow runs (rust-cache, npm cache); speeds up builds 10 min → 2 min | Ch 22 |
+| **Build matrix** | GitHub Actions strategy running same workflow across multiple OS/versions in parallel | Ch 22 |
+| **Cross-compilation** | Building executable for different architecture/OS than build machine (e.g., x64 → ARM64) | Ch 22 |
+| **Tree shaking** | Bundler optimization removing unused code from final bundle; reduces installer size | Ch 22 |
+| **Chocolatey** | Windows package manager for IT admins; alternative distribution channel (choco install swatnotes) | Ch 22 |
+| **Winget** | Official Windows Package Manager built into Windows 11; alternative distribution channel | Ch 22 |
+| **Profiling** | Measuring program performance to identify bottlenecks; tools include flamegraphs, Chrome DevTools, EXPLAIN QUERY PLAN | Ch 23 |
+| **EXPLAIN QUERY PLAN** | SQLite command showing how a query executes (indexes used, temp tables, scans vs searches) | Ch 23 |
+| **Composite index** | Database index on multiple columns (e.g., deleted_at, updated_at DESC); provides both filtering and ordering | Ch 23 |
+| **N+1 query problem** | Anti-pattern making N individual queries instead of 1 batch query (1 + N total); causes performance degradation | Ch 23 |
+| **Batch query** | Single query fetching multiple items using IN clause; avoids N+1 problem (2 queries instead of N+1) | Ch 23 |
+| **QueryBuilder** | SQLx tool for building dynamic type-safe SQL queries with variable parameters | Ch 23 |
+| **LTO (Link-Time Optimization)** | Whole-program optimization at link stage; reduces binary size 10%, improves speed 5-10%, increases compile time 50% | Ch 23 |
+| **codegen-units** | Rust compiler setting controlling parallelism vs optimization; codegen-units = 1 maximizes optimization | Ch 23 |
+| **strip** | Cargo setting removing debug symbols from release binary; reduces size 30% with no runtime impact | Ch 23 |
+| **Arc clone** | Cheap operation incrementing atomic reference counter (~5 CPU cycles); no data copy, safe to clone frequently | Ch 23 |
+| **Mutex lock** | Acquiring exclusive access to shared data (~50 CPU cycles); minimize scope to reduce contention | Ch 23 |
+| **Lock scope** | Duration holding a Mutex lock; best practice is clone data out, release lock, then perform expensive operation | Ch 23 |
+| **Debouncing** | Delaying function execution until user stops performing action (e.g., 300ms after last keystroke); reduces excessive operations | Ch 23 |
+| **Tree shaking** | Bundler optimization removing unused code from final bundle; Vite does this automatically for ES modules | Ch 23 |
+| **Reflow** | Browser recalculating layout after DOM change; expensive operation (10-50ms), minimize by batching DOM updates | Ch 23 |
+| **Event delegation** | Single event listener on parent element instead of listeners on each child; reduces memory, improves performance | Ch 23 |
+| **Memory leak** | Memory not released after use, growing unbounded; caused by unremoved listeners, unclosed connections, circular references | Ch 23 |
+| **Heap snapshot** | Chrome DevTools feature capturing memory state; compare snapshots to detect leaks (detached DOM, growing listeners) | Ch 23 |
+| **Flamegraph** | Visualization showing CPU time per function (width = time); generated by cargo flamegraph for Rust profiling | Ch 23 |
+| **Hot path** | Code executed frequently (e.g., search on keystroke, autosave); primary target for optimization | Ch 23 |
+| **80/20 rule (Pareto Principle)** | 80% of execution time spent in 20% of code; optimize the bottleneck, ignore the rest | Ch 23 |
+| **DocumentFragment** | DOM API for building elements in memory before adding to page; faster than repeated appendChild (single reflow) | Ch 23 |
+| **BM25** | FTS5 ranking algorithm calculating relevance scores; considers term frequency, inverse document frequency, document length | Ch 23 |
+| **Premature optimization** | Optimizing before measuring/identifying bottleneck; "root of all evil" (Donald Knuth), makes code complex without benefit | Ch 23 |
 | **Soft Delete** | Marking records as deleted (deleted_at timestamp) without removing from DB | Part 0 |
 | **FTS5** | SQLite Full-Text Search extension for fast text queries | Part 0, Ch 9 |
 | **Delta Format** | Quill.js JSON representation of rich text with operations | Part 0 |
@@ -1038,6 +1365,44 @@ From `src-tauri/Cargo.toml`:
 | **Type-only import** | import type {} syntax; types erased after compilation, no runtime code | Ch 12 |
 | **Vitest** | Fast unit testing framework for Vite projects; compatible with Jest API | Ch 12 |
 | **E2E testing** | End-to-end testing simulating real user interactions; SwatNotes uses WebdriverIO | Ch 12 |
+| **Trait** | Rust interface defining behavior contract (e.g., Clone, Debug, Serialize) | Ch 24 |
+| **Derive macro** | Automatic trait implementation (`#[derive(Clone)]`) | Ch 24 |
+| **Arc (Atomic Reference Counted)** | Thread-safe shared ownership pointer (~5 CPU cycles to clone) | Ch 24 |
+| **Mutex (Mutual Exclusion)** | Lock allowing one task exclusive access to data (~20 nanoseconds) | Ch 24 |
+| **RwLock (Read-Write Lock)** | Lock allowing multiple readers or one writer | Ch 24 |
+| **Builder pattern** | Fluent API for step-by-step object configuration (e.g., WebviewWindowBuilder) | Ch 24 |
+| **Plugin** | External module extending application capabilities without modifying core code | Ch 24 |
+| **IPC (Inter-Process Communication)** | Data exchange between Rust and TypeScript (commands + events) | Ch 24 |
+| **Event system** | Pub/sub pattern for decoupled component communication (emit/listen) | Ch 24 |
+| **thiserror** | Crate for automatic Error trait implementation with #[derive(Error)] | Ch 24 |
+| **Emitter trait** | Tauri trait for sending events to windows with .emit() method | Ch 24 |
+| **FromStr trait** | Standard trait for parsing strings into types (parse::<T>()) | Ch 24 |
+| **Default trait** | Standard trait for default instance construction (sensible defaults) | Ch 24 |
+| **Serialize/Deserialize** | serde traits for data format conversion (Rust ↔ JSON) | Ch 24 |
+| **Command** | Tauri function callable from TypeScript via `invoke()` | Ch 24 |
+| **Extension trait** | Trait adding methods to existing types (e.g., `GlobalShortcutExt`) | Ch 24 |
+| **Arc<Mutex<Option<T>>>** | Pattern for optional shared mutable state (late initialization) | Ch 24 |
+| **Content-addressed storage** | Storage system where files are identified by hash of their content (blob store) | Ch 13/24 |
+| **Fire-and-forget** | Sending event/request without waiting for response or confirmation | Ch 24 |
+| **Async spawn** | Creating background task on async runtime without blocking caller | Ch 24 |
+| **Observability** | Ability to understand system behavior from external outputs (logs, metrics, traces) | Ch 25 |
+| **Structured logging** | Logging with key-value pairs, not just strings (e.g., `user_id=123`) | Ch 25 |
+| **Log level** | Severity of log message (ERROR, WARN, INFO, DEBUG, TRACE) | Ch 25 |
+| **Log rotation** | Creating new log files periodically to prevent unbounded disk usage | Ch 25 |
+| **Graceful degradation** | Continuing with reduced functionality when components fail | Ch 25 |
+| **Health check** | Verification that a system component is functioning correctly | Ch 25 |
+| **Diagnostic info** | Non-sensitive app state exported for troubleshooting | Ch 25 |
+| **Feature flag** | Toggle to enable/disable features without code deployment | Ch 25 |
+| **Incident severity** | Classification of production issues by impact (P0-P4) | Ch 25 |
+| **Post-mortem** | Analysis of incident after resolution to prevent recurrence | Ch 25 |
+| **VACUUM** | SQLite command to rebuild database file and reclaim space | Ch 25 |
+| **ANALYZE** | SQLite command to update query planner statistics | Ch 25 |
+| **Garbage collection** | Deletion of unreferenced data (e.g., orphaned blobs) | Ch 25 |
+| **WAL (Write-Ahead Log)** | SQLite journaling mode for crash recovery | Ch 25 |
+| **Crash marker** | File created on startup, deleted on clean shutdown (detects crashes) | Ch 25 |
+| **Rollback** | Reverting to previous version after problematic release | Ch 25 |
+| **Root cause analysis** | Investigation to find fundamental reason for failure | Ch 25 |
+| **Telemetry** | Automated collection of usage/performance data from deployed apps | Ch 25 |
 
 ---
 
