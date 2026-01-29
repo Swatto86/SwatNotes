@@ -14,9 +14,9 @@
 
 ## Current Status
 
-**Last Updated**: January 28, 2026
+**Last Updated**: January 29, 2026
 
-**Book Status**: 19/25 chapters complete (76% complete)
+**Book Status**: 20/25 chapters complete (80% complete)
 
 ### Chapters Completed
 
@@ -390,9 +390,32 @@
 - Real code from commands/collections.rs, repository.rs, models.rs, collectionsApi.ts, main.ts, migration 004
 - **Status**: Complete, ready for reader use
 
+#### ✅ Chapter 19: Auto-Update System (`chapters/19-auto-update-system.md`)
+- GitHub Releases API: free update server for public repositories, no hosting costs
+- Semantic versioning (semver): x.y.z format (major.minor.patch) for predictable comparisons
+- Version comparison algorithm: is_newer_version() compares each part sequentially
+- GitHub Release structure: tag_name, body (release notes), assets (installers), html_url
+- Fetching latest release: reqwest HTTP client with User-Agent header (required by GitHub)
+- UpdateInfo struct: available, version, body, current_version, release_url, installer_url
+- Automatic startup check: tokio::spawn background task, doesn't block app initialization
+- Update-required window: modal blocking access until user updates or quits
+- Release notes flow: PowerShell script → Git annotated tag → GitHub Release → API → UI
+- Download process: reqwest with redirects + 5-minute timeout, save to temp directory
+- Installer launching: Windows cmd /C start command, opens with default handler
+- Frontend download UX: loading spinner, success message, error handling with retry
+- Graceful degradation: all network/API failures return None, app continues normally
+- Security: HTTPS only, no auto-execution without user consent, UAC prompt for installation
+- Error handling: comprehensive logging with tracing, fallback to opening release page in browser
+- Cross-platform consideration: Windows-specific cmd.exe launcher, would need xdg-open/open for Linux/macOS
+- Performance: ~500ms API check (background), 5-60s download (depends on file size and connection)
+- Testing strategies: manual checklist (simulate old version, test download, test offline), version comparison unit tests
+- Future enhancements: delta updates (binary diffs), automatic background installation, rollback mechanism, update channels
+- Real code from commands/updater.rs, update-required.ts, updateApi.ts, scripts/update-application.ps1, app.rs
+- **Status**: Complete, ready for reader use
+
 ### Chapters In Progress
 
-**None** - Ready to start Chapter 19 or any requested chapter.
+**None** - Ready to start Chapter 20 or any requested chapter.
 
 ---
 
@@ -419,9 +442,9 @@
 | **Ch 16** | **Reminders and Scheduling** | ✅ Complete | Polling loop, UTC timestamps, window notifications |
 | **Ch 17** | **System Integration** | ✅ Complete | Global hotkeys, system tray, hide-to-tray, autostart |
 | **Ch 18** | **Collections and Organization** | ✅ Complete | Hierarchical data, color-coded folders, filtering |
-| Ch 19 | Auto-Update System | 📝 Planned | Update checks, downloads, installation |
-| Ch 20 | Auto-Update System | 📝 Planned | Update checks, downloads, installation |
-| Ch 21 | Error Handling Patterns | 📝 Planned | Custom errors, propagation, logging |
+| **Ch 19** | **Auto-Update System** | ✅ Complete | GitHub Releases, semver, downloads, installation |
+| Ch 20 | Error Handling Patterns | 📝 Planned | Custom errors, propagation, user-facing messages |
+| Ch 21 | Testing Strategies | 📝 Planned | Unit, integration, E2E tests |
 | Ch 22 | Testing Strategies | 📝 Planned | Unit, integration, E2E tests |
 | Ch 23 | Building and Distribution | 📝 Planned | Installers, code signing, CI/CD |
 | Ch 24 | Performance Optimization | 📝 Planned | Profiling, query optimization |
@@ -925,6 +948,16 @@ From `src-tauri/Cargo.toml`:
 | **Hierarchical data** | Tree-structured data with parent-child relationships (e.g., nested collections) | Ch 18 |
 | **Service Layer** | Business logic layer between commands and repository | Part 0 |
 | **Content-Addressed Storage** | Files stored by hash of content (same content = same file) | Part 0 |
+| **Semantic versioning (semver)** | Version numbering scheme using MAJOR.MINOR.PATCH format (e.g., 1.2.3) | Ch 19 |
+| **GitHub Releases API** | RESTful API for accessing release information from GitHub repositories | Ch 19 |
+| **User-Agent header** | HTTP header identifying the client application; required by GitHub API | Ch 19 |
+| **Annotated Git tag** | Git tag with metadata (message, author, date); stores release notes | Ch 19 |
+| **reqwest** | Rust HTTP client library with async support and redirect handling | Ch 19 |
+| **Graceful degradation** | System continues functioning with reduced features when components fail | Ch 19 |
+| **Temp directory** | OS-provided temporary file storage, auto-cleaned periodically | Ch 19 |
+| **Delta update** | Updating software by applying only the differences (binary diff) instead of full replacement | Ch 19 |
+| **Code signing certificate** | Digital certificate proving software publisher identity; prevents "Unknown Publisher" warnings | Ch 19 |
+| **UAC (User Account Control)** | Windows security feature requiring admin approval for system changes | Ch 19 |
 | **Soft Delete** | Marking records as deleted (deleted_at timestamp) without removing from DB | Part 0 |
 | **FTS5** | SQLite Full-Text Search extension for fast text queries | Part 0, Ch 9 |
 | **Delta Format** | Quill.js JSON representation of rich text with operations | Part 0 |
