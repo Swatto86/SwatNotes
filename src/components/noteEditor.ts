@@ -31,6 +31,7 @@ import {
   formatReminderDate,
   getFileIcon,
 } from '../utils/formatters';
+import { applySmartPaste } from '../utils/smartPaste';
 
 // Register custom blots once at module load
 registerAttachmentBlots();
@@ -358,11 +359,14 @@ function setupAttachments(
     await handleFileUpload(blob, `pasted-image-${Date.now()}.png`);
   }
 
-  // Clipboard paste handler for images
+  // Clipboard paste handler for images and smart text formatting
   const pasteHandler = async (e: ClipboardEvent) => {
     const clipboardData = e.clipboardData || (window as any).clipboardData;
+    if (!clipboardData) return;
+    
     const items = clipboardData.items;
 
+    // Check for images first - handle them specially
     for (let i = 0; i < items.length; i++) {
       if (items[i].type.indexOf('image') !== -1) {
         e.preventDefault();
@@ -370,8 +374,20 @@ function setupAttachments(
         if (blob) {
           await handleImagePaste(blob);
         }
-        break;
+        return;
       }
+    }
+    
+    // Try smart paste for plain text (detect titles, lists, URLs, etc.)
+    try {
+      if (applySmartPaste(quill, clipboardData)) {
+        e.preventDefault();
+        logger.debug('Smart paste applied', LOG_CONTEXT);
+      }
+      // If smart paste returns false, let Quill handle it natively (e.g., for HTML)
+    } catch (err) {
+      logger.warn('Smart paste failed, falling back to default', LOG_CONTEXT, err);
+      // Let default paste behavior handle it
     }
   };
 

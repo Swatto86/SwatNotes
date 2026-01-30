@@ -31,6 +31,7 @@ import {
   formatReminderDate,
   getFileIconSmall,
 } from './utils/formatters';
+import { applySmartPaste } from './utils/smartPaste';
 import { playNotificationSound } from './utils/notificationSound';
 import { listCollections, updateNoteCollection, createCollection, COLLECTION_COLORS } from './utils/collectionsApi';
 import { showPrompt } from './utils/modal';
@@ -720,11 +721,14 @@ function setupAttachmentHandlers(): void {
     fileUploadInput.value = '';
   });
 
-  // Clipboard paste handler for images
+  // Clipboard paste handler for images and smart text formatting
   const pasteHandler = async (e: ClipboardEvent) => {
     const clipboardData = e.clipboardData || (window as any).clipboardData;
+    if (!clipboardData) return;
+    
     const items = clipboardData.items;
 
+    // Check for images first - handle them specially
     for (let i = 0; i < items.length; i++) {
       if (items[i].type.indexOf('image') !== -1) {
         e.preventDefault();
@@ -732,7 +736,21 @@ function setupAttachmentHandlers(): void {
         if (blob) {
           await handleFileUpload(blob, `pasted-image-${Date.now()}.png`);
         }
-        break;
+        return;
+      }
+    }
+    
+    // Try smart paste for plain text (detect titles, lists, URLs, etc.)
+    if (editor) {
+      try {
+        if (applySmartPaste(editor, clipboardData)) {
+          e.preventDefault();
+          logger.debug('Smart paste applied', LOG_CONTEXT);
+        }
+        // If smart paste returns false, let Quill handle it natively (e.g., for HTML)
+      } catch (err) {
+        logger.warn('Smart paste failed, falling back to default', LOG_CONTEXT, err);
+        // Let default paste behavior handle it
       }
     }
   };
