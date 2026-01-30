@@ -48,6 +48,11 @@ jobs:
             echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
           fi
 
+      - name: Fetch tags with annotations
+        run: |
+          # Ensure we have all tag data including annotations
+          git fetch --tags --force
+          
       - name: Get release notes from tag
         id: get-notes
         run: |
@@ -55,23 +60,34 @@ jobs:
           # This extracts what was provided in the update-application.ps1 -Notes parameter
           TAG_NAME="v${{ steps.get-version.outputs.version }}"
 
-          # Use git tag -n to get ONLY the tag's own annotation message
-          # The -n1000 flag shows up to 1000 lines of the tag message
-          # Then we strip the tag name prefix (e.g., "v1.0.0  message" -> "message")
-          RAW_NOTES=$(git tag -l -n1000 "$TAG_NAME" 2>/dev/null || echo "")
+          echo "Extracting release notes for tag: $TAG_NAME"
           
-          if [ -n "$RAW_NOTES" ]; then
-            # Strip the tag name and leading whitespace from the output
-            # git tag -n format is: "tagname    message content here"
-            NOTES=$(echo "$RAW_NOTES" | sed "s/^${TAG_NAME}[[:space:]]*//")
-          else
-            NOTES=""
+          # Use git for-each-ref to get the FULL tag annotation (body/contents)
+          # This is more reliable than git tag -n which can truncate
+          NOTES=$(git for-each-ref --format='%(contents)' "refs/tags/$TAG_NAME" 2>/dev/null || echo "")
+          
+          # Debug output
+          echo "Raw notes extracted:"
+          echo "$NOTES"
+          echo "---"
+          
+          # If empty, try the old method as fallback
+          if [ -z "$(echo "$NOTES" | tr -d '[:space:]')" ]; then
+            echo "Trying fallback method..."
+            RAW_NOTES=$(git tag -l -n1000 "$TAG_NAME" 2>/dev/null || echo "")
+            if [ -n "$RAW_NOTES" ]; then
+              NOTES=$(echo "$RAW_NOTES" | sed "s/^${TAG_NAME}[[:space:]]*//")
+            fi
           fi
 
-          # If empty or just whitespace, use default message
+          # If still empty, use default message
           if [ -z "$(echo "$NOTES" | tr -d '[:space:]')" ]; then
+            echo "No notes found, using default message"
             NOTES=$(printf "Release %s\n\nSee the assets below to download and install this version." "$TAG_NAME")
           fi
+
+          echo "Final release notes:"
+          echo "$NOTES"
 
           # Escape for GitHub Actions output (handle multi-line)
           {
