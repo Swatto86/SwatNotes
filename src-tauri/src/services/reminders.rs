@@ -200,9 +200,14 @@ impl RemindersService {
                 window_label_clone
             );
 
-            // Helper function to center window on screen without focusing
-            let center_window_on_screen = |window: &tauri::WebviewWindow| {
-                if let Ok(Some(monitor)) = window.current_monitor() {
+            // Helper function to center window on primary monitor without focusing
+            let center_window_on_screen = |window: &tauri::WebviewWindow, app_handle: &tauri::AppHandle| {
+                // Use primary monitor, falling back to any available monitor
+                let monitor = app_handle.primary_monitor().ok().flatten().or_else(|| {
+                    app_handle.available_monitors().ok().and_then(|m| m.into_iter().next())
+                });
+
+                if let Some(monitor) = monitor {
                     let monitor_size = monitor.size();
                     let monitor_position = monitor.position();
 
@@ -217,9 +222,11 @@ impl RemindersService {
                         )) {
                             tracing::error!("Failed to center window: {}", e);
                         } else {
-                            tracing::info!("Window centered at ({}, {})", x, y);
+                            tracing::info!("Window centered at ({}, {}) on primary monitor", x, y);
                         }
                     }
+                } else {
+                    tracing::warn!("No monitor found to center window on");
                 }
             };
 
@@ -244,8 +251,8 @@ impl RemindersService {
                         let _ = window.unminimize();
                         let _ = window.show();
 
-                        // Center on screen
-                        center_window_on_screen(&window);
+                        // Center on primary monitor
+                        center_window_on_screen(&window, &handle_clone);
 
                         // Set always on top without focusing
                         let _ = window.set_always_on_top(true);
@@ -297,14 +304,14 @@ impl RemindersService {
                     Ok(window) => {
                         tracing::info!("Window task: New window created successfully");
 
-                        // Center on screen and emit event after window initializes
+                        // Center on primary monitor and emit event after window initializes
                         let window_clone = window.clone();
                         let handle_for_event = handle_clone.clone();
                         let event_for_spawn = reminder_event.clone();
                         tauri::async_runtime::spawn(async move {
                             // Wait for window to fully initialize
                             tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-                            center_window_on_screen(&window_clone);
+                            center_window_on_screen(&window_clone, &handle_for_event);
                             // Emit event after window is ready
                             if let Err(e) =
                                 handle_for_event.emit("reminder-triggered", event_for_spawn)
