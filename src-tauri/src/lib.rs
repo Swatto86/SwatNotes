@@ -9,5 +9,7 @@ pub mod config;
 pub mod crypto;
 pub mod database;
 pub mod error;
+#[cfg(target_os = "windows")]
+pub mod platform;
 pub mod services;
 pub mod storage;

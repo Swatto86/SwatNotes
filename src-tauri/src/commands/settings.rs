@@ -36,66 +36,53 @@ pub async fn update_hotkey_settings(
 
 // ===== Autostart Settings =====
 
+/// Check if application autostart is enabled (Windows only)
+#[tauri::command]
+pub fn get_autostart_state() -> Result<bool> {
+    #[cfg(target_os = "windows")]
+    {
+        crate::platform::check_autostart_state()
+            .map_err(|e| AppError::Generic(format!("Failed to check autostart state: {}", e)))
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        Ok(false)
+    }
+}
+
 /// Enable or disable application autostart (Windows only)
 #[tauri::command]
 pub async fn set_autostart(_app: tauri::AppHandle, enabled: bool) -> Result<()> {
-    use std::process::Command;
-
-    let app_path = std::env::current_exe()
-        .map_err(|e| AppError::Generic(format!("Failed to get executable path: {}", e)))?;
-    let app_name = "SwatNotes";
-
-    if enabled {
-        // Add to Windows startup registry
-        let output = Command::new("reg")
-            .args([
-                "add",
-                "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
-                "/v",
-                app_name,
-                "/t",
-                "REG_SZ",
-                "/d",
-                &format!("\"{}\"", app_path.display()),
-                "/f",
-            ])
-            .output()
-            .map_err(|e| AppError::Generic(format!("Failed to execute reg command: {}", e)))?;
-
-        if !output.status.success() {
-            let error_msg = String::from_utf8_lossy(&output.stderr);
-            return Err(AppError::Generic(format!(
-                "Failed to enable autostart: {}",
-                error_msg
-            )));
+    #[cfg(target_os = "windows")]
+    {
+        if enabled {
+            crate::platform::enable_autostart()
+                .map_err(|e| AppError::Generic(format!("Failed to enable autostart: {}", e)))?;
+        } else {
+            crate::platform::disable_autostart()
+                .map_err(|e| AppError::Generic(format!("Failed to disable autostart: {}", e)))?;
         }
-
-        tracing::info!("Autostart enabled for SwatNotes");
-    } else {
-        // Remove from Windows startup registry
-        let output = Command::new("reg")
-            .args([
-                "delete",
-                "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
-                "/v",
-                app_name,
-                "/f",
-            ])
-            .output()
-            .map_err(|e| AppError::Generic(format!("Failed to execute reg command: {}", e)))?;
-
-        // Don't fail if the key doesn't exist
-        if !output.status.success() {
-            let error_msg = String::from_utf8_lossy(&output.stderr);
-            if !error_msg.contains("unable to find") {
-                tracing::warn!("Failed to disable autostart: {}", error_msg);
-            }
-        }
-
-        tracing::info!("Autostart disabled for SwatNotes");
+        Ok(())
     }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = enabled;
+        Err(AppError::Generic("Autostart is only supported on Windows".to_string()))
+    }
+}
 
-    Ok(())
+/// Toggle application autostart and return new state (Windows only)
+#[tauri::command]
+pub fn toggle_autostart() -> Result<bool> {
+    #[cfg(target_os = "windows")]
+    {
+        crate::platform::toggle_autostart()
+            .map_err(|e| AppError::Generic(format!("Failed to toggle autostart: {}", e)))
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        Err(AppError::Generic("Autostart is only supported on Windows".to_string()))
+    }
 }
 
 // ===== Auto-Backup Settings =====

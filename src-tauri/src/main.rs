@@ -9,6 +9,8 @@ mod config;
 mod crypto;
 mod database;
 mod error;
+#[cfg(target_os = "windows")]
+mod platform;
 mod services;
 mod storage;
 
@@ -71,7 +73,9 @@ fn main() {
             commands::delete_reminder,
             commands::get_hotkey_settings,
             commands::update_hotkey_settings,
+            commands::get_autostart_state,
             commands::set_autostart,
+            commands::toggle_autostart,
             commands::store_auto_backup_password,
             commands::has_auto_backup_password,
             commands::delete_auto_backup_password,
