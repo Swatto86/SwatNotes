@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Note</title>
+  <!-- Apply theme immediately to prevent flash -->
+  <script>
+    (function () {
+      const theme = localStorage.getItem('swatnotes-theme') || 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <!-- Critical CSS to prevent white flash before stylesheet loads -->
+  <style>
+    html,
+    body {
+      background-color: oklch(var(--b1, 100% 0 0));
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+  <link rel="stylesheet" href="/src/styles/main.css" />
+  <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    #sticky-note-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    #sticky-note-editor {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    /* Quill editor adjustments for sticky notes */
+    .ql-container {
+      font-size: 0.95rem;
+      min-height: 100px;
+      border: none;
+      background: transparent;
+    }
+
+    .ql-editor {
+      padding: 1rem;
+      /* Use theme colors for text */
+      color: oklch(var(--bc));
+      background: transparent;
+    }
+
+    /* Center placeholder text */
+    .ql-editor.ql-blank::before {
+      color: oklch(var(--bc) / 0.4);
+      font-style: normal;
+      text-align: center;
+      display: block;
+      padding-top: 2rem;
+    }
+
+    .ql-toolbar {
+      border: none;
+      border-bottom: 1px solid oklch(var(--bc) / 0.2);
+      background: oklch(var(--b2));
+    }
+
+    /* Ensure toolbar buttons use theme colors */
+    .ql-toolbar button {
+      color: oklch(var(--bc));
+    }
+
+    .ql-toolbar button:hover {
+      color: oklch(var(--p));
+    }
+
+    .ql-toolbar .ql-stroke {
+      stroke: oklch(var(--bc));
+    }
+
+    .ql-toolbar .ql-fill {
+      fill: oklch(var(--bc));
+    }
+
+    .ql-toolbar button:hover .ql-stroke {
+      stroke: oklch(var(--p));
+    }
+
+    .ql-toolbar button:hover .ql-fill {
+      fill: oklch(var(--p));
+    }
+
+    .ql-toolbar button.ql-active .ql-stroke {
+      stroke: oklch(var(--p));
+    }
+
+    .ql-toolbar button.ql-active .ql-fill {
+      fill: oklch(var(--p));
+    }
+
+    /* Color picker and dropdown styling */
+    .ql-toolbar .ql-picker {
+      color: oklch(var(--bc));
+    }
+
+    .ql-toolbar .ql-picker-label {
+      border-color: oklch(var(--bc) / 0.3);
+    }
+
+    .ql-toolbar .ql-picker-label:hover {
+      color: oklch(var(--p));
+    }
+
+    .ql-toolbar .ql-picker-options {
+      background-color: oklch(var(--b1));
+      border-color: oklch(var(--bc) / 0.2);
+    }
+
+    .ql-toolbar .ql-picker-item:hover {
+      color: oklch(var(--p));
+    }
+
+    /* Drag and drop styling */
+    .drag-over {
+      outline: 2px dashed oklch(var(--p));
+      outline-offset: -2px;
+      background-color: oklch(var(--p) / 0.05);
+    }
+
+    /* Inline attachment styles */
+    .ql-attachment-image {
+      margin: 8px 0;
+    }
+
+    .attachment-image {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .attachment-image:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 0 2px oklch(var(--p));
+    }
+
+    .ql-attachment-file {
+      margin: 8px 0;
+    }
+
+    .attachment-file-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background-color: oklch(var(--b2));
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      max-width: 100%;
+    }
+
+    .attachment-file-chip:hover {
+      background-color: oklch(var(--b3));
+    }
+
+    /* Quill link tooltip styling */
+    .ql-tooltip {
+      background-color: oklch(var(--b1)) !important;
+      border: 1px solid oklch(var(--bc) / 0.2) !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+      color: oklch(var(--bc)) !important;
+      padding: 8px 12px !important;
+      border-radius: 8px !important;
+      z-index: 1000 !important;
+    }
+
+    .ql-tooltip input[type="text"] {
+      background-color: oklch(var(--b2)) !important;
+      border: 1px solid oklch(var(--bc) / 0.3) !important;
+      color: oklch(var(--bc)) !important;
+      border-radius: 4px !important;
+      padding: 4px 8px !important;
+    }
+
+    .ql-tooltip a {
+      color: oklch(var(--p)) !important;
+    }
+
+    .ql-tooltip a.ql-action::after,
+    .ql-tooltip a.ql-remove::before {
+      color: oklch(var(--p)) !important;
+    }
+
+    .ql-tooltip.ql-editing a.ql-action::after {
+      content: 'Save' !important;
+    }
+
+    /* Ensure tooltip is visible when editing */
+    .ql-tooltip.ql-editing {
+      left: 10px !important;
+      visibility: visible !important;
+    }
+
+    /* Snow theme tooltip overrides */
+    .ql-snow .ql-tooltip {
+      white-space: nowrap;
+    }
+
+    .ql-snow .ql-tooltip::before {
+      color: oklch(var(--bc)) !important;
+    }
+
+    /* Shake animation for reminder notifications - more dramatic side-to-side shake */
+    @keyframes shake {
+
+      0%,
+      100% {
+        transform: translateX(0) rotate(0deg);
+      }
+
+      5%,
+      25%,
+      45%,
+      65%,
+      85% {
+        transform: translateX(-12px) rotate(-0.5deg);
+      }
+
+      15%,
+      35%,
+      55%,
+      75%,
+      95% {
+        transform: translateX(12px) rotate(0.5deg);
+      }
+    }
+
+    .shake {
+      animation: shake var(--shake-duration, 600ms) ease-in-out;
+    }
+
+    /* Pulsing glow border for reminder notifications - vibrant blue pulse */
+    @keyframes reminder-glow {
+
+      0%,
+      100% {
+        box-shadow:
+          0 0 10px 3px rgba(59, 130, 246, 0.6),
+          0 0 25px 8px rgba(59, 130, 246, 0.3),
+          inset 0 0 8px rgba(59, 130, 246, 0.1);
+        border-color: rgba(59, 130, 246, 0.7);
+      }
+
+      50% {
+        box-shadow:
+          0 0 25px 8px rgba(59, 130, 246, 0.9),
+          0 0 50px 15px rgba(59, 130, 246, 0.5),
+          inset 0 0 15px rgba(59, 130, 246, 0.2);
+        border-color: rgba(59, 130, 246, 1);
+      }
+    }
+
+    .reminder-glow {
+      animation: reminder-glow 1.2s ease-in-out infinite;
+      border: 3px solid rgba(59, 130, 246, 0.7);
+      border-radius: 8px;
+      transition: border-color 0.3s ease;
+    }
+
+    /* Smooth transition when glow stops */
+    #sticky-note-container {
+      transition: box-shadow 0.3s ease, border 0.3s ease;
+    }
+  </style>
+</head>
+
+<body class="bg-base-100">
+  <div id="sticky-note-container" class="bg-base-100">
+    <!-- Title bar (collapsible) -->
+    <div id="title-bar" class="bg-base-200 border-b border-base-300 px-2 py-1">
+      <div class="flex items-center gap-2">
+        <input type="text" id="note-title"
+          class="input input-sm input-ghost flex-1 font-semibold text-base-content bg-transparent focus:bg-base-100"
+          placeholder="Note title...">
+        <button id="toggle-title-btn" class="btn btn-ghost btn-xs" title="Toggle auto-title">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            id="auto-title-icon">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+    <!-- Toolbar at top with formatting and delete -->
+    <div id="sticky-note-editor" class="bg-base-100"></div>
+
+    <!-- Bottom bar with delete, reminder, attachments, collection and save status -->
+    <div class="bg-base-200 border-t border-base-300 p-2 flex flex-col gap-1">
+      <!-- Top row: action buttons and collection -->
+      <div class="flex gap-1 items-center justify-between flex-wrap">
+        <div class="flex gap-1 items-center">
+          <button class="btn btn-error btn-xs" id="delete-btn" title="Delete note">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            Delete
+          </button>
+          <button class="btn btn-primary btn-xs" id="reminder-btn" title="Set Reminder">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            Remind
+          </button>
+          <button class="btn btn-secondary btn-xs" id="attachments-btn" title="Attachments">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <path
+                d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48">
+              </path>
+            </svg>
+            <span id="attachments-count" class="text-xs"></span>
+          </button>
+        </div>
+        <div class="flex items-center gap-1">
+          <span id="collection-color-indicator" class="w-2 h-2 rounded-full hidden"></span>
+          <select id="collection-select" class="select select-bordered select-xs text-xs" title="Move to collection">
+            <option value="">No folder</option>
+          </select>
+          <button class="btn btn-ghost btn-xs btn-circle" id="add-collection-btn" title="Create new collection">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <!-- Bottom row: save status -->
+      <div class="text-right">
+        <span class="text-xs text-base-content/50" id="save-status">Auto-saving...</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Reminder Form Modal - using native dialog element -->
+  <dialog id="reminder-modal" class="modal">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg mb-3">Set Reminder</h3>
+      <div class="form-control mb-3">
+        <label class="label py-1">
+          <span class="label-text text-sm">Remind me on:</span>
+        </label>
+        <input type="datetime-local" id="reminder-datetime" class="input input-bordered input-sm w-full">
+      </div>
+
+      <!-- Per-reminder settings -->
+      <div class="collapse collapse-arrow bg-base-200 mb-3">
+        <input type="checkbox" id="reminder-settings-toggle" />
+        <div class="collapse-title text-sm font-medium py-2">
+          Notification Settings (optional)
+        </div>
+        <div class="collapse-content">
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3 py-1">
+              <input type="checkbox" id="reminder-sound-enabled" class="checkbox checkbox-sm checkbox-primary" checked>
+              <span class="label-text text-sm">Play sound</span>
+            </label>
+          </div>
+          <div class="form-control ml-7 mb-2">
+            <select id="reminder-sound-type" class="select select-bordered select-sm w-full">
+              <option value="whoosh">Whoosh (default)</option>
+              <option value="chime">Chime</option>
+              <option value="bell">Bell</option>
+              <option value="gentle">Gentle</option>
+              <option value="alert">Alert</option>
+            </select>
+          </div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3 py-1">
+              <input type="checkbox" id="reminder-shake-enabled" class="checkbox checkbox-sm checkbox-primary" checked>
+              <span class="label-text text-sm">Swoosh animation</span>
+            </label>
+          </div>
+          <div class="form-control">
+            <label class="label cursor-pointer justify-start gap-3 py-1">
+              <input type="checkbox" id="reminder-glow-enabled" class="checkbox checkbox-sm checkbox-primary" checked>
+              <span class="label-text text-sm">Glow effect</span>
+            </label>
+          </div>
+          <p class="text-xs text-base-content/50 mt-2">Leave checked to use your global settings, or customize for this
+            reminder.</p>
+        </div>
+      </div>
+
+      <div id="active-reminders" class="mb-3"></div>
+      <div class="modal-action">
+        <button id="cancel-reminder-btn" class="btn btn-ghost btn-sm">Cancel</button>
+        <button id="save-reminder-btn" class="btn btn-primary btn-sm">Save Reminder</button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button>close</button>
+    </form>
+  </dialog>
+
+  <!-- Attachments Modal - using native dialog element -->
+  <dialog id="attachments-modal" class="modal">
+    <div class="modal-box">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-bold text-lg">Attachments</h3>
+        <label for="file-upload-input" class="btn btn-sm btn-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Add File
+        </label>
+        <input type="file" id="file-upload-input" class="hidden" multiple>
+      </div>
+      <div id="attachments-list" class="space-y-2 mb-3 max-h-[50vh] overflow-y-auto"></div>
+      <div class="modal-action">
+        <button id="close-attachments-btn" class="btn btn-ghost btn-sm">Close</button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button>close</button>
+    </form>
+  </dialog>
+
+  <script type="module" src="/src/sticky-note.ts"></script>
+</body>
+
+</html>

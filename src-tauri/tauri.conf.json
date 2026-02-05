@@ -1,0 +1,158 @@
+{
+  "productName": "SwatNotes",
+  "version": "1.0.6",
+  "identifier": "com.swatnotes.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "publisher": "Swatto",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": ""
+    }
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "SwatNotes",
+        "url": "pages/index.html",
+        "width": 1000,
+        "height": 1028,
+        "minWidth": 800,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": true,
+        "center": true,
+        "label": "main",
+        "visible": false,
+        "backgroundColor": "#1a1a1a"
+      }
+    ],
+    "security": {
+      "csp": null,
+      "capabilities": [
+        {
+          "identifier": "main-capability",
+          "windows": [
+            "main"
+          ],
+          "permissions": [
+            "core:default",
+            "core:event:default",
+            "core:event:allow-listen",
+            "core:event:allow-emit",
+            "core:window:default",
+            "core:window:allow-show",
+            "core:window:allow-hide",
+            "core:window:allow-close",
+            "core:window:allow-set-focus",
+            "core:window:allow-unminimize",
+            "core:webview:default",
+            "core:webview:allow-create-webview-window",
+            "dialog:allow-save",
+            "fs:allow-write"
+          ]
+        },
+        {
+          "identifier": "note-window-capability",
+          "windows": [
+            "note-*"
+          ],
+          "permissions": [
+            "core:default",
+            "core:event:default",
+            "core:event:allow-listen",
+            "core:event:allow-emit",
+            "core:window:default",
+            "core:window:allow-show",
+            "core:window:allow-hide",
+            "core:window:allow-close",
+            "core:window:allow-destroy",
+            "core:window:allow-set-focus",
+            "core:window:allow-is-visible",
+            "core:window:allow-unminimize",
+            "core:window:allow-set-always-on-top",
+            "core:window:allow-set-position",
+            "core:window:allow-outer-position",
+            "core:window:allow-outer-size",
+            "core:webview:default",
+            "dialog:allow-save",
+            "fs:allow-write"
+          ]
+        },
+        {
+          "identifier": "settings-window-capability",
+          "windows": [
+            "settings"
+          ],
+          "permissions": [
+            "core:default",
+            "core:event:default",
+            "core:event:allow-listen",
+            "core:event:allow-emit",
+            "core:window:default",
+            "core:window:allow-show",
+            "core:window:allow-hide",
+            "core:window:allow-close",
+            "core:window:allow-set-focus",
+            "core:webview:default",
+            "shell:allow-open",
+            "dialog:allow-message",
+            "dialog:allow-ask",
+            "dialog:allow-open",
+            "process:allow-exit",
+            "process:allow-restart"
+          ]
+        },
+        {
+          "identifier": "update-required-window-capability",
+          "windows": [
+            "update-required"
+          ],
+          "permissions": [
+            "core:default",
+            "core:event:default",
+            "core:event:allow-listen",
+            "core:event:allow-emit",
+            "core:window:default",
+            "core:window:allow-show",
+            "core:window:allow-hide",
+            "core:window:allow-close",
+            "core:window:allow-set-focus",
+            "core:webview:default",
+            "process:allow-exit",
+            "shell:allow-open"
+          ]
+        }
+      ]
+    }
+  },
+  "plugins": {
+    "shell": {
+      "open": ".*"
+    },
+    "updater": {
+      "endpoints": [
+        "https://github.com/Swatto86/SwatNotes/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDBBMUMwRjJFRTA0NzVBMzEKUldReFdrZmdMZzhjQ216STA2UVd0SlJyZ0hCVHBoazZRQWxlMFdBL29FMStuRG82RjN2cFlGN3IK"
+    }
+  }
+}

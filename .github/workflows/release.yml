@@ -1,0 +1,167 @@
+# GitHub Actions workflow for building and releasing SwatNotes
+# This workflow builds the app for all platforms and creates a GitHub Release
+# with auto-update support.
+#
+# To trigger a release:
+# 1. Update the version in src-tauri/Cargo.toml and src-tauri/tauri.conf.json
+# 2. Create and push a tag: git tag v0.1.0 && git push origin v0.1.0
+#
+# IMPORTANT: Before using this workflow, you need to:
+# 1. Generate a signing key pair: npx @tauri-apps/cli signer generate -w ~/.tauri/swatnotes.key
+# 2. Add the private key as a repository secret named TAURI_SIGNING_PRIVATE_KEY
+# 3. Add the key password as a repository secret named TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+# 4. Update the pubkey in src-tauri/tauri.conf.json with the public key
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.1.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create-release.outputs.result }}
+      version: ${{ steps.get-version.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: get-version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Fetch tags with annotations
+        run: |
+          # Ensure we have all tag data including annotations
+          git fetch --tags --force
+          
+      - name: Get release notes from tag
+        id: get-notes
+        run: |
+          # Get the tag annotation message (release notes from the Notes parameter)
+          # This extracts what was provided in the update-application.ps1 -Notes parameter
+          TAG_NAME="v${{ steps.get-version.outputs.version }}"
+
+          echo "Extracting release notes for tag: $TAG_NAME"
+          
+          # Use git for-each-ref to get the FULL tag annotation (body/contents)
+          # This is more reliable than git tag -n which can truncate
+          NOTES=$(git for-each-ref --format='%(contents)' "refs/tags/$TAG_NAME" 2>/dev/null || echo "")
+          
+          # Debug output
+          echo "Raw notes extracted:"
+          echo "$NOTES"
+          echo "---"
+          
+          # If empty, try the old method as fallback
+          if [ -z "$(echo "$NOTES" | tr -d '[:space:]')" ]; then
+            echo "Trying fallback method..."
+            RAW_NOTES=$(git tag -l -n1000 "$TAG_NAME" 2>/dev/null || echo "")
+            if [ -n "$RAW_NOTES" ]; then
+              NOTES=$(echo "$RAW_NOTES" | sed "s/^${TAG_NAME}[[:space:]]*//")
+            fi
+          fi
+
+          # If still empty, use default message
+          if [ -z "$(echo "$NOTES" | tr -d '[:space:]')" ]; then
+            echo "No notes found, using default message"
+            NOTES=$(printf "Release %s\n\nSee the assets below to download and install this version." "$TAG_NAME")
+          fi
+
+          echo "Final release notes:"
+          echo "$NOTES"
+
+          # Escape for GitHub Actions output (handle multi-line)
+          {
+            echo 'notes<<EOF'
+            echo "$NOTES"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create-release
+        uses: actions/github-script@v7
+        env:
+          RELEASE_NOTES: ${{ steps.get-notes.outputs.notes }}
+          RELEASE_VERSION: ${{ steps.get-version.outputs.version }}
+        with:
+          script: |
+            const { data } = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: `v${process.env.RELEASE_VERSION}`,
+              name: `SwatNotes v${process.env.RELEASE_VERSION}`,
+              body: process.env.RELEASE_NOTES,
+              draft: true,
+              prerelease: false
+            });
+            return data.id
+
+  build-tauri:
+    needs: create-release
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          releaseId: ${{ needs.create-release.outputs.release_id }}
+
+  publish-release:
+    runs-on: ubuntu-latest
+    needs: [create-release, build-tauri]
+    steps:
+      - name: Publish release
+        uses: actions/github-script@v7
+        env:
+          release_id: ${{ needs.create-release.outputs.release_id }}
+        with:
+          script: |
+            github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: process.env.release_id,
+              draft: false,
+              prerelease: false
+            })

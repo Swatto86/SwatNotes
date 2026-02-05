@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings - SwatNotes</title>
+  <!-- Apply theme immediately to prevent flash -->
+  <script>
+    (function () {
+      const theme = localStorage.getItem('swatnotes-theme') || 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <!-- Critical CSS to prevent white flash before stylesheet loads -->
+  <style>
+    html,
+    body {
+      background-color: oklch(var(--b1, 100% 0 0));
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+  <link rel="stylesheet" href="/src/styles/main.css" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    #settings-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    #settings-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.25rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+
+    .settings-section {
+      background: oklch(var(--b2));
+      border-radius: 0.5rem;
+      padding: 1rem;
+      border: 1px solid oklch(var(--bc) / 0.1);
+    }
+
+    .settings-section.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .settings-section h2 {
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      color: oklch(var(--bc));
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .settings-row {
+      margin-bottom: 0.75rem;
+    }
+
+    .settings-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .label {
+      padding: 0;
+      margin-bottom: 0.25rem;
+    }
+
+    .label-text {
+      font-size: 0.875rem;
+    }
+
+    .checkbox {
+      --chkbg: oklch(var(--p));
+    }
+
+    #backups-list {
+      max-height: 150px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+
+<body class="bg-base-100">
+  <div id="settings-container" class="bg-base-100">
+    <!-- Header -->
+    <div class="bg-base-200 border-b border-base-300 py-3">
+      <h1 class="text-lg font-bold text-base-content text-center">Settings</h1>
+    </div>
+
+    <!-- Settings content -->
+    <div id="settings-content" class="bg-base-100">
+      <!-- Appearance Section -->
+      <div class="settings-section">
+        <h2>Appearance</h2>
+        <div class="settings-row">
+          <label class="label">
+            <span class="label-text">Theme</span>
+          </label>
+          <select class="select select-bordered select-sm w-full text-base-content" id="theme-select">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="cupcake">Cupcake</option>
+            <option value="bumblebee">Bumblebee</option>
+            <option value="emerald">Emerald</option>
+            <option value="corporate">Corporate</option>
+            <option value="synthwave">Synthwave</option>
+            <option value="retro">Retro</option>
+            <option value="cyberpunk">Cyberpunk</option>
+            <option value="valentine">Valentine</option>
+            <option value="halloween">Halloween</option>
+            <option value="garden">Garden</option>
+            <option value="forest">Forest</option>
+            <option value="aqua">Aqua</option>
+            <option value="lofi">Lo-Fi</option>
+            <option value="pastel">Pastel</option>
+            <option value="fantasy">Fantasy</option>
+            <option value="wireframe">Wireframe</option>
+            <option value="black">Black</option>
+            <option value="luxury">Luxury</option>
+            <option value="dracula">Dracula</option>
+            <option value="cmyk">CMYK</option>
+            <option value="autumn">Autumn</option>
+            <option value="business">Business</option>
+            <option value="acid">Acid</option>
+            <option value="lemonade">Lemonade</option>
+            <option value="night">Night</option>
+            <option value="coffee">Coffee</option>
+            <option value="winter">Winter</option>
+            <option value="dim">Dim</option>
+            <option value="nord">Nord</option>
+            <option value="sunset">Sunset</option>
+          </select>
+        </div>
+        <!-- Auto-save -->
+        <div class="settings-row mt-4">
+          <label class="label">
+            <span class="label-text">Auto-save delay (ms)</span>
+          </label>
+          <input type="number" class="input input-bordered input-sm w-full text-base-content" id="autosave-delay-input"
+            value="1000" min="100" step="100" />
+          <label class="label">
+            <span class="label-text-alt text-xs">Saves after typing stops</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Behavior Section -->
+      <div class="settings-section">
+        <h2>Behavior</h2>
+        <div class="settings-row">
+          <label class="label cursor-pointer justify-start gap-2">
+            <input type="checkbox" class="checkbox checkbox-sm" id="minimize-to-tray-checkbox" />
+            <span class="label-text">Minimize to tray</span>
+          </label>
+        </div>
+        <div class="settings-row">
+          <label class="label cursor-pointer justify-start gap-2">
+            <input type="checkbox" class="checkbox checkbox-sm" id="close-to-tray-checkbox" />
+            <span class="label-text">Close to tray</span>
+          </label>
+        </div>
+        <div class="settings-row">
+          <label class="label cursor-pointer justify-start gap-2">
+            <input type="checkbox" class="checkbox checkbox-sm" id="start-with-windows-checkbox" />
+            <span class="label-text">Start with Windows</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Keyboard Shortcuts Section -->
+      <div class="settings-section full-width">
+        <h2 class="text-center">Global Hotkeys</h2>
+        <div class="grid grid-cols-3 gap-4 max-w-3xl mx-auto">
+          <div class="settings-row">
+            <label class="label justify-center">
+              <span class="label-text">New note</span>
+            </label>
+            <input type="text" class="input input-bordered input-sm w-full text-base-content font-mono text-center"
+              id="hotkey-new-note-input" placeholder="Ctrl+Shift+N" />
+          </div>
+          <div class="settings-row">
+            <label class="label justify-center">
+              <span class="label-text">Toggle note</span>
+            </label>
+            <input type="text" class="input input-bordered input-sm w-full text-base-content font-mono text-center"
+              id="hotkey-toggle-note-input" placeholder="Ctrl+Shift+H" />
+          </div>
+          <div class="settings-row">
+            <label class="label justify-center">
+              <span class="label-text">Open search</span>
+            </label>
+            <input type="text" class="input input-bordered input-sm w-full text-base-content font-mono text-center"
+              id="hotkey-open-search-input" placeholder="Ctrl+Shift+F" />
+          </div>
+          <div class="settings-row">
+            <label class="label justify-center">
+              <span class="label-text">Open settings</span>
+            </label>
+            <input type="text" class="input input-bordered input-sm w-full text-base-content font-mono text-center"
+              id="hotkey-open-settings-input" placeholder="Ctrl+Shift+," />
+          </div>
+          <div class="settings-row">
+            <label class="label justify-center">
+              <span class="label-text">Toggle all notes</span>
+            </label>
+            <input type="text" class="input input-bordered input-sm w-full text-base-content font-mono text-center"
+              id="hotkey-toggle-all-notes-input" placeholder="Ctrl+Shift+A" />
+          </div>
+          <div class="settings-row">
+            <label class="label justify-center">
+              <span class="label-text">Quick capture</span>
+            </label>
+            <input type="text" class="input input-bordered input-sm w-full text-base-content font-mono text-center"
+              id="hotkey-quick-capture-input" placeholder="Ctrl+Shift+V" />
+          </div>
+        </div>
+        <div class="mt-6 flex flex-col items-center gap-2">
+          <button class="btn btn-primary btn-sm" id="save-hotkeys-btn">Save Hotkeys (Restart Required)</button>
+          <span class="text-xs text-base-content/70">Changes require application restart to take effect</span>
+        </div>
+      </div>
+
+      <!-- Automatic Backups Section -->
+      <div class="settings-section full-width">
+        <h2>Automatic Backups</h2>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <div class="settings-row">
+              <label class="label cursor-pointer justify-start gap-2">
+                <input type="checkbox" class="checkbox checkbox-sm" id="auto-backup-enabled-checkbox" />
+                <span class="label-text">Enable automatic backups</span>
+              </label>
+            </div>
+            <div class="settings-row">
+              <label class="label">
+                <span class="label-text">Auto-Backup Password</span>
+                <span class="label-text-alt text-xs text-base-content/70">Stored securely</span>
+              </label>
+              <div class="join w-full">
+                <input type="password" class="input input-bordered input-sm join-item flex-1 text-base-content"
+                  id="auto-backup-password-input" placeholder="Set password for automatic backups" />
+                <button class="btn btn-sm btn-primary join-item" id="save-auto-backup-password-btn">Save</button>
+                <button class="btn btn-sm btn-error join-item" id="delete-auto-backup-password-btn">Clear</button>
+              </div>
+              <div class="mt-1 flex items-center gap-2" id="auto-backup-password-status">
+                <span class="text-xs text-base-content/50">No password set</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="settings-row">
+              <label class="label">
+                <span class="label-text">Backup Location</span>
+              </label>
+              <div class="join w-full">
+                <input type="text" class="input input-bordered input-sm join-item flex-1 text-base-content"
+                  id="backup-location-input" placeholder="Default location" readonly />
+                <button class="btn btn-sm btn-primary join-item" id="select-backup-location-btn">Browse</button>
+                <button class="btn btn-sm btn-outline join-item" id="reset-backup-location-btn">Reset</button>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="settings-row">
+                <label class="label">
+                  <span class="label-text">Frequency</span>
+                </label>
+                <input type="text" class="input input-bordered input-sm w-full text-base-content font-mono"
+                  id="backup-frequency-input" placeholder="daily" />
+                <label class="label">
+                  <span class="label-text-alt text-xs">e.g., 5m, 2h, 1d</span>
+                </label>
+              </div>
+              <div class="settings-row">
+                <label class="label">
+                  <span class="label-text">Retention</span>
+                </label>
+                <select class="select select-bordered select-sm w-full text-base-content" id="backup-retention-select">
+                  <option value="7">7 days</option>
+                  <option value="30">30 days</option>
+                  <option value="90">90 days</option>
+                  <option value="365">1 year</option>
+                  <option value="0">Forever</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual Backup Section -->
+      <div class="settings-section">
+        <h2>Manual Backup</h2>
+        <div class="settings-row">
+          <label class="label">
+            <span class="label-text">Password</span>
+          </label>
+          <input type="password" class="input input-bordered input-sm w-full text-base-content"
+            id="backup-password-input" placeholder="Backup password" />
+        </div>
+        <div class="settings-row">
+          <button class="btn btn-primary btn-sm w-full" id="create-backup-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Create Backup
+          </button>
+        </div>
+      </div>
+
+      <!-- Database Maintenance Section -->
+      <div class="settings-section">
+        <h2>Database Maintenance</h2>
+        <div class="settings-row">
+          <div class="flex justify-between items-center mb-3">
+            <span class="text-sm text-base-content">Deleted notes in trash</span>
+            <span class="badge badge-ghost" id="deleted-notes-count">Loading...</span>
+          </div>
+          <button class="btn btn-warning btn-sm w-full" id="prune-database-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            Empty Trash
+          </button>
+          <label class="label">
+            <span class="label-text-alt text-xs">Permanently removes deleted notes</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Recent Backups Section -->
+      <div class="settings-section full-width">
+        <h2>Recent Backups</h2>
+        <!-- Last Backup Status - Prominent Display -->
+        <div class="bg-base-300 rounded-lg p-4 mb-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm font-medium text-base-content mb-1">Last Backup</div>
+              <div class="text-lg font-bold" id="last-backup-time">No backups yet</div>
+              <div class="text-xs text-base-content/60" id="last-backup-age">Create your first backup</div>
+            </div>
+          </div>
+        </div>
+        <h3 class="text-sm font-semibold text-base-content/70 mb-2">Backup History</h3>
+        <div id="backups-list" class="space-y-1">
+          <div class="text-base-content/50 text-xs text-center py-3">No backups found</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/settings.ts"></script>
+</body>
+
+</html>
