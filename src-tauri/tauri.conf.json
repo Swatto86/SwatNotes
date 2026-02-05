@@ -1,6 +1,6 @@
 {
   "productName": "SwatNotes",
-  "version": "1.0.2",
+  "version": "1.0.5",
   "identifier": "com.swatnotes.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
