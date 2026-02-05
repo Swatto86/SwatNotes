@@ -325,11 +325,11 @@ SwatNotes automates releases with a PowerShell script + GitHub Actions.
 
 ### Manual Release (PowerShell Script)
 
-The [`scripts/update-application.ps1`](../scripts/update-application.ps1) script handles version bumping and Git tagging:
+The [`update-application.ps1`](../../update-application.ps1) script handles version bumping and Git tagging:
 
 ```powershell
 # Usage:
-.\scripts\update-application.ps1 -Version "1.1.0" -Notes "Bug fixes and performance improvements"
+.\update-application.ps1 -Version "1.1.0" -Notes "Bug fixes and performance improvements"
 ```
 
 **What it does**:
@@ -351,7 +351,7 @@ The [`scripts/update-application.ps1`](../scripts/update-application.ps1) script
 
 **Key insight**: The **annotated Git tag stores the release notes**. GitHub Actions later extracts them.
 
-From [`update-application.ps1`](../scripts/update-application.ps1) lines 157-164:
+From [`update-application.ps1`](../../update-application.ps1) lines 157-164:
 
 ```powershell
 # Create annotated tag with release notes

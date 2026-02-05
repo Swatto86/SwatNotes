@@ -410,7 +410,7 @@
 - Performance: ~500ms API check (background), 5-60s download (depends on file size and connection)
 - Testing strategies: manual checklist (simulate old version, test download, test offline), version comparison unit tests
 - Future enhancements: delta updates (binary diffs), automatic background installation, rollback mechanism, update channels
-- Real code from commands/updater.rs, update-required.ts, updateApi.ts, scripts/update-application.ps1, app.rs
+- Real code from commands/updater.rs, update-required.ts, updateApi.ts, update-application.ps1, app.rs
 - **Status**: Complete, ready for reader use
 
 #### ✅ Chapter 20: Error Handling Patterns (`chapters/20-error-handling-patterns.md`)

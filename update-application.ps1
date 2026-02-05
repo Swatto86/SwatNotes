@@ -1,5 +1,5 @@
 # SwatNotes Release Script
-# Usage: .\scripts\update-application.ps1 -Version "0.2.0" -Notes "Bug fixes and improvements"
+# Usage: .\update-application.ps1 -Version "0.2.0" -Notes "Bug fixes and improvements"
 # Or run without parameters to be prompted for the version and release notes
 #
 # RELEASE NOTES FLOW:
@@ -22,8 +22,8 @@ function Write-Success { param($msg) Write-Host $msg -ForegroundColor Green }
 function Write-Info { param($msg) Write-Host $msg -ForegroundColor Cyan }
 function Write-Warn { param($msg) Write-Host $msg -ForegroundColor Yellow }
 
-# Change to project root directory (parent of scripts folder)
-$projectRoot = Split-Path -Parent $PSScriptRoot
+# Change to project root directory (script is at root level)
+$projectRoot = $PSScriptRoot
 Set-Location $projectRoot
 Write-Host "Working directory: $projectRoot" -ForegroundColor Gray
 

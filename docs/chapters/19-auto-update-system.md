@@ -745,7 +745,7 @@ Developer                    GitHub                     User
 ────────────────────────────────────────────────────────────────
 
 1. Run script:
-   update-application.ps1
+update-application.ps1
    -Version "0.2.0"
    -Notes "Fixed bugs"
                     ─────>  2. Creates Git tag
@@ -771,10 +771,10 @@ Developer                    GitHub                     User
 
 ### The Release Script
 
-Located in [`scripts/update-application.ps1`](../scripts/update-application.ps1):
+Located in [`update-application.ps1`](../../update-application.ps1):
 
 ```powershell
-# Usage: .\scripts\update-application.ps1 -Version "0.2.0" -Notes "Bug fixes"
+# Usage: .\update-application.ps1 -Version "0.2.0" -Notes "Bug fixes"
 
 # Update Cargo.toml version
 $cargoContent = Get-Content $cargoToml -Raw
