@@ -48,12 +48,13 @@ SwatNotes is a production-grade desktop notes application built with Rust and Ta
 - Reference counting for cleanup
 
 #### Services (`src-tauri/src/services/`)
-- **Notes**: CRUD, autosave (500ms debounce), full-text search
+- **Notes**: CRUD, autosave (1000ms debounce), full-text search
 - **Attachments**: File and image handling
 - **Backup**: Encrypted backups with manifest and checksums
-- **Reminders**: Background scheduler with notifications
+- **Reminders**: Background scheduler (checks every 5 seconds) with notifications
 - **Settings**: Hotkeys, auto-backup, reminder preferences
 - **Scheduler**: Automatic backup scheduling with retention policy
+- **Credentials**: Secure credential storage using OS keyring
 
 ### Data Locations
 - **Windows**: `%APPDATA%\com.swatnotes.app\`
@@ -108,7 +109,9 @@ SwatNotes/
 │   │   │   ├── attachments.rs     # Attachment operations
 │   │   │   ├── backup.rs          # Backup/restore
 │   │   │   ├── reminders.rs       # Reminder operations
-│   │   │   └── settings.rs        # All settings commands
+│   │   │   ├── collections.rs     # Collections/folders management
+│   │   │   ├── settings.rs        # All settings commands
+│   │   │   └── updater.rs         # Auto-update functionality
 │   │   ├── config.rs              # App configuration constants
 │   │   ├── crypto.rs              # Encryption utilities
 │   │   ├── error.rs               # Custom error types
@@ -196,7 +199,7 @@ npm run tauri build
 ### Key Features
 
 #### Autosave
-- Debounced at 500ms after last edit
+- Debounced at 1000ms after last edit
 - Force save on blur, window close, app quit
 - Uses SQLite transactions for atomicity
 
@@ -207,9 +210,16 @@ npm run tauri build
 - Checksums verified on restore
 - Auto-restart offered after restore
 
+#### Collections
+- Organize notes into color-coded collections/folders
+- Optional descriptions and custom colors
+- Notes can exist without a collection (uncategorized)
+- Deleting a collection sets notes to uncategorized (preserves data)
+
 #### Reminders
-- Background scheduler checks every 60 seconds
-- System notifications on trigger
+- Background scheduler checks every 5 seconds
+- System notifications on trigger with customizable settings
+- Per-reminder notification preferences (sound, visual effects)
 - Handles missed reminders on app restart
 
 #### System Tray Integration
@@ -433,6 +443,7 @@ let _tray = TrayIconBuilder::new()
 | `tauri-plugin-shell` | Shell commands |
 | `tauri-plugin-process` | App restart/exit |
 | `tauri-plugin-updater` | Auto-updates from GitHub Releases |
+| `tauri-plugin-clipboard-manager` | Clipboard operations |
 
 ## Key Rust Crates
 
@@ -449,6 +460,7 @@ let _tray = TrayIconBuilder::new()
 | `aes-gcm` | Encryption |
 | `argon2` | Key derivation |
 | `keyring` | OS credential storage |
+| `tokio-cron-scheduler` | Cron-based scheduling for auto-backups |
 
 ## Notes
 

@@ -74,7 +74,7 @@ SwatNotes is a production-grade desktop notes application built with Rust + Taur
 - Manages note lifecycle (create, update, delete, soft-delete)
 
 **Autosave Strategy**:
-- Debounce writes: 500ms after last edit
+- Debounce writes: 1000ms after last edit
 - Force save on: blur, window close, app quit
 - Use SQLite transactions for atomicity
 
@@ -124,10 +124,12 @@ SwatNotes is a production-grade desktop notes application built with Rust + Taur
 **Reminder Flow**:
 1. User creates reminder for note
 2. Stored in DB with trigger_time
-3. Scheduler loads into in-memory priority queue
+3. Background scheduler checks every 5 seconds for due reminders
 4. At trigger time: emit event to frontend
-5. Frontend shows popup, plays sound, shakes window
-6. Mark as triggered in DB
+5. Frontend shows popup window with note
+6. Play notification sound (if enabled)
+7. Apply visual effects (shake, glow if enabled)
+8. Mark as triggered in DB
 
 #### 2.8 Platform Abstraction (`src-tauri/src/platform/`)
 - **Trait**: `PlatformIntegration`
@@ -281,13 +283,13 @@ To add a new feature:
 - Note load: < 100ms for any note
 - Autosave latency: < 50ms after debounce
 - Backup creation: < 5 seconds for 1000 notes
-- Reminder check interval: 10 seconds
+- Reminder check interval: 5 seconds
 
-## Future Enhancements (Out of Scope for v1)
+## Future Enhancements
 
-- End-to-end encryption
 - Mobile apps
 - Collaborative editing
-- Full-text search with FTS5
 - Export to PDF/Markdown
 - Plugin system for custom note types
+- OCR for images
+- Voice notes
