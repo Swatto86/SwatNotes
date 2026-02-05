@@ -13,13 +13,19 @@
     "isolatedModules": true,
     "noEmit": true,
 
-    /* Linting */
+    /* Linting - TODO: Enable strict mode after fixing type errors */
     "strict": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
     "strictNullChecks": false,
+    /* Recommended for production: enable these incrementally
+     * "strict": true,
+     * "strictNullChecks": true,
+     * "noUnusedLocals": true,
+     * "noUnusedParameters": true,
+     */
 
     /* Path mapping */
     "baseUrl": ".",

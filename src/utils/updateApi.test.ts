@@ -22,8 +22,10 @@ describe('updateApi', () => {
       const mockUpdateInfo: UpdateInfo = {
         available: true,
         current_version: '1.0.0',
-        latest_version: '1.1.0',
-        release_notes: 'Bug fixes and improvements'
+        version: '1.1.0',
+        body: 'Bug fixes and improvements',
+        release_url: null,
+        installer_url: null
       };
       vi.mocked(invoke).mockResolvedValue(mockUpdateInfo);
 
@@ -32,22 +34,24 @@ describe('updateApi', () => {
       expect(invoke).toHaveBeenCalledWith('check_for_update');
       expect(result.available).toBe(true);
       expect(result.current_version).toBe('1.0.0');
-      expect(result.latest_version).toBe('1.1.0');
+      expect(result.version).toBe('1.1.0');
     });
 
     it('should return update info when no update is available', async () => {
       const mockUpdateInfo: UpdateInfo = {
         available: false,
         current_version: '1.1.0',
-        latest_version: '1.1.0',
-        release_notes: null
+        version: '1.1.0',
+        body: null,
+        release_url: null,
+        installer_url: null
       };
       vi.mocked(invoke).mockResolvedValue(mockUpdateInfo);
 
       const result = await checkForUpdate();
 
       expect(result.available).toBe(false);
-      expect(result.current_version).toBe(result.latest_version);
+      expect(result.current_version).toBe(result.version);
     });
 
     it('should handle network error during update check', async () => {
@@ -109,8 +113,10 @@ describe('updateApi', () => {
       const mockUpdateInfo: UpdateInfo = {
         available: true,
         current_version: '1.0.0',
-        latest_version: '2.0.0',
-        release_notes: 'Major update with new features'
+        version: '2.0.0',
+        body: 'Major update with new features',
+        release_url: null,
+        installer_url: null
       };
       vi.mocked(invoke).mockResolvedValueOnce(mockUpdateInfo);
 
@@ -128,8 +134,10 @@ describe('updateApi', () => {
       const mockUpdateInfo: UpdateInfo = {
         available: false,
         current_version: '2.0.0',
-        latest_version: '2.0.0',
-        release_notes: null
+        version: '2.0.0',
+        body: null,
+        release_url: null,
+        installer_url: null
       };
       vi.mocked(invoke).mockResolvedValueOnce(mockUpdateInfo);
 

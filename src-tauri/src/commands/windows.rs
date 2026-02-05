@@ -133,7 +133,7 @@ pub async fn open_note_window(
     let _window = WebviewWindowBuilder::new(
         &app,
         &window_label,
-        WebviewUrl::App("sticky-note.html".into()),
+        WebviewUrl::App("pages/sticky-note.html".into()),
     )
     .title(&note.title)
     .inner_size(
@@ -263,7 +263,7 @@ pub fn open_settings_window(app: tauri::AppHandle) -> Result<()> {
 
     let config = WindowConfig {
         label: "settings".to_string(),
-        url: "settings.html",
+        url: "pages/settings.html",
         title: "Settings - SwatNotes".to_string(),
         width: 700.0,
         height: 1000.0,
@@ -371,7 +371,7 @@ pub fn open_about_window(app: tauri::AppHandle) -> Result<()> {
 
     let config = WindowConfig {
         label: "about".to_string(),
-        url: "about.html",
+        url: "pages/about.html",
         title: "About - SwatNotes".to_string(),
         width: 400.0,
         height: 500.0,
@@ -533,7 +533,7 @@ pub async fn toggle_all_note_windows(
                 let window = WebviewWindowBuilder::new(
                     &app,
                     &window_label,
-                    WebviewUrl::App("sticky-note.html".into()),
+                    WebviewUrl::App("pages/sticky-note.html".into()),
                 )
                 .title(&note.title)
                 .inner_size(

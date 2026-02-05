@@ -29,8 +29,8 @@ interface LoggerConfig {
 
 /** Default configuration - enabled in development, minimal in production */
 const DEFAULT_CONFIG: LoggerConfig = {
-  level: import.meta.env.DEV ? LogLevel.DEBUG : LogLevel.WARN,
-  timestamps: import.meta.env.DEV,
+  level: (import.meta as any).env?.DEV ? LogLevel.DEBUG : LogLevel.WARN,
+  timestamps: (import.meta as any).env?.DEV ?? false,
   enabled: true,
 };
 

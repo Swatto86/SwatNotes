@@ -47,3 +47,6 @@ src-tauri/target/
 *.key
 *.key.pub
 tauri-signing-key*
+
+# Backup files
+*.bak

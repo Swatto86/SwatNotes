@@ -26,7 +26,8 @@ describe('notesApi', () => {
         created_at: '2024-01-01T00:00:00Z',
         updated_at: '2024-01-01T00:00:00Z',
         deleted_at: null,
-        title_modified: false
+        title_modified: false,
+        collection_id: null
       };
 
       vi.mocked(invoke).mockResolvedValue(mockNote);
@@ -56,7 +57,8 @@ describe('notesApi', () => {
         created_at: '2024-01-01T00:00:00Z',
         updated_at: '2024-01-01T00:01:00Z',
         deleted_at: null,
-        title_modified: false
+        title_modified: false,
+        collection_id: null
       };
 
       vi.mocked(invoke).mockResolvedValue(mockNote);
@@ -92,7 +94,8 @@ describe('notesApi', () => {
         created_at: '2024-01-01T00:00:00Z',
         updated_at: '2024-01-01T00:00:00Z',
         deleted_at: null,
-        title_modified: false
+        title_modified: false,
+        collection_id: null
       };
 
       vi.mocked(invoke).mockResolvedValue(mockNote);
@@ -114,7 +117,8 @@ describe('notesApi', () => {
           created_at: '2024-01-01T00:00:00Z',
           updated_at: '2024-01-01T00:00:00Z',
           deleted_at: null,
-          title_modified: false
+          title_modified: false,
+          collection_id: null
         },
         {
           id: 'note-2',
@@ -123,7 +127,8 @@ describe('notesApi', () => {
           created_at: '2024-01-01T00:01:00Z',
           updated_at: '2024-01-01T00:01:00Z',
           deleted_at: null,
-          title_modified: false
+          title_modified: false,
+          collection_id: null
         }
       ];
 
@@ -156,7 +161,8 @@ describe('notesApi', () => {
           created_at: '2024-01-01T00:00:00Z',
           updated_at: '2024-01-01T00:00:00Z',
           deleted_at: null,
-          title_modified: false
+          title_modified: false,
+          collection_id: null
         }
       ];
 

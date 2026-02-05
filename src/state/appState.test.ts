@@ -23,6 +23,7 @@ function createMockNote(overrides: Partial<Note> = {}): Note {
     updated_at: '2024-01-01T00:00:00Z',
     deleted_at: null,
     title_modified: false,
+    collection_id: null,
     ...overrides,
   };
 }

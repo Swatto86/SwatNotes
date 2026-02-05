@@ -25,7 +25,11 @@ describe('remindersApi', () => {
         note_id: 'note-id',
         trigger_time: triggerDate.toISOString(),
         triggered: false,
-        created_at: '2024-01-01T00:00:00Z'
+        created_at: '2024-01-01T00:00:00Z',
+        sound_enabled: null,
+        sound_type: null,
+        shake_enabled: null,
+        glow_enabled: null
       };
 
       vi.mocked(invoke).mockResolvedValue(mockReminder);
@@ -57,14 +61,22 @@ describe('remindersApi', () => {
           note_id: 'note-1',
           trigger_time: '2024-12-25T10:00:00Z',
           triggered: false,
-          created_at: '2024-01-01T00:00:00Z'
+          created_at: '2024-01-01T00:00:00Z',
+          sound_enabled: null,
+          sound_type: null,
+          shake_enabled: null,
+          glow_enabled: null
         },
         {
           id: 'reminder-2',
           note_id: 'note-2',
           trigger_time: '2024-12-26T15:00:00Z',
           triggered: false,
-          created_at: '2024-01-01T00:01:00Z'
+          created_at: '2024-01-01T00:01:00Z',
+          sound_enabled: null,
+          sound_type: null,
+          shake_enabled: null,
+          glow_enabled: null
         }
       ];
 

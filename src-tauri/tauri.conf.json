@@ -31,6 +31,7 @@
     "windows": [
       {
         "title": "SwatNotes",
+        "url": "pages/index.html",
         "width": 1000,
         "height": 1028,
         "minWidth": 800,

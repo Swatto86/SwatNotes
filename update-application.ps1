@@ -2,11 +2,22 @@
 # Usage: .\update-application.ps1 -Version "0.2.0" -Notes "Bug fixes and improvements"
 # Or run without parameters to be prompted for the version and release notes
 #
+# WHAT THIS SCRIPT DOES:
+# 1. Updates version in: Cargo.toml, tauri.conf.json, package.json, config.ts, about.html
+# 2. Commits the version changes
+# 3. Deletes ALL previous git tags and GitHub releases (keeps only the new release)
+# 4. Creates a new annotated git tag with your release notes
+# 5. Pushes to GitHub, triggering the build workflow
+#
 # RELEASE NOTES FLOW:
 # 1. The Notes parameter you provide is stored in an annotated Git tag
 # 2. GitHub Actions extracts the tag annotation and creates a GitHub Release with it
 # 3. When users check for updates, the app fetches the release notes from GitHub API
 # 4. The notes are displayed in the update window under "What's New"
+#
+# REQUIREMENTS:
+# - Git must be installed and configured
+# - GitHub CLI (gh) is recommended for deleting old releases (optional but recommended)
 #
 # NOTE: This works with the public SwatNotes repository - no authentication needed!
 
@@ -98,6 +109,9 @@ if ($gitStatus) {
 # File paths
 $cargoToml = "src-tauri\Cargo.toml"
 $tauriConf = "src-tauri\tauri.conf.json"
+$packageJson = "package.json"
+$configTs = "src\config.ts"
+$aboutHtml = "pages\about.html"
 
 # Check files exist
 if (-not (Test-Path $cargoToml)) {
@@ -106,6 +120,18 @@ if (-not (Test-Path $cargoToml)) {
 }
 if (-not (Test-Path $tauriConf)) {
     Write-Error "File not found: $tauriConf"
+    exit 1
+}
+if (-not (Test-Path $packageJson)) {
+    Write-Error "File not found: $packageJson"
+    exit 1
+}
+if (-not (Test-Path $configTs)) {
+    Write-Error "File not found: $configTs"
+    exit 1
+}
+if (-not (Test-Path $aboutHtml)) {
+    Write-Error "File not found: $aboutHtml"
     exit 1
 }
 
@@ -125,30 +151,91 @@ $tauriContent = $tauriJson | ConvertTo-Json -Depth 10
 Set-Content $tauriConf $tauriContent
 Write-Success "  Updated tauri.conf.json"
 
+# Update package.json
+Write-Info "Updating $packageJson..."
+$packageContent = Get-Content $packageJson -Raw
+$packageJson_obj = $packageContent | ConvertFrom-Json
+$packageJson_obj.version = $Version
+$packageContent = $packageJson_obj | ConvertTo-Json -Depth 10
+Set-Content $packageJson $packageContent
+Write-Success "  Updated package.json"
+
+# Update src/config.ts
+Write-Info "Updating $configTs..."
+$configContent = Get-Content $configTs -Raw
+$configContent = $configContent -replace "APP_VERSION = '[^']+'", "APP_VERSION = '$Version'"
+Set-Content $configTs $configContent -NoNewline
+Write-Success "  Updated src/config.ts"
+
+# Update pages/about.html
+Write-Info "Updating $aboutHtml..."
+$aboutContent = Get-Content $aboutHtml -Raw
+$aboutContent = $aboutContent -replace 'Version \d+\.\d+\.\d+', "Version $Version"
+Set-Content $aboutHtml $aboutContent -NoNewline
+Write-Success "  Updated pages/about.html"
+
 # Stage and commit version changes
 Write-Info "Committing version changes..."
-git add $cargoToml $tauriConf
+git add $cargoToml $tauriConf $packageJson $configTs $aboutHtml
 git commit -m "chore: bump version to $Version"
 Write-Success "  Committed version bump"
 
+# Delete all previous tags and releases
+Write-Info "Cleaning up previous releases and tags..."
+
+# Get all existing tags
+$existingTags = git tag -l "v*"
+if ($existingTags) {
+    Write-Info "  Found existing tags: $($existingTags -join ', ')"
+    
+    # Check if GitHub CLI is available for deleting releases
+    $ghAvailable = $null -ne (Get-Command gh -ErrorAction SilentlyContinue)
+    
+    if ($ghAvailable) {
+        # Delete GitHub releases first (before deleting tags)
+        Write-Info "  Deleting GitHub releases..."
+        $ErrorActionPreference = "Continue"
+        foreach ($tag in $existingTags) {
+            $tag = $tag.Trim()
+            if ($tag) {
+                # Try to delete the release (may not exist)
+                gh release delete $tag --yes 2>&1 | Out-Null
+            }
+        }
+        $ErrorActionPreference = "Stop"
+        Write-Success "  Deleted GitHub releases"
+    } else {
+        Write-Warn "  GitHub CLI (gh) not found - skipping release deletion"
+        Write-Warn "  You may need to manually delete old releases from GitHub"
+    }
+    
+    # Delete local tags
+    Write-Info "  Deleting local tags..."
+    foreach ($tag in $existingTags) {
+        $tag = $tag.Trim()
+        if ($tag) {
+            git tag -d $tag 2>&1 | Out-Null
+        }
+    }
+    Write-Success "  Deleted local tags"
+    
+    # Delete remote tags
+    Write-Info "  Deleting remote tags..."
+    $ErrorActionPreference = "Continue"
+    foreach ($tag in $existingTags) {
+        $tag = $tag.Trim()
+        if ($tag) {
+            git push origin --delete $tag 2>&1 | Out-Null
+        }
+    }
+    $ErrorActionPreference = "Stop"
+    Write-Success "  Deleted remote tags"
+} else {
+    Write-Info "  No existing tags found"
+}
+
 # Create git tag with release notes (annotated tag)
 Write-Info "Creating git tag v$Version with release notes..."
-$tagExists = git tag -l "v$Version"
-if ($tagExists) {
-    Write-Warn "Tag v$Version already exists!"
-    $confirm = Read-Host "Do you want to delete and recreate it? (Y/n)"
-    if ($confirm -eq 'y' -or $confirm -eq 'Y') {
-        git tag -d "v$Version"
-        # Temporarily disable error action to handle git's stderr output
-        $ErrorActionPreference = "Continue"
-        git push origin --delete "v$Version" 2>&1 | Out-Null
-        $ErrorActionPreference = "Stop"
-        Write-Success "  Deleted existing tag"
-    } else {
-        Write-Host "Aborted." -ForegroundColor Red
-        exit 1
-    }
-}
 
 # Create annotated tag with release notes
 # Write notes to temp file to handle multi-line messages properly

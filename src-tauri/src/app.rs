@@ -224,7 +224,7 @@ async fn check_for_update_on_startup(app: tauri::AppHandle) {
                 match WebviewWindowBuilder::new(
                     &app,
                     "update-required",
-                    WebviewUrl::App("update-required.html".into()),
+                    WebviewUrl::App("pages/update-required.html".into()),
                 )
                 .title("Update Required - SwatNotes")
                 .inner_size(500.0, 550.0)

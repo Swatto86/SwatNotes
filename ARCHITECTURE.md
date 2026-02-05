@@ -8,14 +8,15 @@ SwatNotes is a production-grade desktop notes application built with Rust + Taur
 ### 1. Frontend (Tauri Webview)
 **Technology**: HTML/CSS/JS with Tailwind CSS + DaisyUI
 **Responsibilities**:
-- Rich text editor (using Quill.js or TipTap)
+- Rich text editor (using Quill.js)
 - Note list and detail views
 - Settings UI
 - Backup/restore UI
 - Theme management (DaisyUI themes)
 
 **Boundaries**:
-- All frontend code lives in `src-ui/`
+- HTML entry points live in `pages/`
+- TypeScript/CSS source code lives in `src/`
 - Communicates with Rust backend via Tauri commands
 - Never directly accesses filesystem or database
 

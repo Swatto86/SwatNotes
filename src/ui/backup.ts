@@ -16,32 +16,40 @@ const LOG_CONTEXT = 'Backup';
  */
 export async function handleBackupNow() {
   const statusEl = document.getElementById('backup-status');
-  const btnEl = document.getElementById('backup-now-btn');
-  const passwordInput = document.getElementById('backup-password');
+  const btnEl = document.getElementById('backup-now-btn') as HTMLButtonElement | null;
+  const passwordInput = document.getElementById('backup-password') as HTMLInputElement | null;
 
   try {
     // Validate password
     const password = passwordInput?.value?.trim();
     if (!password) {
-      statusEl.textContent = 'Please enter a backup password';
-      statusEl.className = 'text-sm text-error';
+      if (statusEl) {
+        statusEl.textContent = 'Please enter a backup password';
+        statusEl.className = 'text-sm text-error';
+      }
       return;
     }
 
     if (password.length < MIN_PASSWORD_LENGTH) {
-      statusEl.textContent = `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
-      statusEl.className = 'text-sm text-error';
+      if (statusEl) {
+        statusEl.textContent = `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
+        statusEl.className = 'text-sm text-error';
+      }
       return;
     }
 
-    btnEl.disabled = true;
-    statusEl.textContent = 'Creating encrypted backup...';
-    statusEl.className = 'text-sm text-info';
+    if (btnEl) btnEl.disabled = true;
+    if (statusEl) {
+      statusEl.textContent = 'Creating encrypted backup...';
+      statusEl.className = 'text-sm text-info';
+    }
 
-    const backupPath = await createBackup(password);
+    await createBackup(password);
 
-    statusEl.textContent = `Encrypted backup created successfully!`;
-    statusEl.className = 'text-sm text-success';
+    if (statusEl) {
+      statusEl.textContent = `Encrypted backup created successfully!`;
+      statusEl.className = 'text-sm text-success';
+    }
 
     // Clear password field
     if (passwordInput) {
@@ -52,14 +60,16 @@ export async function handleBackupNow() {
     await loadBackupsList();
 
     setTimeout(() => {
-      statusEl.textContent = '';
+      if (statusEl) statusEl.textContent = '';
     }, 3000);
   } catch (error) {
     logger.error('Backup failed', LOG_CONTEXT, error);
-    statusEl.textContent = 'Backup failed: ' + error;
-    statusEl.className = 'text-sm text-error';
+    if (statusEl) {
+      statusEl.textContent = 'Backup failed: ' + error;
+      statusEl.className = 'text-sm text-error';
+    }
   } finally {
-    btnEl.disabled = false;
+    if (btnEl) btnEl.disabled = false;
   }
 }
 
@@ -79,7 +89,7 @@ export async function loadBackupsList() {
     }
 
     // Sort by timestamp (newest first)
-    backups.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    backups.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
     listEl.innerHTML = backups
       .slice(0, BACKUP_LIST_LIMIT) // Show last N backups

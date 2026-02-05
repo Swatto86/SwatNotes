@@ -63,7 +63,9 @@ export async function deleteAttachment(attachmentId: string): Promise<void> {
  * @returns Data URL
  */
 export function createDataUrl(data: Uint8Array, mimeType: string): string {
-  const blob = new Blob([data], { type: mimeType });
+  // Create a copy of the buffer to ensure it's a proper ArrayBuffer
+  const arrayBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
+  const blob = new Blob([arrayBuffer], { type: mimeType });
   return URL.createObjectURL(blob);
 }
 

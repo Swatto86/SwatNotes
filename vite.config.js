@@ -17,11 +17,11 @@ export default defineConfig({
     sourcemap: !!process.env.TAURI_DEBUG,
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html'),
-        'sticky-note': resolve(__dirname, 'sticky-note.html'),
-        settings: resolve(__dirname, 'settings.html'),
-        about: resolve(__dirname, 'about.html'),
-        'update-required': resolve(__dirname, 'update-required.html'),
+        main: resolve(__dirname, 'pages/index.html'),
+        'sticky-note': resolve(__dirname, 'pages/sticky-note.html'),
+        settings: resolve(__dirname, 'pages/settings.html'),
+        about: resolve(__dirname, 'pages/about.html'),
+        'update-required': resolve(__dirname, 'pages/update-required.html'),
       },
     },
   },

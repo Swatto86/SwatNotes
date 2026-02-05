@@ -42,7 +42,7 @@ export function initTheme() {
  * Setup the theme switcher UI component
  */
 export function setupThemeSwitcher() {
-  const themeSelect = document.getElementById('theme-select');
+  const themeSelect = document.getElementById('theme-select') as HTMLSelectElement | null;
   if (themeSelect) {
     // Set current theme as selected
     const currentTheme = getStoredTheme();
@@ -50,7 +50,7 @@ export function setupThemeSwitcher() {
 
     // Listen for changes
     themeSelect.addEventListener('change', (e) => {
-      const theme = e.target.value;
+      const theme = (e.target as HTMLSelectElement).value;
       setTheme(theme);
     });
   }

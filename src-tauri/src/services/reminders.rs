@@ -288,7 +288,7 @@ impl RemindersService {
                 match WebviewWindowBuilder::new(
                     &handle_clone,
                     &window_label_clone,
-                    WebviewUrl::App("sticky-note.html".into()),
+                    WebviewUrl::App("pages/sticky-note.html".into()),
                 )
                 .title(&note_title)
                 .inner_size(400.0, 500.0)
