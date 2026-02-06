@@ -156,8 +156,8 @@ graph LR
     C --> D[Connects to dev.db]
     D --> E{Validate SQL}
     E -->|Valid| F[Generate Types]
-    E -->|Invalid| G[❌ Compile Error]
-    F --> H[✅ Binary]
+    E -->|Invalid| G[Compile Error]
+    F --> H[Binary]
 ```
 
 ### Real Example: Creating a Note
