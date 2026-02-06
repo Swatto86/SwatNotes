@@ -1154,4 +1154,4 @@ try {
 
 ---
 
-[← Previous: Chapter 2 - Setting Up](02-setting-up-your-environment.md) | [Next: Chapter 4 - Understanding the Stack →](#)
+[← Previous: Chapter 2 - Setting Up](02-setting-up-your-environment.md) | [Next: Chapter 4 - Understanding the Stack →](04-understanding-the-stack.md)

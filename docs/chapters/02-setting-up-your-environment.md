@@ -723,4 +723,4 @@ npm run test:e2e           # End-to-end tests
 
 ---
 
-[← Previous: Chapter 1 - First Principles](01-first-principles.md) | [Next: Chapter 3 - Hello Tauri →](#)
+[← Previous: Chapter 1 - First Principles](01-first-principles.md) | [Next: Chapter 3 - Hello Tauri →](03-hello-tauri.md)

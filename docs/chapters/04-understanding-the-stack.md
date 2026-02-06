@@ -806,5 +806,5 @@ Try it yourself before checking the codebase!
 
 ---
 
-**Next Chapter:** [Chapter 5: Database Fundamentals](./05-database-fundamentals.md)  
+**Next Chapter:** [Chapter 5: Project Architecture](./05-project-architecture.md)  
 We'll dive deeper into **migrations, indexes, transactions, and the FTS5 full-text search** that powers SwatNotes' instant search.
