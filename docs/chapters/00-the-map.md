@@ -540,7 +540,7 @@ sequenceDiagram
 Errors can happen anywhere. Here's how they propagate:
 
 ```mermaid
-graph TB
+graph TD
     UserAction["User Action"]
     Frontend["Frontend (TypeScript)"]
     Command["Tauri Command"]
@@ -577,7 +577,7 @@ graph TB
 SwatNotes uses **async Rust** with Tokio:
 
 ```mermaid
-graph TB
+graph TD
     subgraph "Main Thread"
         UI["UI (Single-threaded)"]
     end
@@ -666,7 +666,7 @@ graph LR
 How does code become an app?
 
 ```mermaid
-graph TB
+graph TD
     subgraph Development
         TSSrc["TypeScript Source<br/>(src/)"]
         RustSrc["Rust Source<br/>(src-tauri/src/)"]

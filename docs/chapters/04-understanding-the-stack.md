@@ -612,7 +612,7 @@ npm run tauri build
 **Data flow:**
 
 ```mermaid
-graph TB
+graph TD
     A[TypeScript Source] --> B[Vite Build]
     B --> C[dist/assets/*.js]
     

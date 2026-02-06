@@ -33,7 +33,7 @@ SwatNotes uses this three-layer approach: 17 unit test files, integration tests 
 The testing pyramid is a strategy for balancing speed, cost, and coverage:
 
 ```mermaid
-graph TB
+graph TD
     subgraph "Testing Pyramid"
         E2E["E2E Tests<br/>Slow, expensive, few<br/>Full user workflows<br/>6 test files"]
         Integration["Integration Tests<br/>Medium speed/cost<br/>Service coordination<br/>Embedded in service files"]
