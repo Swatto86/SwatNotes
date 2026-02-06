@@ -807,4 +807,4 @@ Try it yourself before checking the codebase!
 ---
 
 **Next Chapter:** [Chapter 5: Project Architecture](./05-project-architecture.md)  
-We'll dive deeper into **migrations, indexes, transactions, and the FTS5 full-text search** that powers SwatNotes' instant search.
+We'll explore how SwatNotes organizes its **modules, AppState, service layer, configuration, and logging** to create a cohesive system.
