@@ -605,4 +605,4 @@ The compiler's error messages are good. Read them carefully. They'll teach you R
 
 ---
 
-[← Previous: Part 0 - The Map](00-the-map.md) | [Next: Chapter 2 - Setting Up →](#)
+[← Previous: Part 0 - The Map](00-the-map.md) | [Next: Chapter 2 - Setting Up →](02-setting-up-your-environment.md)

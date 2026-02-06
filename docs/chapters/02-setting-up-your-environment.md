@@ -24,7 +24,7 @@ By the end, you'll have a working development environment and understand what ea
 - **VS Code** = Your workbench (where you organize everything)
 
 ```mermaid
-graph TB
+graph TD
     subgraph "Your Machine"
         Rust["Rust + Cargo<br/>(Backend Compiler)"]
         Node["Node.js + npm<br/>(Frontend Build Tools)"]
@@ -323,7 +323,7 @@ npm run tauri dev        # Start development server
 Let's map what you installed to what SwatNotes uses:
 
 ```mermaid
-graph TB
+graph TD
     subgraph "Your Tools"
         Rust["Rust 1.70+"]
         Node["Node.js 18+"]
@@ -723,4 +723,4 @@ npm run test:e2e           # End-to-end tests
 
 ---
 
-[← Previous: Chapter 1 - First Principles](01-first-principles.md) | [Next: Chapter 3 - Hello Tauri →](#)
+[← Previous: Chapter 1 - First Principles](01-first-principles.md) | [Next: Chapter 3 - Hello Tauri →](03-hello-tauri.md)
