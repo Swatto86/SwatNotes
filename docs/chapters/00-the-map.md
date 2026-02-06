@@ -28,7 +28,7 @@ All of this runs **locally** on your machine—no servers, no cloud, complete pr
 Here's the entire system in one diagram:
 
 ```mermaid
-graph TB
+graph TD
     subgraph User["👤 User"]
         Browser["Web Interface<br/>(HTML/CSS/JS + DaisyUI)"]
     end
@@ -145,7 +145,7 @@ graph LR
 Let's zoom into the Rust backend's layers:
 
 ```mermaid
-graph TB
+graph TD
     subgraph "Frontend (TypeScript)"
         UI["UI Components<br/>(notesList, noteEditor)"]
         State["App State<br/>(appState.ts)"]
