@@ -1,6 +1,6 @@
 [package]
 name = "swatnotes"
-version = "1.0.6"
+version = "1.0.7"
 description = "A production-grade desktop notes application"
 authors = ["Swatto"]
 edition = "2021"
