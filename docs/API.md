@@ -12,6 +12,7 @@ This document describes all Tauri commands exposed to the frontend. Commands are
 - [Reminder Commands](#reminder-commands)
 - [Settings Commands](#settings-commands)
 - [Auto-Backup Commands](#auto-backup-commands)
+- [Import Commands](#import-commands)
 
 ---
 
@@ -499,6 +500,44 @@ Get the current backup directory path.
 
 ---
 
+## Import Commands
+
+### `import_from_onenote`
+
+Import all notes from Microsoft OneNote. OneNote sections are mapped to SwatNotes collections, and pages become notes within those collections.
+
+**Parameters:** None
+
+**Returns:**
+```typescript
+interface ImportResult {
+  notes_imported: number;        // Total notes imported
+  collections_created: number;   // Total collections created
+  sections_mapped: {             // Section ID to Collection ID mapping
+    [section_id: string]: string;
+  };
+  errors: string[];              // Any errors encountered
+}
+```
+
+**Example:**
+```typescript
+const result = await invoke<ImportResult>('import_from_onenote');
+console.log(`Imported ${result.notes_imported} notes into ${result.collections_created} collections`);
+if (result.errors.length > 0) {
+  console.warn('Import errors:', result.errors);
+}
+```
+
+**Notes:**
+- Requires OneNote to be installed (Windows only)
+- Sections become Collections with matching names
+- Pages are converted to notes with Quill Delta format
+- Import is additive - existing notes are not affected
+- Large imports may take several minutes
+
+---
+
 ## Data Types
 
 ### Note
@@ -551,6 +590,19 @@ interface Reminder {
   trigger_time: string;    // ISO 8601
   triggered: boolean;
   created_at: string;
+}
+```
+
+### ImportResult
+
+```typescript
+interface ImportResult {
+  notes_imported: number;
+  collections_created: number;
+  sections_mapped: {
+    [section_id: string]: string;  // Section ID → Collection ID
+  };
+  errors: string[];                // Import errors
 }
 ```
 

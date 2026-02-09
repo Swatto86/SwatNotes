@@ -14,6 +14,7 @@ A production-grade desktop notes application built with Rust and Tauri v2. SwatN
 - **Fast Search** - Full-text search across all notes with FTS5
 - **Collections** - Organize notes into color-coded collections/folders
 - **Multiple Themes** - 20+ beautiful themes powered by DaisyUI
+- **OneNote Migration** - Import your existing OneNote notebooks seamlessly
 
 ### 📎 Attachments & Media
 - **Paste Images** - Copy/paste images directly from clipboard (`Ctrl+V`)
@@ -24,6 +25,7 @@ A production-grade desktop notes application built with Rust and Tauri v2. SwatN
 - **Encrypted Backups** - AES-256-GCM encryption with Argon2id key derivation
 - **One-Click Restore** - Decrypt and restore with automatic checksum verification
 - **Retention Policy** - Automatically keep last 10 backups (configurable)
+- **OneNote Import** - Import all your notes from Microsoft OneNote (sections → collections)
 
 ### ⏰ Reminders
 - **Time-Based Reminders** - Set reminders for any note with customizable notifications
@@ -110,6 +112,15 @@ Installers are created in `src-tauri/target/release/bundle/`
 5. Restart app
 
 ⚠️ **Warning:** Restoring replaces all current data
+
+### Importing from OneNote
+1. Open Settings (⚙️)
+2. Scroll to "Import from OneNote" section
+3. Click "Import from OneNote"
+4. Wait for import to complete
+5. Notes will appear organized by section
+
+💡 **Note:** OneNote Sections become Collections in SwatNotes
 
 ### Changing Themes
 Click theme dropdown in sidebar and select from 20+ themes
