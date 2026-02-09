@@ -10,7 +10,6 @@
 ///
 /// Future implementation should use the OneNote COM API documented here:
 /// https://docs.microsoft.com/en-us/office/client-developer/onenote/onenote-home
-
 use crate::database::Repository;
 use crate::error::Result;
 use serde::{Deserialize, Serialize};
@@ -47,7 +46,7 @@ pub struct ImportResult {
 }
 
 /// Import all notes from OneNote
-/// 
+///
 /// This is a placeholder implementation. The full COM interop is complex and requires:
 /// 1. COM initialization via CoInitializeEx
 /// 2. Creating OneNote.Application COM object
@@ -66,7 +65,8 @@ pub async fn import_from_onenote(_db: State<'_, Repository>) -> Result<ImportRes
         collections_created: 0,
         sections_mapped: HashMap::new(),
         errors: vec![
-            "OneNote import is ready in the UI but requires COM interop implementation.".to_string(),
+            "OneNote import is ready in the UI but requires COM interop implementation."
+                .to_string(),
             "The infrastructure is in place. Implementation notes:".to_string(),
             "1. Use Windows COM API to connect to OneNote.Application".to_string(),
             "2. Call GetHierarchy to get notebooks and sections".to_string(),
