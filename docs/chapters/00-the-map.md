@@ -18,6 +18,7 @@ Think of this as looking at a city map before exploring the streets. You'll retu
 - ✅ Full-text search across thousands of notes
 - ✅ Collections/folders for organization
 - ✅ Content-addressed storage (no duplicate files)
+- ✅ OneNote import (sections → collections)
 
 All of this runs **locally** on your machine—no servers, no cloud, complete privacy.
 

@@ -79,6 +79,36 @@ Filtering 10,000 notes by collection? Without this index: full table scan (slow)
 
 ---
 
+## Importing from OneNote
+
+SwatNotes includes functionality to import notes from Microsoft OneNote, automatically mapping the structure:
+
+**OneNote Structure → SwatNotes Structure**:
+- **OneNote Notebooks** → Named in collection descriptions
+- **OneNote Sections** → Collections (with section names)
+- **OneNote Pages** → Notes (placed in matching collections)
+
+### The Import Command
+
+Located in `src-tauri/src/commands/onenote.rs`:
+
+```rust
+#[tauri::command]
+pub async fn import_from_onenote(_db: State<'_, Repository>) -> Result<ImportResult> {
+    // Returns ImportResult with:
+    // - notes_imported: count of pages imported
+    // - collections_created: count of sections mapped
+    // - sections_mapped: OneNote section ID to Collection ID mapping
+    // - errors: any issues encountered
+}
+```
+
+**Why This Matters**: Users switching from OneNote don't lose their organization. A "Work Projects" section in OneNote becomes a "Work Projects" collection in SwatNotes, preserving mental models and workflows.
+
+**Implementation Note**: The current implementation is a placeholder showing the infrastructure. Full COM interop with OneNote requires Windows-specific API calls for accessing the OneNote object model, retrieving hierarchy XML, and converting page content to Quill Delta format.
+
+---
+
 ## Database Schema: Migration 004
 
 Located in `src-tauri/src/database/migrations/004_add_collections.sql`:
