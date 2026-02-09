@@ -855,6 +855,73 @@ function setupEventHandlers(): void {
     }
   });
 
+  // Import from OneNote button
+  const importOneNoteBtn = document.getElementById('import-onenote-btn');
+  const importStatus = document.getElementById('import-status');
+  const importStatusText = document.getElementById('import-status-text');
+
+  importOneNoteBtn?.addEventListener('click', async () => {
+    try {
+      // Show loading state
+      importOneNoteBtn.setAttribute('disabled', 'true');
+      importOneNoteBtn.textContent = 'Importing...';
+      if (importStatus) {
+        importStatus.classList.remove('hidden');
+      }
+      if (importStatusText) {
+        importStatusText.textContent = 'Connecting to OneNote...';
+      }
+
+      // Import from OneNote
+      const result = await invoke<{
+        notes_imported: number;
+        collections_created: number;
+        sections_mapped: { [section_id: string]: string };
+        errors: string[];
+      }>('import_from_onenote');
+
+      if (importStatusText) {
+        if (result.errors.length > 0) {
+          importStatusText.textContent = `Import completed with ${result.errors.length} errors. Imported ${result.notes_imported} notes into ${result.collections_created} collections.`;
+          logger.warn('OneNote import completed with errors', LOG_CONTEXT, result.errors);
+        } else {
+          importStatusText.textContent = `Successfully imported ${result.notes_imported} notes into ${result.collections_created} collections!`;
+        }
+      }
+
+      // Show success for a few seconds
+      setTimeout(() => {
+        if (importStatus) {
+          importStatus.classList.add('hidden');
+        }
+      }, 5000);
+
+      logger.info('OneNote import completed', LOG_CONTEXT, result);
+    } catch (error) {
+      logger.error('Failed to import from OneNote', LOG_CONTEXT, error);
+      if (importStatusText) {
+        importStatusText.textContent = `Import failed: ${error}`;
+      }
+      if (importStatus) {
+        const alertDiv = importStatus.querySelector('.alert');
+        if (alertDiv) {
+          alertDiv.classList.remove('alert-info');
+          alertDiv.classList.add('alert-error');
+        }
+      }
+    } finally {
+      importOneNoteBtn.removeAttribute('disabled');
+      importOneNoteBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-15a2 2 0 0 1 2-2h4"></path>
+          <polyline points="17 6 22 11 12 21 8 21 8 17 18 7"></polyline>
+        </svg>
+        Import from OneNote
+      `;
+    }
+  });
+
   // Save hotkeys button
   const saveHotkeysBtn = document.getElementById('save-hotkeys-btn');
   const newNoteInput = document.getElementById('hotkey-new-note-input') as HTMLInputElement;

@@ -322,6 +322,30 @@
         </div>
       </div>
 
+      <!-- Import from OneNote Section -->
+      <div class="settings-section">
+        <h2>Import from OneNote</h2>
+        <div class="settings-row">
+          <p class="text-sm text-base-content/70 mb-3">
+            Import all your notes from Microsoft OneNote. Sections in OneNote will be mapped to Collections in
+            SwatNotes.
+          </p>
+          <button class="btn btn-primary btn-sm w-full" id="import-onenote-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-15a2 2 0 0 1 2-2h4"></path>
+              <polyline points="17 6 22 11 12 21 8 21 8 17 18 7"></polyline>
+            </svg>
+            Import from OneNote
+          </button>
+          <div id="import-status" class="mt-2 hidden">
+            <div class="alert alert-info py-2 text-xs">
+              <span id="import-status-text">Starting import...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Database Maintenance Section -->
       <div class="settings-section">
         <h2>Database Maintenance</h2>

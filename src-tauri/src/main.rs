@@ -100,6 +100,7 @@ fn main() {
             commands::list_notes_in_collection,
             commands::list_uncategorized_notes,
             commands::count_notes_in_collection,
+            commands::import_from_onenote,
             commands::restart_app,
         ])
         .run(tauri::generate_context!())

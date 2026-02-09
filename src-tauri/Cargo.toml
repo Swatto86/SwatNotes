@@ -51,6 +51,9 @@ aes-gcm = "0.10"
 argon2 = "0.5"
 rand = "0.8"
 
+# XML parsing for OneNote import
+quick-xml = "0.36"
+
 # Credential storage (Windows only)
 keyring = { version = "3", features = ["windows-native"] }
 tokio-cron-scheduler = "0.13"
@@ -60,6 +63,9 @@ tokio-cron-scheduler = "0.13"
 windows = { version = "0.58", features = [
     "Win32_Foundation",
     "Win32_System_Registry",
+    "Win32_System_Com",
+    "Win32_System_Ole",
+    "Win32_System_Variant",
 ] }
 
 [dev-dependencies]
