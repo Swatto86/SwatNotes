@@ -731,6 +731,22 @@ impl Repository {
         Ok(collection)
     }
 
+    /// Get a collection by name (case-insensitive)
+    /// Useful for importing data where section/folder names should map to existing collections
+    #[allow(dead_code)]
+    pub async fn get_collection_by_name(&self, name: &str) -> Result<Option<Collection>> {
+        let collection = sqlx::query_as::<_, Collection>(
+            r#"
+            SELECT * FROM collections WHERE LOWER(name) = LOWER(?)
+            "#,
+        )
+        .bind(name)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(collection)
+    }
+
     /// List all collections ordered by sort_order
     pub async fn list_collections(&self) -> Result<Vec<Collection>> {
         let collections = sqlx::query_as::<_, Collection>(
