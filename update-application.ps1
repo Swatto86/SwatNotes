@@ -1,270 +1,488 @@
-# SwatNotes Release Script
-# Usage: .\update-application.ps1 -Version "0.2.0" -Notes "Bug fixes and improvements"
-# Or run without parameters to be prompted for the version and release notes
-#
-# WHAT THIS SCRIPT DOES:
-# 1. Updates version in: Cargo.toml, tauri.conf.json, package.json, config.ts, about.html
-# 2. Commits the version changes
-# 3. Deletes ALL previous git tags and GitHub releases (keeps only the new release)
-# 4. Creates a new annotated git tag with your release notes
-# 5. Pushes to GitHub, triggering the build workflow
-#
-# RELEASE NOTES FLOW:
-# 1. The Notes parameter you provide is stored in an annotated Git tag
-# 2. GitHub Actions extracts the tag annotation and creates a GitHub Release with it
-# 3. When users check for updates, the app fetches the release notes from GitHub API
-# 4. The notes are displayed in the update window under "What's New"
-#
-# REQUIREMENTS:
-# - Git must be installed and configured
-# - GitHub CLI (gh) is recommended for deleting old releases (optional but recommended)
-#
-# NOTE: This works with the public SwatNotes repository - no authentication needed!
+<#
+.SYNOPSIS
+    SwatNotes Release Script - Creates versioned releases with proper Git tagging.
 
+.DESCRIPTION
+    This script automates the release process:
+    1. Validates semantic version format (x.y.z)
+    2. Updates version in Cargo.toml, tauri.conf.json, package.json, config.ts, about.html
+    3. Commits the version bump
+    4. Creates an annotated Git tag with release notes
+    5. Pushes commits and tag to origin
+
+    The release notes flow: PowerShell -> Git tag annotation -> GitHub Release body -> Update UI
+
+.PARAMETER Version
+    The new version number in semantic version format (e.g., 1.2.3)
+
+.PARAMETER Notes
+    Release notes/changelog for this version. Can be multi-line.
+
+.PARAMETER Force
+    If specified, allows overwriting an existing version/tag. Will delete the existing tag
+    locally and remotely before creating the new one.
+
+.EXAMPLE
+    .\update-application.ps1 -Version "1.2.0" -Notes "Added dark mode support"
+
+.EXAMPLE
+    .\update-application.ps1 -Version "1.2.0" -Notes "Fixed bug" -Force
+    # Overwrites existing v1.2.0 release
+
+.EXAMPLE
+    .\update-application.ps1
+    # Interactive mode - prompts for version and notes
+#>
+
+[CmdletBinding()]
 param(
+    [Parameter(Mandatory = $false)]
     [string]$Version,
-    [string]$Notes
+
+    [Parameter(Mandatory = $false)]
+    [string]$Notes,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Force
 )
 
 $ErrorActionPreference = "Stop"
 
-# Colors for output
-function Write-Success { param($msg) Write-Host $msg -ForegroundColor Green }
-function Write-Info { param($msg) Write-Host $msg -ForegroundColor Cyan }
-function Write-Warn { param($msg) Write-Host $msg -ForegroundColor Yellow }
+# Configuration
+$CargoTomlPath = Join-Path $PSScriptRoot "src-tauri\Cargo.toml"
+$TauriConfPath = Join-Path $PSScriptRoot "src-tauri\tauri.conf.json"
+$PackageJsonPath = Join-Path $PSScriptRoot "package.json"
+$ConfigTsPath = Join-Path $PSScriptRoot "src\config.ts"
+$AboutHtmlPath = Join-Path $PSScriptRoot "pages\about.html"
 
-# Change to project root directory (script is at root level)
-$projectRoot = $PSScriptRoot
-Set-Location $projectRoot
-Write-Host "Working directory: $projectRoot" -ForegroundColor Gray
+# ============================================================================
+# Helper Functions
+# ============================================================================
 
-Write-Host ""
-Write-Host "========================================" -ForegroundColor Magenta
-Write-Host "   SwatNotes Release Script" -ForegroundColor Magenta
-Write-Host "========================================" -ForegroundColor Magenta
-Write-Host ""
-
-# Read current version from tauri.conf.json
-$currentTauriConf = Get-Content "src-tauri\tauri.conf.json" -Raw | ConvertFrom-Json
-$currentVersion = $currentTauriConf.version
-Write-Info "Current version: v$currentVersion"
-Write-Host ""
-
-# Get version if not provided
-if (-not $Version) {
-    $Version = Read-Host "Enter the new version (e.g., $currentVersion)"
+function Write-ColorOutput {
+    param(
+        [string]$Message,
+        [string]$Color = "White"
+    )
+    Write-Host $Message -ForegroundColor $Color
 }
 
-# Validate version format
-if ($Version -notmatch '^\d+\.\d+\.\d+$') {
-    Write-Error "Invalid version format. Please use semantic versioning (e.g., 0.2.0)"
-    exit 1
+function Write-Step {
+    param([string]$Message)
+    Write-ColorOutput "`n=> $Message" "Cyan"
 }
 
-Write-Info "Releasing version: v$Version"
-Write-Host ""
+function Write-SuccessMsg {
+    param([string]$Message)
+    Write-ColorOutput "[OK] $Message" "Green"
+}
 
-# Get release notes if not provided
-if (-not $Notes) {
-    Write-Host "Enter release notes (what's new in this version)." -ForegroundColor Cyan
-    Write-Host "These notes will be shown to users when the update window appears." -ForegroundColor Yellow
-    Write-Host "You can enter multiple lines. Type 'END' on a new line when done:" -ForegroundColor Gray
-    Write-Host ""
+function Write-WarningMsg {
+    param([string]$Message)
+    Write-ColorOutput "[!] $Message" "Yellow"
+}
 
-    $noteLines = @()
-    while ($true) {
-        $line = Read-Host
-        if ($line -eq 'END') {
-            break
-        }
-        $noteLines += $line
+function Write-ErrorMsg {
+    param([string]$Message)
+    Write-ColorOutput "[X] $Message" "Red"
+}
+
+function Test-SemanticVersion {
+    param([string]$Ver)
+    return $Ver -match '^\d+\.\d+\.\d+$'
+}
+
+function Get-CurrentVersion {
+    if (-not (Test-Path $CargoTomlPath)) {
+        throw "Cargo.toml not found at: $CargoTomlPath"
     }
-    $Notes = $noteLines -join "`n"
+
+    $content = Get-Content $CargoTomlPath -Raw
+    if ($content -match 'version\s*=\s*"(\d+\.\d+\.\d+)"') {
+        return $matches[1]
+    }
+    throw "Could not parse version from Cargo.toml"
 }
 
-if (-not $Notes -or $Notes.Trim() -eq '') {
-    $Notes = "Release v$Version"
+function Compare-Versions {
+    param(
+        [string]$New,
+        [string]$Current
+    )
+
+    $newParts = $New -split '\.' | ForEach-Object { [int]$_ }
+    $currentParts = $Current -split '\.' | ForEach-Object { [int]$_ }
+
+    for ($i = 0; $i -lt 3; $i++) {
+        if ($newParts[$i] -gt $currentParts[$i]) { return 1 }
+        if ($newParts[$i] -lt $currentParts[$i]) { return -1 }
+    }
+    return 0
 }
 
-Write-Host ""
-Write-Info "Release notes:"
-Write-Host "---"
-Write-Host $Notes
-Write-Host "---"
-Write-Host ""
+# ============================================================================
+# File Update Functions
+# ============================================================================
 
-$confirm = Read-Host "Proceed with these release notes? (Y/n)"
-if ($confirm -eq 'n' -or $confirm -eq 'N') {
-    Write-Host "Aborted." -ForegroundColor Red
+function Update-CargoToml {
+    param([string]$NewVersion)
+
+    $content = Get-Content $CargoTomlPath -Raw
+    $pattern = '(version\s*=\s*")(\d+\.\d+\.\d+)(")'
+    $replacement = "`${1}$NewVersion`${3}"
+    $updated = $content -replace $pattern, $replacement
+    Set-Content -Path $CargoTomlPath -Value $updated -NoNewline
+}
+
+function Update-TauriConf {
+    param([string]$NewVersion)
+
+    $json = Get-Content $TauriConfPath -Raw | ConvertFrom-Json
+    $json.version = $NewVersion
+    $jsonString = $json | ConvertTo-Json -Depth 10
+    Set-Content -Path $TauriConfPath -Value $jsonString -NoNewline
+}
+
+function Update-PackageJson {
+    param([string]$NewVersion)
+
+    $json = Get-Content $PackageJsonPath -Raw | ConvertFrom-Json
+    $json.version = $NewVersion
+    $jsonString = $json | ConvertTo-Json -Depth 10
+    Set-Content -Path $PackageJsonPath -Value $jsonString -NoNewline
+}
+
+function Update-ConfigTs {
+    param([string]$NewVersion)
+
+    $content = Get-Content $ConfigTsPath -Raw
+    $updated = $content -replace "APP_VERSION = '[^']+'", "APP_VERSION = '$NewVersion'"
+    Set-Content -Path $ConfigTsPath -Value $updated -NoNewline
+}
+
+function Update-AboutHtml {
+    param([string]$NewVersion)
+
+    $content = Get-Content $AboutHtmlPath -Raw
+    $updated = $content -replace 'Version \d+\.\d+\.\d+', "Version $NewVersion"
+    Set-Content -Path $AboutHtmlPath -Value $updated -NoNewline
+}
+
+# ============================================================================
+# Git Functions
+# ============================================================================
+
+function Test-GitClean {
+    $status = git status --porcelain 2>$null
+    return [string]::IsNullOrWhiteSpace($status)
+}
+
+function Test-GitTagExists {
+    param([string]$Tag)
+    $exists = git tag -l $Tag 2>$null
+    return -not [string]::IsNullOrWhiteSpace($exists)
+}
+
+function Remove-OldTagsAndReleases {
+    param([string]$NewTag)
+
+    Write-Step "Cleaning up old tags and releases"
+
+    # Get all local tags
+    $allTags = git tag -l 2>$null | Where-Object { $_ -match '^v\d+\.\d+\.\d+$' }
+
+    if ($allTags.Count -eq 0) {
+        Write-ColorOutput "  No existing version tags found" "Gray"
+        return
+    }
+
+    $tagsToDelete = $allTags | Where-Object { $_ -ne $NewTag }
+
+    if ($tagsToDelete.Count -eq 0) {
+        Write-ColorOutput "  No old tags to remove" "Gray"
+        return
+    }
+
+    Write-ColorOutput "  Found $($tagsToDelete.Count) old tag(s) to remove" "White"
+
+    foreach ($tag in $tagsToDelete) {
+        Write-ColorOutput "  Removing tag: $tag" "Gray"
+
+        # Delete GitHub release first (if gh CLI is available)
+        $ghAvailable = Get-Command gh -ErrorAction SilentlyContinue
+        if ($ghAvailable) {
+            $null = gh release view $tag 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                Write-ColorOutput "    Deleting GitHub release for $tag..." "Gray"
+                gh release delete $tag --yes 2>$null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-ColorOutput "    Deleted GitHub release: $tag" "Green"
+                }
+                else {
+                    Write-WarningMsg "    Failed to delete GitHub release: $tag (may not exist)"
+                }
+            }
+        }
+        else {
+            Write-WarningMsg "    GitHub CLI (gh) not found - skipping release deletion for $tag"
+            Write-ColorOutput "    Install gh: https://cli.github.com/" "Gray"
+        }
+
+        # Delete remote tag
+        git push origin --delete $tag 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            Write-ColorOutput "    Deleted remote tag: $tag" "Green"
+        }
+        else {
+            Write-ColorOutput "    Remote tag $tag may not exist or already deleted" "Gray"
+        }
+
+        # Delete local tag
+        git tag -d $tag 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            Write-ColorOutput "    Deleted local tag: $tag" "Green"
+        }
+    }
+
+    Write-SuccessMsg "Cleaned up $($tagsToDelete.Count) old tag(s) and their releases"
+}
+
+# ============================================================================
+# Main Script
+# ============================================================================
+
+Write-ColorOutput "`n============================================================" "Cyan"
+Write-ColorOutput "           SwatNotes Release Script                         " "Cyan"
+Write-ColorOutput "============================================================" "Cyan"
+
+# Get and display current version prominently
+try {
+    $currentVersion = Get-CurrentVersion
+}
+catch {
+    Write-ErrorMsg "Failed to read current version: $_"
     exit 1
 }
+
+Write-Host ""
+Write-ColorOutput "  Current version:  v$currentVersion" "Green"
 Write-Host ""
 
-# Check for uncommitted changes
-$gitStatus = git status --porcelain
-if ($gitStatus) {
-    Write-Warn "Warning: You have uncommitted changes:"
-    Write-Host $gitStatus
-    $confirm = Read-Host "Do you want to continue anyway? (Y/n)"
-    if ($confirm -ne 'y' -and $confirm -ne 'Y') {
-        Write-Host "Aborted." -ForegroundColor Red
+# --- Step 1: Version ---
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    $Version = Read-Host "  New version"
+    if ([string]::IsNullOrWhiteSpace($Version)) {
+        Write-ErrorMsg "Version cannot be empty"
         exit 1
     }
 }
 
-# File paths
-$cargoToml = "src-tauri\Cargo.toml"
-$tauriConf = "src-tauri\tauri.conf.json"
-$packageJson = "package.json"
-$configTs = "src\config.ts"
-$aboutHtml = "pages\about.html"
-
-# Check files exist
-if (-not (Test-Path $cargoToml)) {
-    Write-Error "File not found: $cargoToml"
-    exit 1
-}
-if (-not (Test-Path $tauriConf)) {
-    Write-Error "File not found: $tauriConf"
-    exit 1
-}
-if (-not (Test-Path $packageJson)) {
-    Write-Error "File not found: $packageJson"
-    exit 1
-}
-if (-not (Test-Path $configTs)) {
-    Write-Error "File not found: $configTs"
-    exit 1
-}
-if (-not (Test-Path $aboutHtml)) {
-    Write-Error "File not found: $aboutHtml"
+# Validate version format
+if (-not (Test-SemanticVersion $Version)) {
+    Write-ErrorMsg "Invalid version format. Must be semantic version (e.g., 1.2.3)"
     exit 1
 }
 
-# Update Cargo.toml
-Write-Info "Updating $cargoToml..."
-$cargoContent = Get-Content $cargoToml -Raw
-$cargoContent = $cargoContent -replace '(?m)^version = "[^"]+"', "version = `"$Version`""
-Set-Content $cargoToml $cargoContent -NoNewline
-Write-Success "  Updated Cargo.toml"
+# Check version is newer
+$comparison = Compare-Versions -New $Version -Current $currentVersion
+if ($comparison -eq 0 -and -not $Force) {
+    Write-ErrorMsg "Version $Version is the same as current version. Use -Force to overwrite."
+    exit 1
+}
+if ($comparison -lt 0 -and -not $Force) {
+    Write-WarningMsg "Version $Version is older than current version ($currentVersion)"
+    $confirm = Read-Host "  Continue anyway? (y/N)"
+    if ($confirm -ne 'y' -and $confirm -ne 'Y') {
+        Write-ColorOutput "Release cancelled" "Yellow"
+        exit 0
+    }
+}
 
-# Update tauri.conf.json
-Write-Info "Updating $tauriConf..."
-$tauriContent = Get-Content $tauriConf -Raw
-$tauriJson = $tauriContent | ConvertFrom-Json
-$tauriJson.version = $Version
-$tauriContent = $tauriJson | ConvertTo-Json -Depth 10
-Set-Content $tauriConf $tauriContent
-Write-Success "  Updated tauri.conf.json"
+# Check if tag already exists
+$tagName = "v$Version"
+if (Test-GitTagExists $tagName) {
+    if ($Force) {
+        Write-WarningMsg "Tag $tagName exists. Deleting it (Force mode)..."
 
-# Update package.json
-Write-Info "Updating $packageJson..."
-$packageContent = Get-Content $packageJson -Raw
-$packageJson_obj = $packageContent | ConvertFrom-Json
-$packageJson_obj.version = $Version
-$packageContent = $packageJson_obj | ConvertTo-Json -Depth 10
-Set-Content $packageJson $packageContent
-Write-Success "  Updated package.json"
+        # Delete local tag
+        git tag -d $tagName 2>$null
 
-# Update src/config.ts
-Write-Info "Updating $configTs..."
-$configContent = Get-Content $configTs -Raw
-$configContent = $configContent -replace "APP_VERSION = '[^']+'", "APP_VERSION = '$Version'"
-Set-Content $configTs $configContent -NoNewline
-Write-Success "  Updated src/config.ts"
+        # Delete remote tag
+        git push origin --delete $tagName 2>$null
 
-# Update pages/about.html
-Write-Info "Updating $aboutHtml..."
-$aboutContent = Get-Content $aboutHtml -Raw
-$aboutContent = $aboutContent -replace 'Version \d+\.\d+\.\d+', "Version $Version"
-Set-Content $aboutHtml $aboutContent -NoNewline
-Write-Success "  Updated pages/about.html"
+        Write-SuccessMsg "Deleted existing tag $tagName"
+    }
+    else {
+        Write-ErrorMsg "Tag $tagName already exists. Use -Force to overwrite, or choose a different version."
+        exit 1
+    }
+}
 
-# Stage and commit version changes
-Write-Info "Committing version changes..."
-git add $cargoToml $tauriConf $packageJson $configTs $aboutHtml
-git commit -m "chore: bump version to $Version"
-Write-Success "  Committed version bump"
-
-# Delete all previous tags and releases
-Write-Info "Cleaning up previous releases and tags..."
-
-# Get all existing tags
-$existingTags = git tag -l "v*"
-if ($existingTags) {
-    Write-Info "  Found existing tags: $($existingTags -join ', ')"
-    
-    # Check if GitHub CLI is available for deleting releases
-    $ghAvailable = $null -ne (Get-Command gh -ErrorAction SilentlyContinue)
-    
-    if ($ghAvailable) {
-        # Delete GitHub releases first (before deleting tags)
-        Write-Info "  Deleting GitHub releases..."
-        $ErrorActionPreference = "Continue"
-        foreach ($tag in $existingTags) {
-            $tag = $tag.Trim()
-            if ($tag) {
-                # Try to delete the release (may not exist)
-                gh release delete $tag --yes 2>&1 | Out-Null
+# --- Step 2: Release notes ---
+if ([string]::IsNullOrWhiteSpace($Notes)) {
+    Write-Host ""
+    Write-ColorOutput "  Release notes (one item per line, empty line to finish):" "White"
+    $noteLines = @()
+    $lineNum = 1
+    while ($true) {
+        $line = Read-Host "    $lineNum"
+        if ([string]::IsNullOrWhiteSpace($line)) {
+            if ($noteLines.Count -eq 0) {
+                Write-WarningMsg "  Release notes cannot be empty. Enter at least one line."
+                continue
             }
+            break
         }
-        $ErrorActionPreference = "Stop"
-        Write-Success "  Deleted GitHub releases"
-    } else {
-        Write-Warn "  GitHub CLI (gh) not found - skipping release deletion"
-        Write-Warn "  You may need to manually delete old releases from GitHub"
+        $noteLines += $line
+        $lineNum++
     }
-    
-    # Delete local tags
-    Write-Info "  Deleting local tags..."
-    foreach ($tag in $existingTags) {
-        $tag = $tag.Trim()
-        if ($tag) {
-            git tag -d $tag 2>&1 | Out-Null
-        }
-    }
-    Write-Success "  Deleted local tags"
-    
-    # Delete remote tags
-    Write-Info "  Deleting remote tags..."
-    $ErrorActionPreference = "Continue"
-    foreach ($tag in $existingTags) {
-        $tag = $tag.Trim()
-        if ($tag) {
-            git push origin --delete $tag 2>&1 | Out-Null
-        }
-    }
-    $ErrorActionPreference = "Stop"
-    Write-Success "  Deleted remote tags"
-} else {
-    Write-Info "  No existing tags found"
+    $Notes = $noteLines -join "`n"
 }
 
-# Create git tag with release notes (annotated tag)
-Write-Info "Creating git tag v$Version with release notes..."
+# Show summary and confirm
+Write-ColorOutput "`n============================================================" "Yellow"
+Write-ColorOutput "                    Release Summary                         " "Yellow"
+Write-ColorOutput "============================================================" "Yellow"
+Write-ColorOutput "  Version:  $currentVersion -> $Version" "White"
+Write-ColorOutput "  Tag:      $tagName" "White"
+Write-ColorOutput "  Notes:" "White"
+$Notes -split "`n" | ForEach-Object { Write-ColorOutput "            $_" "Gray" }
+Write-Host ""
 
-# Create annotated tag with release notes
-# Write notes to temp file to handle multi-line messages properly
+$confirm = Read-Host "Proceed with release? (y/N)"
+if ($confirm -ne 'y' -and $confirm -ne 'Y') {
+    Write-ColorOutput "Release cancelled" "Yellow"
+    exit 0
+}
+
+# Check for uncommitted changes
+Write-Step "Checking Git status"
+if (-not (Test-GitClean)) {
+    Write-WarningMsg "You have uncommitted changes. They will be included in the version bump commit."
+    $confirm = Read-Host "Continue? (y/N)"
+    if ($confirm -ne 'y' -and $confirm -ne 'Y') {
+        exit 0
+    }
+}
+
+# Remove old tags and releases before creating the new one
+Remove-OldTagsAndReleases -NewTag $tagName
+
+# Update version files
+Write-Step "Updating Cargo.toml"
+try {
+    Update-CargoToml -NewVersion $Version
+    Write-SuccessMsg "Updated Cargo.toml to version $Version"
+}
+catch {
+    Write-ErrorMsg "Failed to update Cargo.toml: $_"
+    exit 1
+}
+
+Write-Step "Updating tauri.conf.json"
+try {
+    Update-TauriConf -NewVersion $Version
+    Write-SuccessMsg "Updated tauri.conf.json to version $Version"
+}
+catch {
+    Write-ErrorMsg "Failed to update tauri.conf.json: $_"
+    git checkout -- $CargoTomlPath 2>$null
+    exit 1
+}
+
+Write-Step "Updating package.json"
+try {
+    Update-PackageJson -NewVersion $Version
+    Write-SuccessMsg "Updated package.json to version $Version"
+}
+catch {
+    Write-ErrorMsg "Failed to update package.json: $_"
+    git checkout -- $CargoTomlPath $TauriConfPath 2>$null
+    exit 1
+}
+
+Write-Step "Updating config.ts"
+try {
+    Update-ConfigTs -NewVersion $Version
+    Write-SuccessMsg "Updated config.ts to version $Version"
+}
+catch {
+    Write-ErrorMsg "Failed to update config.ts: $_"
+    git checkout -- $CargoTomlPath $TauriConfPath $PackageJsonPath 2>$null
+    exit 1
+}
+
+Write-Step "Updating about.html"
+try {
+    Update-AboutHtml -NewVersion $Version
+    Write-SuccessMsg "Updated about.html to version $Version"
+}
+catch {
+    Write-ErrorMsg "Failed to update about.html: $_"
+    git checkout -- $CargoTomlPath $TauriConfPath $PackageJsonPath $ConfigTsPath 2>$null
+    exit 1
+}
+
+# Git operations
+Write-Step "Staging version changes"
+git add $CargoTomlPath $TauriConfPath $PackageJsonPath $ConfigTsPath $AboutHtmlPath
+if ($LASTEXITCODE -ne 0) {
+    Write-ErrorMsg "Failed to stage changes"
+    exit 1
+}
+
+Write-Step "Committing version bump"
+$commitMessage = "chore: bump version to $Version"
+if ($Force) {
+    git commit --allow-empty -m $commitMessage
+}
+else {
+    git commit -m $commitMessage
+}
+if ($LASTEXITCODE -ne 0) {
+    Write-ErrorMsg "Failed to commit changes"
+    exit 1
+}
+Write-SuccessMsg "Created commit: $commitMessage"
+
+Write-Step "Creating annotated tag $tagName"
 $tempFile = [System.IO.Path]::GetTempFileName()
 Set-Content $tempFile $Notes -NoNewline
-git tag -a "v$Version" -F $tempFile
+git tag -a $tagName -F $tempFile
 Remove-Item $tempFile
-Write-Success "  Created annotated tag v$Version"
+if ($LASTEXITCODE -ne 0) {
+    Write-ErrorMsg "Failed to create tag"
+    git reset --soft HEAD~1
+    exit 1
+}
+Write-SuccessMsg "Created tag $tagName with release notes"
 
-# Push changes and tag
-Write-Info "Pushing to origin..."
-# Temporarily disable error action to handle git's stderr output
-$ErrorActionPreference = "Continue"
-git push origin HEAD 2>&1 | Out-Null
-git push origin "v$Version" 2>&1 | Out-Null
-$ErrorActionPreference = "Stop"
-Write-Success "  Pushed commits and tag"
+Write-Step "Pushing commits to origin"
+git push origin
+if ($LASTEXITCODE -ne 0) {
+    Write-ErrorMsg "Failed to push commits"
+    Write-WarningMsg "You may need to push manually: git push origin"
+}
+else {
+    Write-SuccessMsg "Pushed commits to origin"
+}
 
-Write-Host ""
-Write-Host "========================================" -ForegroundColor Green
-Write-Success "Release v$Version created successfully!"
-Write-Host "========================================" -ForegroundColor Green
-Write-Host ""
-Write-Info "GitHub Actions will now build and publish the release."
-Write-Info "Check progress at: https://github.com/Swatto86/SwatNotes/actions"
+Write-Step "Pushing tag to origin"
+git push origin $tagName
+if ($LASTEXITCODE -ne 0) {
+    Write-ErrorMsg "Failed to push tag"
+    Write-WarningMsg "You may need to push manually: git push origin $tagName"
+}
+else {
+    Write-SuccessMsg "Pushed tag $tagName to origin"
+}
+
+# Final summary
+Write-ColorOutput "`n============================================================" "Green"
+Write-ColorOutput "                   Release Complete!                        " "Green"
+Write-ColorOutput "============================================================" "Green"
+Write-ColorOutput "`n  Version $Version has been released." "White"
+Write-ColorOutput "  GitHub Actions will now build and publish the release." "White"
+Write-ColorOutput "`n  Monitor the build at:" "White"
+Write-ColorOutput "  https://github.com/Swatto86/SwatNotes/actions" "Cyan"
 Write-Host ""
