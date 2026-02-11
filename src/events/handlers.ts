@@ -126,24 +126,29 @@ function escapeRegex(str: string): string {
 // Helper functions (escapeHtml, extractTextPreview, formatRelativeDate) are imported from '../utils/formatters'
 
 /**
- * Render filtered search results
+ * Render filtered search results as grid cards (matches center panel layout)
  * @param notes - Array of note objects
  * @param query - Search query for highlighting
  */
 function renderFilteredNotes(notes: Note[], query: string = ''): void {
   const container = document.getElementById('notes-list');
+  const titleEl = document.getElementById('notes-view-title');
+  const countEl = document.getElementById('notes-list-count');
+
   if (!container) return;
+
+  if (titleEl) titleEl.textContent = query ? `Search: "${query}"` : 'All Notes';
+  if (countEl) countEl.textContent = `${notes.length} result${notes.length !== 1 ? 's' : ''}`;
 
   if (notes.length === 0) {
     container.innerHTML = `
-      <div class="text-center text-base-content/50 py-8">
+      <div class="text-center text-base-content/50 py-8 col-span-full">
         No notes found
       </div>
     `;
     return;
   }
 
-  // Render each note card with highlighting
   container.innerHTML = notes.map(note => {
     const preview = extractTextPreview(note.content_json);
     const date = formatRelativeDate(note.updated_at);
@@ -151,24 +156,15 @@ function renderFilteredNotes(notes: Note[], query: string = ''): void {
     const highlightedPreview = highlightText(preview, query);
 
     return `
-      <div id="note-${note.id}" class="note-card card bg-base-100 hover:bg-base-200 cursor-pointer p-4 mb-2 border border-base-300">
-        <div class="flex justify-between items-start">
-          <div class="flex-1 min-w-0">
-            <h3 class="font-bold text-lg truncate">${highlightedTitle}</h3>
-            <p class="text-sm text-base-content/70 line-clamp-2 mt-1">${highlightedPreview}</p>
-            <p class="text-xs text-base-content/50 mt-2">${date}</p>
-          </div>
-          <div class="flex gap-1">
-            <button id="popout-${note.id}" class="popout-note-btn btn btn-ghost btn-sm btn-circle"
-                    title="Open in sticky note window">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div id="note-${note.id}" class="note-grid-card relative card bg-base-100 border border-base-300 hover:shadow-lg hover:border-base-content/20 cursor-pointer transition-all duration-200 overflow-hidden group" data-note-id="${note.id}">
+        <div class="card-body p-4">
+          <h3 class="card-title text-sm font-semibold line-clamp-1">${highlightedTitle}</h3>
+          <p class="text-xs text-base-content/60 line-clamp-3 leading-relaxed">${highlightedPreview}</p>
+          <div class="flex items-center justify-between mt-auto pt-2">
+            <span class="text-xs text-base-content/40">${date}</span>
+            <button class="popout-btn btn btn-ghost btn-xs btn-circle opacity-0 group-hover:opacity-70 transition-opacity" data-note-id="${note.id}" title="Open in floating window">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </button>
-            <button id="delete-${note.id}" class="delete-note-btn btn btn-ghost btn-sm btn-circle"
-                    title="Delete note">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
             </button>
           </div>
@@ -177,9 +173,22 @@ function renderFilteredNotes(notes: Note[], query: string = ''): void {
     `;
   }).join('');
 
-  // Attach event listeners
+  // Attach event listeners - clicking card opens note via emit
   notes.forEach(note => {
-    const popoutBtn = document.getElementById(`popout-${note.id}`);
+    const card = document.querySelector(`.note-grid-card[data-note-id="${note.id}"]`);
+    if (card) {
+      card.addEventListener('click', async (e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest('.popout-btn')) return;
+        try {
+          await invoke('open_note_window', { noteId: note.id });
+        } catch (error) {
+          logger.error('Failed to open note', LOG_CONTEXT, error);
+        }
+      });
+    }
+
+    const popoutBtn = card?.querySelector('.popout-btn');
     if (popoutBtn) {
       popoutBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
@@ -188,32 +197,6 @@ function renderFilteredNotes(notes: Note[], query: string = ''): void {
         } catch (error) {
           logger.error('Failed to open sticky note', LOG_CONTEXT, error);
           showAlert('Failed to open sticky note: ' + error, { title: 'Error', type: 'error' });
-        }
-      });
-    }
-
-    const deleteBtn = document.getElementById(`delete-${note.id}`);
-    if (deleteBtn) {
-      deleteBtn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        try {
-          await invoke('delete_note', { id: note.id });
-
-          // Clear selection if deleted note was selected
-          if (appState.selectedNoteId === note.id) {
-            appState.closeNote();
-          }
-
-          // Re-run the search to update results
-          const searchInput = document.getElementById('search-input') as HTMLInputElement;
-          if (searchInput && searchInput.value.trim()) {
-            await handleSearch(searchInput.value);
-          } else {
-            await requestNotesListRefresh();
-          }
-        } catch (error) {
-          logger.error('Failed to delete note', LOG_CONTEXT, error);
-          showAlert('Failed to delete note', { title: 'Error', type: 'error' });
         }
       });
     }

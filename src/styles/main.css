@@ -160,3 +160,32 @@ body {
   @apply shadow-lg rounded;
   z-index: 100;
 }
+
+/* Notes grid cards */
+.note-grid-card {
+  min-height: 140px;
+}
+
+.note-grid-card .card-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.note-grid-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Collection items */
+.collection-item {
+  @apply transition-all duration-150;
+}
+
+/* Sidebar scrollbar refinement */
+aside::-webkit-scrollbar {
+  width: 4px;
+}
+
+/* Color picker modal */
+.color-pick-btn:hover {
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.2);
+}

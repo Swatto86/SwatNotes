@@ -7,17 +7,19 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen, emit } from '@tauri-apps/api/event';
 import { initTheme, setupThemeSwitcher } from './ui/theme';
 import { setupEventHandlers, setupReminderListener } from './events/handlers';
-import { renderNotesList } from './components/notesList';
 import { createNoteEditor } from './components/noteEditor';
-import { deleteNote } from './utils/notesApi';
+import { deleteNote, createNote } from './utils/notesApi';
 import { showAlert, showPrompt } from './utils/modal';
 import { appState } from './state/appState';
 import { logger } from './utils/logger';
+import { escapeHtml, extractTextPreview, formatRelativeDate } from './utils/formatters';
+import { DEFAULT_NOTE_TITLE, DEFAULT_NOTE_CONTENT } from './config';
 import type { AppInfo, Note, Collection } from './types';
 import {
   listCollections,
   createCollection,
   deleteCollection,
+  updateCollection,
   listNotesInCollection,
   listUncategorizedNotes,
   COLLECTION_COLORS,
@@ -28,6 +30,8 @@ const LOG_CONTEXT = 'Main';
 // Current collection filter state
 let currentFilter: 'all' | 'uncategorized' | string = 'all';
 let collectionsExpanded = true;
+// Track which collection is being color-picked
+let colorPickCollectionId: string | null = null;
 
 /**
  * Get application information from backend
@@ -100,82 +104,181 @@ async function cleanupEmptyNotes(): Promise<void> {
 }
 
 /**
- * Show the welcome screen
+ * Show the notes grid view (main browsing view)
  */
-function showWelcomeScreen(): void {
+function showNotesListView(): void {
   const container = document.getElementById('editor-container');
-  const welcomeScreen = document.getElementById('welcome-screen');
+  if (!container) return;
 
-  if (container && !welcomeScreen) {
-    // Re-create welcome screen if it was removed
+  // Clear state
+  appState.closeNote();
+
+  container.innerHTML = `
+    <div id="notes-list-view" class="p-6">
+      <div id="notes-list-header" class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold text-base-content" id="notes-view-title">All Notes</h2>
+        <span id="notes-list-count" class="text-sm text-base-content/50"></span>
+      </div>
+      <div id="notes-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+        <div class="text-center text-base-content/50 py-8 col-span-full">Loading...</div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Get the current filter display name
+ */
+async function getFilterDisplayName(): Promise<string> {
+  if (currentFilter === 'all') return 'All Notes';
+  if (currentFilter === 'uncategorized') return 'Uncategorized';
+  try {
+    const collections = await listCollections();
+    const coll = collections.find(c => c.id === currentFilter);
+    return coll ? coll.name : 'Notes';
+  } catch {
+    return 'Notes';
+  }
+}
+
+/**
+ * Render notes as cards in the center panel
+ */
+async function renderNotesGrid(notes: Note[]): Promise<void> {
+  const container = document.getElementById('notes-list');
+  const countEl = document.getElementById('notes-list-count');
+  const titleEl = document.getElementById('notes-view-title');
+
+  if (!container) return;
+
+  // Update header
+  const filterName = await getFilterDisplayName();
+  if (titleEl) titleEl.textContent = filterName;
+  if (countEl) countEl.textContent = `${notes.length} note${notes.length !== 1 ? 's' : ''}`;
+
+  // Get collections for colors
+  let collections: Collection[] = [];
+  try {
+    collections = await listCollections();
+  } catch { /* ignore */ }
+
+  if (notes.length === 0) {
     container.innerHTML = `
-      <div class="max-w-4xl mx-auto" id="welcome-screen">
-        <div class="alert alert-info shadow-lg mb-6">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current flex-shrink-0 w-6 h-6">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <div>
-            <h3 class="font-bold">Welcome to SwatNotes!</h3>
-            <div class="text-xs">Click "New Note" to get started. Try switching themes to see DaisyUI in action.</div>
-          </div>
-        </div>
+      <div class="text-center text-base-content/40 py-16 col-span-full">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <p class="font-medium">No notes here</p>
+        <p class="text-sm mt-1">Click <strong>New Note</strong> to create one</p>
+      </div>
+    `;
+    return;
+  }
 
-        <div class="card bg-base-100 shadow-xl">
-          <div class="card-body">
-            <h2 class="card-title text-2xl">Getting Started</h2>
-            <p class="text-base-content/70">
-              SwatNotes is a production-grade desktop notes application built with Rust and Tauri.
-              It features rich text editing, image support, automatic backups, and more.
-            </p>
-            <div class="divider"></div>
-            <h3 class="font-bold text-lg">Features</h3>
-            <ul class="list-disc list-inside space-y-2 text-base-content/80">
-              <li>Rich text editing with images and attachments</li>
-              <li>Automatic backups and restore</li>
-              <li>Reminders with notifications</li>
-              <li>System tray integration</li>
-              <li>Global hotkeys</li>
-              <li>Beautiful themes powered by DaisyUI</li>
-            </ul>
+  container.innerHTML = notes.map(note => {
+    const preview = extractTextPreview(note.content_json);
+    const date = formatRelativeDate(note.updated_at);
+    const collection = collections.find(c => c.id === note.collection_id);
+    const color = collection?.color || null;
+    const collName = collection?.name || null;
+
+    const colorBar = color
+      ? `<div class="absolute top-0 left-0 right-0 h-1 rounded-t-lg" style="background-color: ${color}"></div>`
+      : '';
+
+    const collBadge = collName && color
+      ? `<div class="flex items-center gap-1 mt-2">
+           <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: ${color}"></span>
+           <span class="text-xs text-base-content/50 truncate">${escapeHtml(collName)}</span>
+         </div>`
+      : '';
+
+    return `
+      <div class="note-grid-card relative card bg-base-100 border border-base-300 hover:shadow-lg hover:border-base-content/20 cursor-pointer transition-all duration-200 overflow-hidden group" data-note-id="${note.id}">
+        ${colorBar}
+        <div class="card-body p-4">
+          <h3 class="card-title text-sm font-semibold line-clamp-1">${escapeHtml(note.title)}</h3>
+          <p class="text-xs text-base-content/60 line-clamp-3 leading-relaxed">${preview}</p>
+          <div class="flex items-center justify-between mt-auto pt-2">
+            <span class="text-xs text-base-content/40">${date}</span>
+            <button class="popout-btn btn btn-ghost btn-xs btn-circle opacity-0 group-hover:opacity-70 transition-opacity" data-note-id="${note.id}" title="Open in floating window">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </button>
           </div>
+          ${collBadge}
         </div>
       </div>
     `;
-  }
+  }).join('');
 
-  // Hide toolbar buttons for note operations
-  updateToolbarButtons(false);
+  // Attach click handlers
+  container.querySelectorAll('.note-grid-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.popout-btn')) return; // handled separately
+      const noteId = card.getAttribute('data-note-id');
+      const note = notes.find(n => n.id === noteId);
+      if (note) openNoteInEditor(note);
+    });
+  });
 
-  // Clear state using centralized state manager
-  appState.closeNote();
+  // Attach popout handlers
+  container.querySelectorAll('.popout-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const noteId = (btn as HTMLElement).getAttribute('data-note-id');
+      if (noteId) {
+        try {
+          await invoke('open_note_window', { noteId });
+        } catch (error) {
+          logger.error('Failed to open floating note', LOG_CONTEXT, error);
+        }
+      }
+    });
+  });
 }
 
 /**
  * Update toolbar buttons visibility based on note selection
- * Note: Toolbar buttons removed - delete is now in note editor
  */
 function updateToolbarButtons(_noteSelected: boolean): void {
   // No-op: toolbar buttons removed
 }
 
 /**
- * Open a note in the main editor
+ * Open a note in the main editor (replaces the grid view)
  */
 async function openNoteInEditor(note: Note): Promise<void> {
   logger.debug(`Opening note in editor: ${note.id} - ${note.title}`, LOG_CONTEXT);
 
-  // Show toolbar buttons
-  updateToolbarButtons(true);
-
-  // Create editor in the container
   const container = document.getElementById('editor-container');
   if (!container) {
     logger.error('Editor container not found', LOG_CONTEXT);
     return;
   }
 
-  // Clear the welcome screen
-  container.innerHTML = '<div class="max-w-4xl mx-auto" id="note-editor-wrapper"></div>';
+  // Replace grid with editor, include a back button
+  container.innerHTML = `
+    <div class="p-4 border-b border-base-300 bg-base-200/50">
+      <button id="back-to-list-btn" class="btn btn-ghost btn-sm gap-1">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        Back to Notes
+      </button>
+    </div>
+    <div class="flex-1 p-6 overflow-y-auto">
+      <div class="max-w-4xl mx-auto" id="note-editor-wrapper"></div>
+    </div>
+  `;
+
+  // Wire up back button
+  document.getElementById('back-to-list-btn')?.addEventListener('click', () => {
+    showNotesListView();
+    refreshNotesList();
+  });
 
   // Create the editor
   try {
@@ -183,30 +286,20 @@ async function openNoteInEditor(note: Note): Promise<void> {
       'note-editor-wrapper',
       note,
       (updatedNote) => {
-        // Update note reference in state and refresh sidebar
         appState.updateCurrentNote(updatedNote);
-        refreshNotesList();
       },
       () => {
-        // Handle delete from editor
         deleteCurrentNote();
       }
     );
 
-    // Update state atomically using the compound operation
     appState.openNote(note, editor);
   } catch (error) {
     logger.error('Failed to create editor', LOG_CONTEXT, error);
     showAlert('Failed to open note editor: ' + error, { title: 'Error', type: 'error' });
-    showWelcomeScreen();
+    showNotesListView();
+    refreshNotesList();
   }
-}
-
-/**
- * Handle note click from sidebar
- */
-function handleNoteClick(note: Note): void {
-  openNoteInEditor(note);
 }
 
 /**
@@ -222,23 +315,16 @@ async function deleteCurrentNote(): Promise<void> {
 
   try {
     const noteId = currentNote.id;
-
-    // Close the note (cleans up editor)
     appState.closeNote();
-
     await deleteNote(noteId);
 
-    // Close floating window if open
     try {
       await invoke('delete_note_and_close_window', { id: noteId });
     } catch (e) {
       // Window might not be open, ignore
     }
 
-    // Show welcome screen
-    showWelcomeScreen();
-
-    // Refresh notes list
+    showNotesListView();
     await refreshNotesList();
   } catch (error) {
     logger.error('Failed to delete note', LOG_CONTEXT, error);
@@ -249,7 +335,6 @@ async function deleteCurrentNote(): Promise<void> {
  * Refresh the notes list display
  */
 async function refreshNotesList(): Promise<void> {
-  // Get filtered notes based on current filter
   let notes: Note[];
 
   try {
@@ -265,18 +350,13 @@ async function refreshNotesList(): Promise<void> {
     notes = [];
   }
 
-  // Render the notes list with the filtered notes
-  await renderNotesList('notes-list', handleNoteClick, (allNotes) => {
-    const currentNote = appState.currentNote;
+  // Only render grid if we're in list view (not editing)
+  const notesListView = document.getElementById('notes-list-view');
+  if (notesListView) {
+    await renderNotesGrid(notes);
+  }
 
-    // If current note was deleted, show welcome screen
-    if (currentNote && !allNotes.find(n => n.id === currentNote.id)) {
-      appState.closeNote();
-      showWelcomeScreen();
-    }
-  }, notes);
-
-  // Update collection counts
+  // Always update collection counts
   await renderCollections();
 }
 
@@ -284,7 +364,47 @@ async function refreshNotesList(): Promise<void> {
  * Setup toolbar button handlers
  */
 function setupToolbarHandlers(): void {
-  // Toolbar buttons removed - delete is now in note editor
+  // Toolbar buttons removed
+}
+
+/**
+ * Open color picker modal for a collection
+ */
+function openColorPicker(collectionId: string, currentColor: string): void {
+  colorPickCollectionId = collectionId;
+  const modal = document.getElementById('color-picker-modal') as HTMLDialogElement;
+  const grid = document.getElementById('color-picker-grid');
+  if (!modal || !grid) return;
+
+  grid.innerHTML = COLLECTION_COLORS.map(color => {
+    const isActive = color.toLowerCase() === currentColor.toLowerCase();
+    return `
+      <button class="color-pick-btn w-8 h-8 rounded-full cursor-pointer transition-transform hover:scale-110 ${isActive ? 'ring-2 ring-offset-2 ring-primary' : 'ring-1 ring-black/10'}"
+              style="background-color: ${color}" data-color="${color}" title="${color}">
+      </button>
+    `;
+  }).join('');
+
+  // Attach click handlers
+  grid.querySelectorAll('.color-pick-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const newColor = (btn as HTMLElement).getAttribute('data-color');
+      if (newColor && colorPickCollectionId) {
+        try {
+          await updateCollection(colorPickCollectionId, { color: newColor });
+          modal.close();
+          await renderCollections();
+          // Re-render notes grid to reflect new colors
+          await refreshNotesList();
+          await emit('notes-list-changed');
+        } catch (error) {
+          logger.error('Failed to update collection color', LOG_CONTEXT, error);
+        }
+      }
+    });
+  });
+
+  modal.showModal();
 }
 
 /**
@@ -314,13 +434,13 @@ async function renderCollections(): Promise<void> {
       const isActive = currentFilter === collection.id;
 
       return `
-        <div class="collection-item group flex items-center gap-1" data-collection-id="${collection.id}">
-          <button class="collection-btn flex-1 flex items-center gap-2 px-3 py-1.5 rounded text-sm text-base-content hover:bg-base-300 ${isActive ? 'bg-base-300' : ''}">
-            <span class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: ${collection.color}"></span>
+        <div class="collection-item group flex items-center gap-0.5" data-collection-id="${collection.id}">
+          <button class="color-dot-btn flex-shrink-0 w-3 h-3 rounded-full ml-3 cursor-pointer hover:scale-125 transition-transform ring-1 ring-black/10" style="background-color: ${collection.color}" data-collection-id="${collection.id}" data-color="${collection.color}" title="Change color"></button>
+          <button class="collection-btn flex-1 flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-base-content hover:bg-base-300 transition-colors ${isActive ? 'bg-base-300 font-medium' : ''}">
             <span class="flex-1 text-left truncate">${escapeHtml(collection.name)}</span>
             <span class="text-xs text-base-content/50">${count}</span>
           </button>
-          <button class="delete-collection-btn opacity-0 group-hover:opacity-100 btn btn-ghost btn-xs btn-circle text-error" title="Delete collection">
+          <button class="delete-collection-btn opacity-0 group-hover:opacity-100 btn btn-ghost btn-xs btn-circle text-error transition-opacity" title="Delete collection">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -329,7 +449,17 @@ async function renderCollections(): Promise<void> {
       `;
     }).join('');
 
-    // Add event listeners for collections
+    // Color dot click -> open color picker
+    collectionsContainer.querySelectorAll('.color-dot-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const collId = (btn as HTMLElement).getAttribute('data-collection-id');
+        const color = (btn as HTMLElement).getAttribute('data-color') || '#6B7280';
+        if (collId) openColorPicker(collId, color);
+      });
+    });
+
+    // Collection name click -> filter
     collectionsContainer.querySelectorAll('.collection-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const collectionId = btn.closest('.collection-item')?.getAttribute('data-collection-id');
@@ -339,7 +469,7 @@ async function renderCollections(): Promise<void> {
       });
     });
 
-    // Add event listeners for delete buttons
+    // Delete buttons
     collectionsContainer.querySelectorAll('.delete-collection-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
@@ -351,13 +481,11 @@ async function renderCollections(): Promise<void> {
           }
           await renderCollections();
           await refreshNotesList();
-          // Notify about the change
           await emit('notes-list-changed');
         }
       });
     });
 
-    // Update active states
     updateCollectionActiveStates();
   } catch (error) {
     logger.error('Failed to render collections', LOG_CONTEXT, error);
@@ -381,28 +509,32 @@ function updateCollectionActiveStates(): void {
   const uncategorizedBtn = document.getElementById('filter-uncategorized');
   const collectionItems = document.querySelectorAll('.collection-btn');
 
-  // Remove active class from all
-  allNotesBtn?.classList.remove('bg-base-300');
-  uncategorizedBtn?.classList.remove('bg-base-300');
-  collectionItems.forEach(btn => btn.classList.remove('bg-base-300'));
+  allNotesBtn?.classList.remove('bg-base-300', 'font-medium');
+  uncategorizedBtn?.classList.remove('bg-base-300', 'font-medium');
+  collectionItems.forEach(btn => btn.classList.remove('bg-base-300', 'font-medium'));
 
-  // Add active class to current filter
   if (currentFilter === 'all') {
-    allNotesBtn?.classList.add('bg-base-300');
+    allNotesBtn?.classList.add('bg-base-300', 'font-medium');
   } else if (currentFilter === 'uncategorized') {
-    uncategorizedBtn?.classList.add('bg-base-300');
+    uncategorizedBtn?.classList.add('bg-base-300', 'font-medium');
   } else {
     const activeBtn = document.querySelector(`.collection-item[data-collection-id="${currentFilter}"] .collection-btn`);
-    activeBtn?.classList.add('bg-base-300');
+    activeBtn?.classList.add('bg-base-300', 'font-medium');
   }
 }
 
 /**
- * Set the collection filter
+ * Set the collection filter and switch to list view
  */
 async function setCollectionFilter(filter: 'all' | 'uncategorized' | string): Promise<void> {
   currentFilter = filter;
   updateCollectionActiveStates();
+
+  // If we're in editor view, switch back to grid
+  if (!document.getElementById('notes-list-view')) {
+    showNotesListView();
+  }
+
   await refreshNotesList();
 }
 
@@ -410,7 +542,6 @@ async function setCollectionFilter(filter: 'all' | 'uncategorized' | string): Pr
  * Setup collection UI handlers
  */
 function setupCollectionHandlers(): void {
-  // Toggle collections visibility
   const toggleBtn = document.getElementById('collections-toggle');
   const chevron = document.getElementById('collections-chevron');
   const collectionsList = document.getElementById('collections-list');
@@ -425,7 +556,7 @@ function setupCollectionHandlers(): void {
     }
   });
 
-  // Add collection button (sidebar)
+  // Add collection button
   const addCollectionBtn = document.getElementById('sidebar-add-collection-btn');
   addCollectionBtn?.addEventListener('click', async () => {
     const name = await showPrompt('Enter collection name:', {
@@ -435,11 +566,9 @@ function setupCollectionHandlers(): void {
 
     if (name && name.trim()) {
       try {
-        // Pick a random color from the palette
         const color = COLLECTION_COLORS[Math.floor(Math.random() * COLLECTION_COLORS.length)];
         await createCollection(name.trim(), undefined, color);
         await renderCollections();
-        // Notify about the change
         await emit('notes-list-changed');
       } catch (error) {
         logger.error('Failed to create collection', LOG_CONTEXT, error);
@@ -449,66 +578,50 @@ function setupCollectionHandlers(): void {
   });
 
   // All notes filter
-  const allNotesBtn = document.getElementById('filter-all-notes');
-  allNotesBtn?.addEventListener('click', () => setCollectionFilter('all'));
+  document.getElementById('filter-all-notes')?.addEventListener('click', () => setCollectionFilter('all'));
 
   // Uncategorized filter
-  const uncategorizedBtn = document.getElementById('filter-uncategorized');
-  uncategorizedBtn?.addEventListener('click', () => setCollectionFilter('uncategorized'));
+  document.getElementById('filter-uncategorized')?.addEventListener('click', () => setCollectionFilter('uncategorized'));
 }
 
 /**
  * Initialize the application
- * Sets up all modules, loads data, and displays the window
  */
 async function init(): Promise<void> {
   logger.info('Initializing SwatNotes...', LOG_CONTEXT);
 
-  // Initialize theme
   initTheme();
   setupThemeSwitcher();
-
-  // Setup event handlers
   setupEventHandlers();
-
-  // Setup reminder notification listener
   await setupReminderListener();
 
-  // Get app info
   const appInfo = await getAppInfo();
 
   if (appInfo) {
     logger.info(`App Version: ${appInfo.version}`, LOG_CONTEXT);
-    logger.debug(`App Data Directory: ${appInfo.app_data_dir}`, LOG_CONTEXT);
 
-    // Update version badge in the UI
     const versionBadge = document.getElementById('version-badge');
     if (versionBadge) {
       versionBadge.textContent = `v${appInfo.version}`;
     }
   }
 
-  // Clean up any empty notes before loading the list
   await cleanupEmptyNotes();
-
-  // Setup toolbar handlers
   setupToolbarHandlers();
-
-  // Setup collection handlers
   setupCollectionHandlers();
 
-  // Load collections and notes
+  // Initial load
   await renderCollections();
   await refreshNotesList();
 
-  // Listen for notes-list-changed events (e.g., from new sticky notes)
+  // Listen for notes-list-changed events
   await listen('notes-list-changed', async () => {
     logger.debug('Notes list changed event received', LOG_CONTEXT);
     await renderCollections();
     await refreshNotesList();
   });
 
-  // Listen for refresh-notes event (triggered when window is shown via hotkey/tray)
+  // Listen for refresh-notes event
   await listen('refresh-notes', async () => {
     logger.debug('Refresh notes event received', LOG_CONTEXT);
     await refreshNotesList();

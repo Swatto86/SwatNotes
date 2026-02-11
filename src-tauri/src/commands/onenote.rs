@@ -1,5 +1,5 @@
 /// OneNote Import Module
-/// Handles importing notes from Microsoft OneNote  
+/// Handles importing notes from Microsoft OneNote
 /// Uses PowerShell COM automation for Windows compatibility
 ///
 /// OneNote COM API documentation:
@@ -87,7 +87,7 @@ async fn import_from_onenote_windows(
 
     info!("Found {} existing collections", collection_map.len());
 
-    // Get OneNote hierarchy using PowerShell
+    // Get full OneNote hierarchy using PowerShell (scope 4 = all content)
     let hierarchy_xml = match get_onenote_hierarchy() {
         Ok(xml) => xml,
         Err(e) => {
@@ -112,7 +112,10 @@ async fn import_from_onenote_windows(
         });
     }
 
-    info!("Retrieved OneNote hierarchy");
+    info!(
+        "Retrieved OneNote hierarchy ({} bytes)",
+        hierarchy_xml.len()
+    );
 
     // Parse sections from hierarchy
     let sections = match parse_sections(&hierarchy_xml) {
@@ -131,14 +134,40 @@ async fn import_from_onenote_windows(
 
     info!("Found {} sections to import", sections.len());
 
+    // Parse all pages from the same hierarchy (avoids extra COM calls per section)
+    let all_pages = match parse_all_pages(&hierarchy_xml) {
+        Ok(p) => p,
+        Err(e) => {
+            error!("Failed to parse pages from hierarchy: {}", e);
+            errors.push(format!("Failed to parse pages: {}", e));
+            return Ok(ImportResult {
+                notes_imported,
+                collections_created,
+                sections_mapped,
+                errors,
+            });
+        }
+    };
+
+    info!(
+        "Found {} total pages across all sections",
+        all_pages.values().map(|v| v.len()).sum::<usize>()
+    );
+
     // Process each section
-    for section in sections {
+    for section in &sections {
+        // Skip recycle bin / deleted pages section
+        if section.name == "Deleted Pages" {
+            info!("Skipping 'Deleted Pages' section");
+            continue;
+        }
+
         info!("Processing section: {}", section.name);
 
         // Get or create collection for this section
         let collection_id = match get_or_create_collection(
             &state,
-            &section,
+            section,
             &mut collection_map,
             &mut collections_created,
         )
@@ -146,7 +175,10 @@ async fn import_from_onenote_windows(
         {
             Ok(id) => id,
             Err(e) => {
-                warn!("Failed to create collection for section {}: {}", section.name, e);
+                warn!(
+                    "Failed to create collection for section {}: {}",
+                    section.name, e
+                );
                 errors.push(format!(
                     "Failed to create collection for section '{}': {}",
                     section.name, e
@@ -157,24 +189,20 @@ async fn import_from_onenote_windows(
 
         sections_mapped.insert(section.name.clone(), collection_id.clone());
 
-        // Get pages in this section
-        let pages = match get_pages_in_section(&section.id) {
-            Ok(p) => p,
-            Err(e) => {
-                warn!("Failed to get pages in section {}: {}", section.name, e);
-                errors.push(format!(
-                    "Failed to get pages in section '{}': {}",
-                    section.name, e
-                ));
+        // Get pages for this section from the pre-parsed map
+        let pages = match all_pages.get(&section.id) {
+            Some(p) => p,
+            None => {
+                info!("No pages found in section '{}'", section.name);
                 continue;
             }
         };
 
-        info!("Found {} pages in section {}", pages.len(), section.name);
+        info!("Found {} pages in section '{}'", pages.len(), section.name);
 
         // Import each page
         for page in pages {
-            match import_page(&state, &page, &collection_id).await {
+            match import_page(&state, page, &collection_id).await {
                 Ok(_) => {
                     notes_imported += 1;
                     if notes_imported % 10 == 0 {
@@ -222,6 +250,27 @@ async fn get_or_create_collection(
         return Ok(id.clone());
     }
 
+    // Cycle through distinct colors for imported collections
+    const IMPORT_COLORS: &[&str] = &[
+        "#EF4444", // Red
+        "#22C55E", // Green
+        "#8B5CF6", // Violet
+        "#F97316", // Orange
+        "#06B6D4", // Cyan
+        "#EC4899", // Pink
+        "#EAB308", // Yellow
+        "#14B8A6", // Teal
+        "#6366F1", // Indigo
+        "#84CC16", // Lime
+        "#D946EF", // Fuchsia
+        "#F43F5E", // Rose
+        "#0EA5E9", // Sky
+        "#10B981", // Emerald
+        "#F59E0B", // Amber
+    ];
+    let color_index = *collections_created % IMPORT_COLORS.len();
+    let color = IMPORT_COLORS[color_index].to_string();
+
     // Create new collection
     info!("Creating new collection for section '{}'", section.name);
     let new_coll = state
@@ -229,7 +278,7 @@ async fn get_or_create_collection(
         .create_collection(CreateCollectionRequest {
             name: section.name.clone(),
             description: Some(format!("Imported from OneNote: {}", section.notebook_name)),
-            color: Some("#3B82F6".to_string()), // Blue color for imported collections
+            color: Some(color),
             icon: Some("book".to_string()),
         })
         .await?;
@@ -246,7 +295,7 @@ async fn import_page(
     page: &OneNotePage,
     collection_id: &str,
 ) -> Result<()> {
-    // Get page content
+    // Get page content via COM
     let page_xml = get_page_content(&page.id)?;
 
     // Convert OneNote XML to Quill Delta
@@ -278,14 +327,19 @@ async fn import_page(
 
 // PowerShell Helper Functions
 
+/// Get the full OneNote hierarchy XML using COM automation.
+/// Uses scope 4 (all content) to retrieve notebooks, section groups, sections, and pages
+/// in a single call. Numeric scope values avoid dependency on .NET interop assembly.
 #[cfg(target_os = "windows")]
 fn get_onenote_hierarchy() -> Result<String> {
+    // Scope 4 = hsAll: returns notebooks, section groups, sections, and pages
     let script = r#"
         try {
             $onenote = New-Object -ComObject OneNote.Application
             [ref]$xml = ""
-            $onenote.GetHierarchy("", [Microsoft.Office.Interop.OneNote.HierarchyScope]::hsPages, $xml)
-            $xml.Value
+            $onenote.GetHierarchy("", 4, $xml)
+            [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+            [Console]::Out.Write($xml.Value)
         } catch {
             Write-Error $_.Exception.Message
             exit 1
@@ -293,7 +347,7 @@ fn get_onenote_hierarchy() -> Result<String> {
     "#;
 
     let output = Command::new("powershell")
-        .args(&["-NoProfile", "-Command", script])
+        .args(["-NoProfile", "-NonInteractive", "-Command", script])
         .output()
         .map_err(|e| AppError::Generic(format!("Failed to run PowerShell: {}", e)))?;
 
@@ -301,84 +355,60 @@ fn get_onenote_hierarchy() -> Result<String> {
         let error_msg = String::from_utf8_lossy(&output.stderr);
         return Err(AppError::Generic(format!(
             "PowerShell script failed: {}",
-            error_msg
+            error_msg.trim()
         )));
     }
 
-    let xml = String::from_utf8_lossy(&output.stdout).to_string();
+    let xml = String::from_utf8_lossy(&output.stdout).trim().to_string();
     Ok(xml)
 }
 
-#[cfg(target_os = "windows")]
-fn get_pages_in_section(section_id: &str) -> Result<Vec<OneNotePage>> {
-    let script = format!(
-        r#"
-        try {{
-            $onenote = New-Object -ComObject OneNote.Application
-            [ref]$xml = ""
-            $onenote.GetHierarchy("{}", [Microsoft.Office.Interop.OneNote.HierarchyScope]::hsPages, $xml)
-            $xml.Value
-        }} catch {{
-            Write-Error $_.Exception.Message
-            exit 1
-        }}
-    "#,
-        section_id.replace('"', "`\"")
-    );
-
-    let output = Command::new("powershell")
-        .args(&["-NoProfile", "-Command", &script])
-        .output()
-        .map_err(|e| AppError::Generic(format!("Failed to run PowerShell: {}", e)))?;
-
-    if !output.status.success() {
-        let error_msg = String::from_utf8_lossy(&output.stderr);
-        return Err(AppError::Generic(format!(
-            "PowerShell script failed: {}",
-            error_msg
-        )));
-    }
-
-    let xml = String::from_utf8_lossy(&output.stdout).to_string();
-    parse_pages(&xml)
-}
-
+/// Get page content XML for a specific page ID.
+/// Escapes the page ID for safe PowerShell string interpolation.
 #[cfg(target_os = "windows")]
 fn get_page_content(page_id: &str) -> Result<String> {
+    // Escape single quotes in page_id for PowerShell single-quoted string
+    let safe_id = page_id.replace('\'', "''");
     let script = format!(
         r#"
         try {{
             $onenote = New-Object -ComObject OneNote.Application
             [ref]$xml = ""
-            $onenote.GetPageContent("{}", $xml)
-            $xml.Value
+            $onenote.GetPageContent('{}', $xml)
+            [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+            [Console]::Out.Write($xml.Value)
         }} catch {{
             Write-Error $_.Exception.Message
             exit 1
         }}
     "#,
-        page_id.replace('"', "`\"")
+        safe_id
     );
 
     let output = Command::new("powershell")
-        .args(&["-NoProfile", "-Command", &script])
+        .args(["-NoProfile", "-NonInteractive", "-Command", &script])
         .output()
         .map_err(|e| AppError::Generic(format!("Failed to run PowerShell: {}", e)))?;
 
     if !output.status.success() {
         let error_msg = String::from_utf8_lossy(&output.stderr);
         return Err(AppError::Generic(format!(
-            "PowerShell script failed: {}",
-            error_msg
+            "Failed to get page content: {}",
+            error_msg.trim()
         )));
     }
 
-    let xml = String::from_utf8_lossy(&output.stdout).to_string();
+    let xml = String::from_utf8_lossy(&output.stdout).trim().to_string();
     Ok(xml)
 }
 
 // XML Parsing Functions
+// OneNote hierarchy XML uses the namespace prefix "one:" on all elements
+// (e.g., one:Notebook, one:Section, one:Page). We use local_name() to
+// match element names without the namespace prefix.
 
+/// Parse sections from the full OneNote hierarchy XML.
+/// Tracks the current notebook name to associate with each section.
 #[cfg(target_os = "windows")]
 fn parse_sections(hierarchy_xml: &str) -> Result<Vec<OneNoteSection>> {
     let mut sections = Vec::new();
@@ -387,41 +417,50 @@ fn parse_sections(hierarchy_xml: &str) -> Result<Vec<OneNoteSection>> {
 
     let mut buf = Vec::new();
     let mut current_notebook = String::new();
-    let mut section_id = String::new();
-    let mut section_name = String::new();
 
     loop {
         match reader.read_event_into(&mut buf) {
             Ok(Event::Start(e)) | Ok(Event::Empty(e)) => {
-                match e.name().as_ref() {
+                let local = e.name().local_name();
+                match local.as_ref() {
                     b"Notebook" => {
                         for attr in e.attributes().flatten() {
-                            if attr.key.as_ref() == b"name" {
-                                current_notebook = String::from_utf8_lossy(&attr.value).to_string();
+                            if attr.key.local_name().as_ref() == b"name" {
+                                current_notebook =
+                                    String::from_utf8_lossy(&attr.value).to_string();
                             }
                         }
                     }
                     b"Section" => {
-                        section_id.clear();
-                        section_name.clear();
+                        let mut section_id = String::new();
+                        let mut section_name = String::new();
+                        let mut is_recycle_bin = false;
 
                         for attr in e.attributes().flatten() {
-                            match attr.key.as_ref() {
+                            match attr.key.local_name().as_ref() {
                                 b"ID" => {
-                                    section_id = String::from_utf8_lossy(&attr.value).to_string();
+                                    section_id =
+                                        String::from_utf8_lossy(&attr.value).to_string();
                                 }
                                 b"name" => {
                                     section_name =
                                         String::from_utf8_lossy(&attr.value).to_string();
                                 }
+                                b"isInRecycleBin" => {
+                                    is_recycle_bin =
+                                        String::from_utf8_lossy(&attr.value) == "true";
+                                }
                                 _ => {}
                             }
                         }
 
-                        if !section_id.is_empty() && !section_name.is_empty() {
+                        if !section_id.is_empty()
+                            && !section_name.is_empty()
+                            && !is_recycle_bin
+                        {
                             sections.push(OneNoteSection {
-                                id: section_id.clone(),
-                                name: section_name.clone(),
+                                id: section_id,
+                                name: section_name,
                                 notebook_name: current_notebook.clone(),
                             });
                         }
@@ -441,59 +480,120 @@ fn parse_sections(hierarchy_xml: &str) -> Result<Vec<OneNoteSection>> {
     Ok(sections)
 }
 
+/// Parse all pages from the full hierarchy XML, grouped by section ID.
+/// Returns a map of section_id -> Vec<OneNotePage>.
+/// This avoids needing separate COM calls per section.
 #[cfg(target_os = "windows")]
-fn parse_pages(hierarchy_xml: &str) -> Result<Vec<OneNotePage>> {
-    let mut pages = Vec::new();
+fn parse_all_pages(hierarchy_xml: &str) -> Result<HashMap<String, Vec<OneNotePage>>> {
+    let mut pages_by_section: HashMap<String, Vec<OneNotePage>> = HashMap::new();
     let mut reader = Reader::from_str(hierarchy_xml);
     reader.config_mut().trim_text(true);
 
     let mut buf = Vec::new();
-    let mut section_name = String::new();
+    let mut current_section_id = String::new();
+    let mut current_section_name = String::new();
+    let mut in_recycle_bin = false;
 
     loop {
         match reader.read_event_into(&mut buf) {
             Ok(Event::Start(e)) | Ok(Event::Empty(e)) => {
-                match e.name().as_ref() {
-                    b"Section" => {
+                let local = e.name().local_name();
+                match local.as_ref() {
+                    b"SectionGroup" => {
                         for attr in e.attributes().flatten() {
-                            if attr.key.as_ref() == b"name" {
-                                section_name = String::from_utf8_lossy(&attr.value).to_string();
+                            if attr.key.local_name().as_ref() == b"isRecycleBin" {
+                                if String::from_utf8_lossy(&attr.value) == "true" {
+                                    in_recycle_bin = true;
+                                }
+                            }
+                        }
+                    }
+                    b"Section" => {
+                        if in_recycle_bin {
+                            // Skip sections inside recycle bin
+                        } else {
+                            current_section_id.clear();
+                            current_section_name.clear();
+
+                            for attr in e.attributes().flatten() {
+                                match attr.key.local_name().as_ref() {
+                                    b"ID" => {
+                                        current_section_id =
+                                            String::from_utf8_lossy(&attr.value).to_string();
+                                    }
+                                    b"name" => {
+                                        current_section_name =
+                                            String::from_utf8_lossy(&attr.value).to_string();
+                                    }
+                                    _ => {}
+                                }
                             }
                         }
                     }
                     b"Page" => {
-                        let mut page_id = String::new();
-                        let mut page_title = String::new();
+                        if in_recycle_bin || current_section_id.is_empty() {
+                            // Skip pages in recycle bin or without a section
+                        } else {
+                            let mut page_id = String::new();
+                            let mut page_title = String::new();
+                            let mut created_at = String::new();
+                            let mut modified_at = String::new();
+                            let mut is_in_recycle_bin = false;
 
-                        for attr in e.attributes().flatten() {
-                            match attr.key.as_ref() {
-                                b"ID" => {
-                                    page_id = String::from_utf8_lossy(&attr.value).to_string();
+                            for attr in e.attributes().flatten() {
+                                match attr.key.local_name().as_ref() {
+                                    b"ID" => {
+                                        page_id =
+                                            String::from_utf8_lossy(&attr.value).to_string();
+                                    }
+                                    b"name" => {
+                                        page_title =
+                                            String::from_utf8_lossy(&attr.value).to_string();
+                                    }
+                                    b"dateTime" => {
+                                        created_at =
+                                            String::from_utf8_lossy(&attr.value).to_string();
+                                    }
+                                    b"lastModifiedTime" => {
+                                        modified_at =
+                                            String::from_utf8_lossy(&attr.value).to_string();
+                                    }
+                                    b"isInRecycleBin" => {
+                                        is_in_recycle_bin =
+                                            String::from_utf8_lossy(&attr.value) == "true";
+                                    }
+                                    _ => {}
                                 }
-                                b"name" => {
-                                    page_title = String::from_utf8_lossy(&attr.value).to_string();
-                                }
-                                _ => {}
                             }
-                        }
 
-                        if !page_id.is_empty() {
-                            pages.push(OneNotePage {
-                                id: page_id,
-                                title: if page_title.is_empty() {
-                                    "Untitled Page".to_string()
-                                } else {
-                                    page_title
-                                },
-                                content: String::new(),
-                                section_id: String::new(),
-                                section_name: section_name.clone(),
-                                created_at: String::new(),
-                                modified_at: String::new(),
-                            });
+                            if !page_id.is_empty() && !is_in_recycle_bin {
+                                let page = OneNotePage {
+                                    id: page_id,
+                                    title: if page_title.is_empty() {
+                                        "Untitled Page".to_string()
+                                    } else {
+                                        page_title
+                                    },
+                                    content: String::new(),
+                                    section_id: current_section_id.clone(),
+                                    section_name: current_section_name.clone(),
+                                    created_at,
+                                    modified_at,
+                                };
+                                pages_by_section
+                                    .entry(current_section_id.clone())
+                                    .or_default()
+                                    .push(page);
+                            }
                         }
                     }
                     _ => {}
+                }
+            }
+            Ok(Event::End(e)) => {
+                let local = e.name().local_name();
+                if local.as_ref() == b"SectionGroup" {
+                    in_recycle_bin = false;
                 }
             }
             Ok(Event::Eof) => break,
@@ -505,26 +605,66 @@ fn parse_pages(hierarchy_xml: &str) -> Result<Vec<OneNotePage>> {
         buf.clear();
     }
 
-    Ok(pages)
+    Ok(pages_by_section)
 }
 
+/// Convert OneNote page XML to Quill Delta JSON format.
+///
+/// OneNote page XML structure:
+/// - one:Title > one:OE > one:T contains the title (skipped, title is stored separately)
+/// - one:Outline > one:OEChildren > one:OE > one:T contains body content
+/// - one:T elements contain text, often wrapped in CDATA
+/// - Each one:OE (outline element) is roughly a paragraph
 #[cfg(target_os = "windows")]
 fn convert_onenote_to_quill(page_xml: &str) -> Result<String> {
     use serde_json::json;
 
     let mut reader = Reader::from_str(page_xml);
-    reader.config_mut().trim_text(true);
+    reader.config_mut().trim_text(false); // preserve whitespace in content
 
     let mut buf = Vec::new();
-    let mut ops = Vec::new();
+    let mut ops: Vec<serde_json::Value> = Vec::new();
     let mut current_text = String::new();
     let mut in_text_element = false;
+    let mut in_title = false;
+    let mut in_outline = false;
+    let mut oe_depth: usize = 0; // Track nesting depth of OE elements
+    let mut in_list = false;
 
     loop {
         match reader.read_event_into(&mut buf) {
             Ok(Event::Start(e)) => {
-                if e.name().as_ref() == b"T" {
-                    in_text_element = true;
+                let local = e.name().local_name();
+                match local.as_ref() {
+                    b"Title" => {
+                        in_title = true;
+                    }
+                    b"Outline" => {
+                        in_outline = true;
+                    }
+                    b"OE" => {
+                        if in_outline {
+                            oe_depth += 1;
+                        }
+                        // Check for list attributes
+                        for attr in e.attributes().flatten() {
+                            if attr.key.local_name().as_ref() == b"quickStyleIndex" {
+                                // QuickStyle might indicate list items
+                            }
+                        }
+                    }
+                    b"OEChildren" => {
+                        // Nested content
+                    }
+                    b"List" => {
+                        in_list = true;
+                    }
+                    b"T" => {
+                        if !in_title {
+                            in_text_element = true;
+                        }
+                    }
+                    _ => {}
                 }
             }
             Ok(Event::Text(e)) => {
@@ -534,15 +674,51 @@ fn convert_onenote_to_quill(page_xml: &str) -> Result<String> {
                     }
                 }
             }
+            Ok(Event::CData(e)) => {
+                if in_text_element {
+                    let cdata_text = String::from_utf8_lossy(&e).to_string();
+                    // OneNote CDATA may contain HTML-like content with tags like <span>, <br>, etc.
+                    let clean_text = strip_html_tags(&cdata_text);
+                    current_text.push_str(&clean_text);
+                }
+            }
             Ok(Event::End(e)) => {
-                if e.name().as_ref() == b"T" {
-                    if !current_text.is_empty() {
-                        ops.push(json!({
-                            "insert": current_text.clone()
-                        }));
-                        current_text.clear();
+                let local = e.name().local_name();
+                match local.as_ref() {
+                    b"Title" => {
+                        in_title = false;
                     }
-                    in_text_element = false;
+                    b"Outline" => {
+                        in_outline = false;
+                    }
+                    b"T" => {
+                        if in_text_element && !current_text.is_empty() {
+                            ops.push(json!({ "insert": current_text.clone() }));
+                            current_text.clear();
+                        }
+                        in_text_element = false;
+                    }
+                    b"OE" => {
+                        if in_outline {
+                            // Each OE is a paragraph — add a newline
+                            if in_list {
+                                ops.push(json!({
+                                    "insert": "\n",
+                                    "attributes": { "list": "bullet" }
+                                }));
+                                in_list = false;
+                            } else {
+                                ops.push(json!({ "insert": "\n" }));
+                            }
+                            if oe_depth > 0 {
+                                oe_depth -= 1;
+                            }
+                        }
+                    }
+                    b"List" => {
+                        // List element ended but we handle in OE end
+                    }
+                    _ => {}
                 }
             }
             Ok(Event::Eof) => break,
@@ -555,20 +731,109 @@ fn convert_onenote_to_quill(page_xml: &str) -> Result<String> {
         buf.clear();
     }
 
-    // Ensure there's at least a newline
+    // Flush any remaining text
+    if !current_text.is_empty() {
+        ops.push(json!({ "insert": current_text }));
+    }
+
+    // Ensure there's at least a newline (Quill requires trailing newline)
     if ops.is_empty() {
         ops.push(json!({"insert": "\n"}));
     } else {
-        // Add final newline if not present
-        if let Some(last_op) = ops.last() {
-            if let Some(insert) = last_op.get("insert").and_then(|v| v.as_str()) {
-                if !insert.ends_with('\n') {
-                    ops.push(json!({"insert": "\n"}));
+        // Ensure final newline
+        let needs_newline = match ops.last() {
+            Some(op) => {
+                if let Some(insert) = op.get("insert").and_then(|v| v.as_str()) {
+                    !insert.ends_with('\n')
+                } else {
+                    true
                 }
             }
+            None => true,
+        };
+        if needs_newline {
+            ops.push(json!({"insert": "\n"}));
         }
     }
 
     let delta = json!({ "ops": ops });
     Ok(delta.to_string())
+}
+
+/// Strip basic HTML tags from OneNote CDATA content, converting
+/// structural tags to appropriate text representations.
+#[cfg(target_os = "windows")]
+fn strip_html_tags(html: &str) -> String {
+    let mut result = String::with_capacity(html.len());
+    let mut in_tag = false;
+    let mut tag_name = String::new();
+    let mut capturing_tag = false;
+
+    let chars: Vec<char> = html.chars().collect();
+    let mut i = 0;
+
+    while i < chars.len() {
+        let ch = chars[i];
+        match ch {
+            '<' => {
+                in_tag = true;
+                capturing_tag = true;
+                tag_name.clear();
+            }
+            '>' => {
+                if in_tag {
+                    in_tag = false;
+                    capturing_tag = false;
+                    let tag_lower = tag_name.to_lowercase();
+                    // Convert <br> and <br/> to newlines
+                    if tag_lower == "br" || tag_lower == "br/" {
+                        result.push('\n');
+                    }
+                }
+            }
+            _ => {
+                if in_tag {
+                    if capturing_tag && ch != '/' {
+                        if ch == ' ' {
+                            capturing_tag = false;
+                        } else {
+                            tag_name.push(ch);
+                        }
+                    }
+                } else {
+                    // Handle HTML entities
+                    if ch == '&' {
+                        // Look ahead for entity
+                        let remaining: String = chars[i..].iter().collect();
+                        if remaining.starts_with("&amp;") {
+                            result.push('&');
+                            i += 4; // skip "amp;"
+                        } else if remaining.starts_with("&lt;") {
+                            result.push('<');
+                            i += 3;
+                        } else if remaining.starts_with("&gt;") {
+                            result.push('>');
+                            i += 3;
+                        } else if remaining.starts_with("&quot;") {
+                            result.push('"');
+                            i += 5;
+                        } else if remaining.starts_with("&apos;") {
+                            result.push('\'');
+                            i += 5;
+                        } else if remaining.starts_with("&nbsp;") {
+                            result.push(' ');
+                            i += 5;
+                        } else {
+                            result.push(ch);
+                        }
+                    } else {
+                        result.push(ch);
+                    }
+                }
+            }
+        }
+        i += 1;
+    }
+
+    result
 }
