@@ -44,9 +44,15 @@ Write-Host "   SwatNotes Release Script" -ForegroundColor Magenta
 Write-Host "========================================" -ForegroundColor Magenta
 Write-Host ""
 
+# Read current version from tauri.conf.json
+$currentTauriConf = Get-Content "src-tauri\tauri.conf.json" -Raw | ConvertFrom-Json
+$currentVersion = $currentTauriConf.version
+Write-Info "Current version: v$currentVersion"
+Write-Host ""
+
 # Get version if not provided
 if (-not $Version) {
-    $Version = Read-Host "Enter the new version (e.g., 0.2.0)"
+    $Version = Read-Host "Enter the new version (e.g., $currentVersion)"
 }
 
 # Validate version format
