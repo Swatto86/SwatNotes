@@ -11,7 +11,7 @@ import type { Backup } from '../types';
 
 // Mock Tauri invoke
 vi.mock('@tauri-apps/api/core', () => ({
-  invoke: vi.fn()
+  invoke: vi.fn(),
 }));
 
 describe('backup UI integration', () => {
@@ -44,15 +44,15 @@ describe('backup UI integration', () => {
           timestamp: '2024-01-15T10:00:00Z',
           path: '/backups/backup1.zip',
           size: 1024000,
-          manifest_hash: 'abc123'
+          manifest_hash: 'abc123',
         },
         {
           id: 'backup-2',
           timestamp: '2024-01-10T10:00:00Z',
           path: '/backups/backup2.zip',
           size: 2048000,
-          manifest_hash: 'def456'
-        }
+          manifest_hash: 'def456',
+        },
       ];
       vi.mocked(invoke).mockResolvedValue(mockBackups);
 
@@ -80,7 +80,7 @@ describe('backup UI integration', () => {
 
       expect(invoke).toHaveBeenCalledWith('restore_backup', {
         backupPath: '/backup.zip',
-        password: 'correctPassword'
+        password: 'correctPassword',
       });
     });
 
@@ -105,7 +105,7 @@ describe('backup UI integration', () => {
 
       expect(invoke).toHaveBeenCalledWith('delete_backup', {
         backupId: 'backup-123',
-        backupPath: '/backups/backup.zip'
+        backupPath: '/backups/backup.zip',
       });
     });
 
@@ -129,7 +129,7 @@ describe('backup UI integration', () => {
         timestamp: new Date().toISOString(),
         path: backupPath,
         size: 512000,
-        manifest_hash: 'hash123'
+        manifest_hash: 'hash123',
       };
       vi.mocked(invoke).mockResolvedValueOnce([mockBackup]);
       const backups = await listBackups();
@@ -154,7 +154,7 @@ describe('backup UI integration', () => {
         timestamp: '2024-01-01T00:00:00Z',
         path: '/large.zip',
         size: 10737418240, // 10 GB
-        manifest_hash: 'hash'
+        manifest_hash: 'hash',
       };
       vi.mocked(invoke).mockResolvedValue([largeBackup]);
 
@@ -170,7 +170,7 @@ describe('backup UI integration', () => {
 
       expect(invoke).toHaveBeenCalledWith('restore_backup', {
         backupPath: '/path with spaces/backup (1).zip',
-        password: 'pass'
+        password: 'pass',
       });
     });
 

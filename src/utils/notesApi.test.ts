@@ -9,7 +9,7 @@ import type { Note } from '../types';
 
 // Mock Tauri invoke
 vi.mock('@tauri-apps/api/core', () => ({
-  invoke: vi.fn()
+  invoke: vi.fn(),
 }));
 
 describe('notesApi', () => {
@@ -27,7 +27,7 @@ describe('notesApi', () => {
         updated_at: '2024-01-01T00:00:00Z',
         deleted_at: null,
         title_modified: false,
-        collection_id: null
+        collection_id: null,
       };
 
       vi.mocked(invoke).mockResolvedValue(mockNote);
@@ -36,7 +36,7 @@ describe('notesApi', () => {
 
       expect(invoke).toHaveBeenCalledWith('create_note', {
         title: 'Test Note',
-        contentJson: '{"ops":[]}'
+        contentJson: '{"ops":[]}',
       });
       expect(result).toEqual(mockNote);
     });
@@ -58,7 +58,7 @@ describe('notesApi', () => {
         updated_at: '2024-01-01T00:01:00Z',
         deleted_at: null,
         title_modified: false,
-        collection_id: null
+        collection_id: null,
       };
 
       vi.mocked(invoke).mockResolvedValue(mockNote);
@@ -69,7 +69,7 @@ describe('notesApi', () => {
         id: 'test-id',
         title: 'Updated Note',
         contentJson: '{"ops":[{"insert":"Updated"}]}',
-        titleModified: null
+        titleModified: null,
       });
       expect(result).toEqual(mockNote);
     });
@@ -95,7 +95,7 @@ describe('notesApi', () => {
         updated_at: '2024-01-01T00:00:00Z',
         deleted_at: null,
         title_modified: false,
-        collection_id: null
+        collection_id: null,
       };
 
       vi.mocked(invoke).mockResolvedValue(mockNote);
@@ -118,7 +118,7 @@ describe('notesApi', () => {
           updated_at: '2024-01-01T00:00:00Z',
           deleted_at: null,
           title_modified: false,
-          collection_id: null
+          collection_id: null,
         },
         {
           id: 'note-2',
@@ -128,8 +128,8 @@ describe('notesApi', () => {
           updated_at: '2024-01-01T00:01:00Z',
           deleted_at: null,
           title_modified: false,
-          collection_id: null
-        }
+          collection_id: null,
+        },
       ];
 
       vi.mocked(invoke).mockResolvedValue(mockNotes);
@@ -162,8 +162,8 @@ describe('notesApi', () => {
           updated_at: '2024-01-01T00:00:00Z',
           deleted_at: null,
           title_modified: false,
-          collection_id: null
-        }
+          collection_id: null,
+        },
       ];
 
       vi.mocked(invoke).mockResolvedValue(mockNotes);

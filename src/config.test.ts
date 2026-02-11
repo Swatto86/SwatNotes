@@ -18,7 +18,7 @@ import {
   DEFAULT_NOTE_CONTENT,
   DEFAULT_NOTE_TITLE,
   APP_VERSION,
-  APP_NAME
+  APP_NAME,
 } from './config';
 
 describe('config', () => {

@@ -141,7 +141,7 @@ describe('modal', () => {
     it('should use custom button text', async () => {
       const promise = showConfirm('Delete item?', {
         confirmText: 'Delete',
-        cancelText: 'Keep'
+        cancelText: 'Keep',
       });
 
       const modal = document.querySelector('dialog');

@@ -10,7 +10,7 @@ describe('logger', () => {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
-    error: vi.fn()
+    error: vi.fn(),
   };
 
   beforeEach(() => {
@@ -135,7 +135,9 @@ describe('logger', () => {
 
       logger.info('Message', 'Ctx', 'arg1', 42, { data: true });
 
-      expect(consoleMocks.info).toHaveBeenCalledWith('[INFO] [Ctx] Message', 'arg1', 42, { data: true });
+      expect(consoleMocks.info).toHaveBeenCalledWith('[INFO] [Ctx] Message', 'arg1', 42, {
+        data: true,
+      });
     });
   });
 
@@ -204,7 +206,7 @@ describe('logger', () => {
       logger.configure({
         level: LogLevel.WARN,
         timestamps: true,
-        enabled: true
+        enabled: true,
       });
 
       const config = logger.getConfig();
@@ -264,7 +266,7 @@ describe('logger', () => {
       logger.configure({
         level: LogLevel.WARN,
         timestamps: false,
-        enabled: true
+        enabled: true,
       });
 
       logger.debug('Debug info');

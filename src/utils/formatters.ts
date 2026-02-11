@@ -39,11 +39,13 @@ export function formatDateTime(date: Date): string {
  * @returns Formatted string like "1.5 MB"
  */
 export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) {
+    return '0 B';
+  }
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 }
 
 /**
@@ -62,9 +64,7 @@ export function extractTextPreview(
     const content = JSON.parse(contentJson);
     if (content.ops && Array.isArray(content.ops)) {
       const text = content.ops
-        .map((op: { insert?: string | object }) =>
-          typeof op.insert === 'string' ? op.insert : ''
-        )
+        .map((op: { insert?: string | object }) => (typeof op.insert === 'string' ? op.insert : ''))
         .join('')
         .trim()
         .replace(/\n+/g, ' ');
@@ -78,7 +78,7 @@ export function extractTextPreview(
       }
       return text;
     }
-  } catch (e) {
+  } catch (_e) {
     // Invalid JSON, return empty text
   }
   return emptyText;
@@ -179,7 +179,11 @@ export function getFileIconSvg(mimeType: string): string {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
     </svg>`;
-  } else if (mimeType.includes('zip') || mimeType.includes('archive') || mimeType.includes('compressed')) {
+  } else if (
+    mimeType.includes('zip') ||
+    mimeType.includes('archive') ||
+    mimeType.includes('compressed')
+  ) {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
     </svg>`;

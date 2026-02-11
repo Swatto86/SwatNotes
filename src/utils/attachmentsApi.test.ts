@@ -10,13 +10,13 @@ import {
   getAttachmentData,
   deleteAttachment,
   readFileAsBytes,
-  createDataUrl
+  createDataUrl,
 } from './attachmentsApi';
 import type { Attachment } from '../types';
 
 // Mock Tauri invoke
 vi.mock('@tauri-apps/api/core', () => ({
-  invoke: vi.fn()
+  invoke: vi.fn(),
 }));
 
 describe('attachmentsApi', () => {
@@ -34,7 +34,7 @@ describe('attachmentsApi', () => {
         size: 100,
         size_bytes: 100,
         blob_hash: 'abc123',
-        created_at: '2024-01-01T00:00:00Z'
+        created_at: '2024-01-01T00:00:00Z',
       };
 
       vi.mocked(invoke).mockResolvedValue(mockAttachment);
@@ -46,7 +46,7 @@ describe('attachmentsApi', () => {
         noteId: 'note-id',
         filename: 'test.txt',
         mimeType: 'text/plain',
-        data: Array.from(data)
+        data: Array.from(data),
       });
       expect(result).toEqual(mockAttachment);
     });
@@ -73,7 +73,7 @@ describe('attachmentsApi', () => {
           size: 100,
           size_bytes: 100,
           blob_hash: 'hash1',
-          created_at: '2024-01-01T00:00:00Z'
+          created_at: '2024-01-01T00:00:00Z',
         },
         {
           id: 'att-2',
@@ -83,8 +83,8 @@ describe('attachmentsApi', () => {
           size: 5000,
           size_bytes: 5000,
           blob_hash: 'hash2',
-          created_at: '2024-01-01T00:01:00Z'
-        }
+          created_at: '2024-01-01T00:01:00Z',
+        },
       ];
 
       vi.mocked(invoke).mockResolvedValue(mockAttachments);

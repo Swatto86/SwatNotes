@@ -9,7 +9,7 @@ vi.mock('../components/noteEditor', () => ({
   NoteEditorInstance: {},
 }));
 
-import { appState, AppStateData } from './appState';
+import { appState } from './appState';
 import type { Note } from '../types';
 import type { NoteEditorInstance } from '../components/noteEditor';
 

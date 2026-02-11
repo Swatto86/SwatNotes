@@ -29,7 +29,7 @@ export function showAlert(message: string, options: Partial<ModalOptions> = {}):
       onConfirm: () => {
         closeModal(modal);
         resolve();
-      }
+      },
     });
     document.body.appendChild(modal);
     showModal(modal);
@@ -39,7 +39,10 @@ export function showAlert(message: string, options: Partial<ModalOptions> = {}):
 /**
  * Show a custom confirm modal
  */
-export function showConfirm(message: string, options: Partial<ModalOptions> = {}): Promise<boolean> {
+export function showConfirm(
+  message: string,
+  options: Partial<ModalOptions> = {}
+): Promise<boolean> {
   return new Promise((resolve) => {
     const modal = createModal({
       title: options.title || 'Confirm',
@@ -54,7 +57,7 @@ export function showConfirm(message: string, options: Partial<ModalOptions> = {}
       onCancel: () => {
         closeModal(modal);
         resolve(false);
-      }
+      },
     });
     document.body.appendChild(modal);
     showModal(modal);
@@ -64,7 +67,10 @@ export function showConfirm(message: string, options: Partial<ModalOptions> = {}
 /**
  * Show a custom prompt modal
  */
-export function showPrompt(message: string, options: Partial<ModalOptions> = {}): Promise<string | null> {
+export function showPrompt(
+  message: string,
+  options: Partial<ModalOptions> = {}
+): Promise<string | null> {
   return new Promise((resolve) => {
     let inputElement: HTMLInputElement;
 
@@ -86,7 +92,7 @@ export function showPrompt(message: string, options: Partial<ModalOptions> = {})
       },
       onInputCreated: (input) => {
         inputElement = input;
-      }
+      },
     });
     document.body.appendChild(modal);
     showModal(modal);
@@ -110,7 +116,7 @@ function createModal(options: CreateModalOptions): HTMLElement {
     info: 'alert-info',
     warning: 'alert-warning',
     error: 'alert-error',
-    success: 'alert-success'
+    success: 'alert-success',
   }[options.type || 'info'];
 
   // Create modal HTML
@@ -124,7 +130,9 @@ function createModal(options: CreateModalOptions): HTMLElement {
       <div class="alert ${alertClass} mb-4">
         <span>${escapeHtml(options.message).replace(/\n/g, '<br>')}</span>
       </div>
-      ${options.input ? `
+      ${
+        options.input
+          ? `
         <input
           type="${options.input.type || 'text'}"
           placeholder="${escapeHtml(options.input.placeholder || '')}"
@@ -132,13 +140,19 @@ function createModal(options: CreateModalOptions): HTMLElement {
           class="input input-bordered w-full mb-4"
           id="${modalId}-input"
         />
-      ` : ''}
+      `
+          : ''
+      }
       <div class="modal-action">
-        ${options.onCancel ? `
+        ${
+          options.onCancel
+            ? `
           <button class="btn btn-ghost" id="${modalId}-cancel">
             ${escapeHtml(options.cancelText || 'Cancel')}
           </button>
-        ` : ''}
+        `
+            : ''
+        }
         <button class="btn btn-primary" id="${modalId}-confirm">
           ${escapeHtml(options.confirmText || 'OK')}
         </button>

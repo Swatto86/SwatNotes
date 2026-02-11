@@ -29,6 +29,15 @@ impl Repository {
         tracing::info!("Database connection pool closed");
     }
 
+    /// Checkpoint the WAL (Write-Ahead Log) so all data is flushed to the main DB file.
+    /// This must be called before reading the raw DB file for backup.
+    pub async fn checkpoint_wal(&self) -> Result<()> {
+        sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
     /// Create a new note
     pub async fn create_note(&self, req: CreateNoteRequest) -> Result<Note> {
         let id = Uuid::new_v4().to_string();

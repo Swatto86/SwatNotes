@@ -10,8 +10,8 @@ vi.mock('./logger', () => ({
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
-    error: vi.fn()
-  }
+    error: vi.fn(),
+  },
 }));
 
 describe('settings', () => {
@@ -35,8 +35,8 @@ describe('settings', () => {
         delete mockStorage[key];
       }),
       clear: vi.fn(() => {
-        Object.keys(mockStorage).forEach(key => delete mockStorage[key]);
-      })
+        Object.keys(mockStorage).forEach((key) => delete mockStorage[key]);
+      }),
     });
   });
 
@@ -62,7 +62,7 @@ describe('settings', () => {
     it('should load stored settings', async () => {
       const storedSettings = {
         startHidden: false,
-        autoSaveDelay: 2000
+        autoSaveDelay: 2000,
       };
       mockStorage['swatnotes-settings'] = JSON.stringify(storedSettings);
 
@@ -76,7 +76,7 @@ describe('settings', () => {
 
     it('should merge stored settings with defaults', async () => {
       const partialSettings = {
-        backupFrequency: 'hourly'
+        backupFrequency: 'hourly',
       };
       mockStorage['swatnotes-settings'] = JSON.stringify(partialSettings);
 
@@ -118,7 +118,7 @@ describe('settings', () => {
         autoSaveDelay: 500,
         autoBackupEnabled: true,
         backupFrequency: 'weekly' as const,
-        backupRetentionDays: 60
+        backupRetentionDays: 60,
       };
 
       saveSettings(settings);
@@ -138,7 +138,7 @@ describe('settings', () => {
         autoSaveDelay: 1500,
         autoBackupEnabled: true,
         backupFrequency: 'hourly' as const,
-        backupRetentionDays: 7
+        backupRetentionDays: 7,
       };
 
       saveSettings(settings);
@@ -157,7 +157,7 @@ describe('settings', () => {
         autoSaveDelay: 3000,
         autoBackupEnabled: true,
         backupFrequency: 'weekly',
-        backupRetentionDays: 14
+        backupRetentionDays: 14,
       };
       mockStorage['swatnotes-settings'] = JSON.stringify(settings);
 
@@ -197,7 +197,7 @@ describe('settings', () => {
         autoSaveDelay: 500,
         autoBackupEnabled: true,
         backupFrequency: 'hourly' as const,
-        backupRetentionDays: 7
+        backupRetentionDays: 7,
       };
       saveSettings(initial);
 
@@ -241,7 +241,7 @@ describe('settings', () => {
         autoSaveDelay: 5000,
         autoBackupEnabled: true,
         backupFrequency: 'hourly',
-        backupRetentionDays: 365
+        backupRetentionDays: 365,
       });
 
       const reset = resetSettings();
@@ -267,7 +267,7 @@ describe('settings', () => {
         autoSaveDelay: 1000,
         autoBackupEnabled: false,
         backupFrequency: 'daily',
-        backupRetentionDays: 30
+        backupRetentionDays: 30,
       });
     });
 
@@ -281,7 +281,7 @@ describe('settings', () => {
         autoSaveDelay: 9999,
         autoBackupEnabled: true,
         backupFrequency: 'weekly',
-        backupRetentionDays: 1
+        backupRetentionDays: 1,
       });
 
       resetSettings();

@@ -17,7 +17,7 @@ const LOG_CONTEXT = 'QuillBlots';
 
 // Get the base classes from Quill
 const BlockEmbed = Quill.import('blots/block/embed') as any;
-const Inline = Quill.import('blots/inline') as any;
+const _Inline = Quill.import('blots/inline') as any;
 
 /**
  * Attachment Image Blot

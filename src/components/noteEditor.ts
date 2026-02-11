@@ -10,17 +10,17 @@ import { updateNote } from '../utils/notesApi';
 import {
   createAttachment,
   listAttachments,
-  getAttachmentData,
   deleteAttachment,
-  createDataUrl,
   readFileAsBytes,
 } from '../utils/attachmentsApi';
 import { createReminder, listActiveReminders, deleteReminder } from '../utils/remindersApi';
-import { listCollections, updateNoteCollection, createCollection, COLLECTION_COLORS } from '../utils/collectionsApi';
 import {
-  registerAttachmentBlots,
-  insertInlineAttachment,
-} from '../utils/quillAttachmentBlots';
+  listCollections,
+  updateNoteCollection,
+  createCollection,
+  COLLECTION_COLORS,
+} from '../utils/collectionsApi';
+import { registerAttachmentBlots, insertInlineAttachment } from '../utils/quillAttachmentBlots';
 import type { Note, Attachment, Reminder, Collection } from '../types';
 import { showAlert, showPrompt } from '../utils/modal';
 import { logger } from '../utils/logger';
@@ -104,14 +104,14 @@ function setupQuillEditor(element: HTMLElement, note: Note): Quill {
     placeholder: 'Start writing...',
     modules: {
       toolbar: [
-        [{ 'header': [1, 2, 3, false] }],
+        [{ header: [1, 2, 3, false] }],
         ['bold', 'italic', 'underline', 'strike'],
-        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-        [{ 'color': [] }, { 'background': [] }],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        [{ color: [] }, { background: [] }],
         ['link', 'blockquote', 'code-block'],
-        ['clean']
-      ]
-    }
+        ['clean'],
+      ],
+    },
   });
 
   // Load initial content
@@ -141,10 +141,14 @@ function setupAutosave(
   note: Note,
   titleState: TitleState,
   onSave?: (note: Note) => void
-): { debouncedSave: () => Promise<void>; saveImmediately: () => Promise<void>; state: AutosaveState } {
+): {
+  debouncedSave: () => Promise<void>;
+  saveImmediately: () => Promise<void>;
+  state: AutosaveState;
+} {
   const state: AutosaveState = {
     saveTimeout: null,
-    isSaving: false
+    isSaving: false,
   };
 
   const isNoteEmpty = (): boolean => {
@@ -161,9 +165,13 @@ function setupAutosave(
   };
 
   const debouncedSave = async (): Promise<void> => {
-    if (state.isSaving) return;
+    if (state.isSaving) {
+      return;
+    }
 
-    if (state.saveTimeout) clearTimeout(state.saveTimeout);
+    if (state.saveTimeout) {
+      clearTimeout(state.saveTimeout);
+    }
 
     state.saveTimeout = setTimeout(async () => {
       // Don't save empty notes
@@ -213,7 +221,9 @@ function setupAutosave(
   };
 
   const saveImmediately = async (): Promise<void> => {
-    if (state.saveTimeout) clearTimeout(state.saveTimeout);
+    if (state.saveTimeout) {
+      clearTimeout(state.saveTimeout);
+    }
     if (!state.isSaving && !isNoteEmpty()) {
       await debouncedSave();
     }
@@ -278,13 +288,16 @@ function setupAttachments(
   // Load and display attachments
   async function loadAttachments(): Promise<void> {
     const attachmentsList = document.getElementById('attachments-list');
-    if (!attachmentsList) return;
+    if (!attachmentsList) {
+      return;
+    }
 
     try {
       const attachments: Attachment[] = await listAttachments(note.id);
 
       if (attachments.length === 0) {
-        attachmentsList.innerHTML = '<p class="text-base-content/50 text-sm">No attachments yet. Paste images or add files.</p>';
+        attachmentsList.innerHTML =
+          '<p class="text-base-content/50 text-sm">No attachments yet. Paste images or add files.</p>';
         return;
       }
 
@@ -324,7 +337,8 @@ function setupAttachments(
   }
 
   async function handleFileUpload(file: File | Blob, filename?: string): Promise<void> {
-    const actualFilename = filename || (file instanceof File ? file.name : `pasted-image-${Date.now()}.png`);
+    const actualFilename =
+      filename || (file instanceof File ? file.name : `pasted-image-${Date.now()}.png`);
     const mimeType = file.type || 'application/octet-stream';
 
     try {
@@ -362,8 +376,10 @@ function setupAttachments(
   // Clipboard paste handler for images and smart text formatting
   const pasteHandler = async (e: ClipboardEvent) => {
     const clipboardData = e.clipboardData || (window as any).clipboardData;
-    if (!clipboardData) return;
-    
+    if (!clipboardData) {
+      return;
+    }
+
     const items = clipboardData.items;
 
     // Check for images first - handle them specially
@@ -377,7 +393,7 @@ function setupAttachments(
         return;
       }
     }
-    
+
     // Try smart paste for plain text (detect titles, lists, URLs, etc.)
     try {
       if (applySmartPaste(quill, clipboardData)) {
@@ -416,7 +432,9 @@ function setupAttachments(
     }
 
     const files = e.dataTransfer?.files;
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0) {
+      return;
+    }
 
     for (const file of Array.from(files)) {
       await handleFileUpload(file);
@@ -441,14 +459,18 @@ function setupAttachments(
   const fileChangeHandler = async (e: Event) => {
     const target = e.target as HTMLInputElement;
     const files = target.files;
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0) {
+      return;
+    }
 
     for (const file of Array.from(files)) {
       await handleFileUpload(file);
     }
 
     // Clear input
-    if (fileInput) fileInput.value = '';
+    if (fileInput) {
+      fileInput.value = '';
+    }
   };
 
   if (fileInput) {
@@ -458,7 +480,7 @@ function setupAttachments(
 
   // Cleanup function to remove all event listeners
   const cleanup = () => {
-    cleanupFunctions.forEach(fn => fn());
+    cleanupFunctions.forEach((fn) => fn());
   };
 
   return { loadAttachments, cleanup };
@@ -480,7 +502,9 @@ function setupReminders(note: Note): { loadReminders: () => Promise<void> } {
 
   // Set minimum datetime to now
   const now = new Date();
-  const localDatetime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const localDatetime = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 16);
   if (reminderDatetime) {
     reminderDatetime.min = localDatetime;
   }
@@ -488,14 +512,17 @@ function setupReminders(note: Note): { loadReminders: () => Promise<void> } {
   // Load and display reminders
   async function loadReminders(): Promise<void> {
     const remindersList = document.getElementById('reminders-list');
-    if (!remindersList) return;
+    if (!remindersList) {
+      return;
+    }
 
     try {
       const allReminders: Reminder[] = await listActiveReminders();
       const noteReminders = allReminders.filter((r: Reminder) => r.note_id === note.id);
 
       if (noteReminders.length === 0) {
-        remindersList.innerHTML = '<p class="text-base-content/50 text-sm">No active reminders.</p>';
+        remindersList.innerHTML =
+          '<p class="text-base-content/50 text-sm">No active reminders.</p>';
         return;
       }
 
@@ -547,7 +574,9 @@ function setupReminders(note: Note): { loadReminders: () => Promise<void> } {
     }
     // Reset settings toggle when opening the form
     const settingsToggle = document.getElementById('reminder-settings-toggle') as HTMLInputElement;
-    if (settingsToggle) settingsToggle.checked = false;
+    if (settingsToggle) {
+      settingsToggle.checked = false;
+    }
   });
 
   cancelReminderBtn?.addEventListener('click', () => {
@@ -563,22 +592,26 @@ function setupReminders(note: Note): { loadReminders: () => Promise<void> } {
 
     try {
       const triggerDate = new Date(datetimeValue);
-      
+
       // Check if settings panel was opened (user wants custom settings)
-      const settingsToggle = document.getElementById('reminder-settings-toggle') as HTMLInputElement;
+      const settingsToggle = document.getElementById(
+        'reminder-settings-toggle'
+      ) as HTMLInputElement;
       const soundEnabled = document.getElementById('reminder-sound-enabled') as HTMLInputElement;
       const soundType = document.getElementById('reminder-sound-type') as HTMLSelectElement;
       const shakeEnabled = document.getElementById('reminder-shake-enabled') as HTMLInputElement;
       const glowEnabled = document.getElementById('reminder-glow-enabled') as HTMLInputElement;
-      
+
       // Only pass custom settings if the user opened the settings panel
-      const settings = settingsToggle?.checked ? {
-        sound_enabled: soundEnabled?.checked,
-        sound_type: soundType?.value,
-        shake_enabled: shakeEnabled?.checked,
-        glow_enabled: glowEnabled?.checked,
-      } : undefined;
-      
+      const settings = settingsToggle?.checked
+        ? {
+            sound_enabled: soundEnabled?.checked,
+            sound_type: soundType?.value,
+            shake_enabled: shakeEnabled?.checked,
+            glow_enabled: glowEnabled?.checked,
+          }
+        : undefined;
+
       await createReminder(note.id, triggerDate, settings);
       reminderForm?.classList.add('hidden');
       await loadReminders();
@@ -605,7 +638,9 @@ function setupCollectionSelector(
   const collectionSelect = document.getElementById('collection-select') as HTMLSelectElement;
 
   async function loadCollections(): Promise<void> {
-    if (!collectionSelect) return;
+    if (!collectionSelect) {
+      return;
+    }
 
     try {
       const collections: Collection[] = await listCollections();
@@ -628,7 +663,7 @@ function setupCollectionSelector(
 
   function updateCollectionIndicator(collections: Collection[]): void {
     const selectedValue = collectionSelect?.value;
-    const collection = collections.find(c => c.id === selectedValue);
+    const collection = collections.find((c) => c.id === selectedValue);
 
     // Add or update color indicator
     const existingIndicator = document.getElementById('collection-color-indicator');
@@ -673,7 +708,7 @@ function setupCollectionSelector(
   addCollectionBtn?.addEventListener('click', async () => {
     const name = await showPrompt('Enter collection name:', {
       title: 'New Collection',
-      input: { type: 'text', placeholder: 'Collection name' }
+      input: { type: 'text', placeholder: 'Collection name' },
     });
 
     if (name && name.trim()) {
@@ -892,7 +927,7 @@ export function createNoteEditor(
   // Initialize title state
   const titleState: TitleState = {
     isManuallyModified: note.title_modified,
-    lastAutoTitle: note.title
+    lastAutoTitle: note.title,
   };
 
   // Setup Quill editor
@@ -910,7 +945,11 @@ export function createNoteEditor(
   );
 
   // Setup attachments
-  const { loadAttachments, cleanup: cleanupAttachments } = setupAttachments(quill, note, saveStatus);
+  const { loadAttachments, cleanup: cleanupAttachments } = setupAttachments(
+    quill,
+    note,
+    saveStatus
+  );
 
   // Setup reminders
   const { loadReminders } = setupReminders(note);
@@ -963,9 +1002,15 @@ export function createNoteEditor(
   return {
     quill,
     destroy() {
-      if (autosaveState.saveTimeout) clearTimeout(autosaveState.saveTimeout);
+      if (autosaveState.saveTimeout) {
+        clearTimeout(autosaveState.saveTimeout);
+      }
       // Perform final save if needed (and note is not empty)
-      if (!isNoteEmpty() && (titleInput.value !== note.title || JSON.stringify(quill.getContents()) !== note.content_json)) {
+      if (
+        !isNoteEmpty() &&
+        (titleInput.value !== note.title ||
+          JSON.stringify(quill.getContents()) !== note.content_json)
+      ) {
         saveImmediately();
       }
       // Clean up event listeners to prevent memory leaks

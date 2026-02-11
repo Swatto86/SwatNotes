@@ -8,15 +8,15 @@ import type { Note } from '../types';
 
 // Mock dependencies
 vi.mock('@tauri-apps/api/core', () => ({
-  invoke: vi.fn()
+  invoke: vi.fn(),
 }));
 
 vi.mock('../utils/notesApi', () => ({
-  listNotes: vi.fn()
+  listNotes: vi.fn(),
 }));
 
 vi.mock('../utils/modal', () => ({
-  showAlert: vi.fn()
+  showAlert: vi.fn(),
 }));
 
 vi.mock('../utils/logger', () => ({
@@ -24,8 +24,8 @@ vi.mock('../utils/logger', () => ({
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
-    error: vi.fn()
-  }
+    error: vi.fn(),
+  },
 }));
 
 // Import after mocks
@@ -44,7 +44,7 @@ function createMockNote(overrides: Partial<Note> = {}): Note {
     deleted_at: null,
     title_modified: false,
     collection_id: null,
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -80,7 +80,7 @@ describe('notesList', () => {
     it('should render notes list when notes exist', async () => {
       const mockNotes = [
         createMockNote({ id: 'note-1', title: 'First Note' }),
-        createMockNote({ id: 'note-2', title: 'Second Note' })
+        createMockNote({ id: 'note-2', title: 'Second Note' }),
       ];
       vi.mocked(listNotes).mockResolvedValue(mockNotes);
 
@@ -122,7 +122,7 @@ describe('notesList', () => {
       popoutBtn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
       // Wait for async handler
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       // onNoteClick should NOT be called because click was on popout button (stopPropagation)
       expect(onNoteClick).not.toHaveBeenCalled();
@@ -131,7 +131,7 @@ describe('notesList', () => {
     it('should render text preview from content_json', async () => {
       const mockNote = createMockNote({
         id: 'note-1',
-        content_json: '{"ops":[{"insert":"This is preview text\\n"}]}'
+        content_json: '{"ops":[{"insert":"This is preview text\\n"}]}',
       });
       vi.mocked(listNotes).mockResolvedValue([mockNote]);
 
@@ -143,7 +143,7 @@ describe('notesList', () => {
     it('should escape HTML in note title', async () => {
       const mockNote = createMockNote({
         id: 'note-1',
-        title: '<script>alert("xss")</script>'
+        title: '<script>alert("xss")</script>',
       });
       vi.mocked(listNotes).mockResolvedValue([mockNote]);
 
@@ -208,7 +208,7 @@ describe('notesList', () => {
       popoutBtn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
       // Wait for async handler
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       expect(invoke).toHaveBeenCalledWith('open_note_window', { noteId: 'note-1' });
     });

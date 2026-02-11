@@ -14,13 +14,13 @@ import {
   listNotesInCollection,
   listUncategorizedNotes,
   countNotesInCollection,
-  COLLECTION_COLORS
+  COLLECTION_COLORS,
 } from './collectionsApi';
 import type { Collection, Note } from '../types';
 
 // Mock Tauri invoke
 vi.mock('@tauri-apps/api/core', () => ({
-  invoke: vi.fn()
+  invoke: vi.fn(),
 }));
 
 // Mock data factories
@@ -34,7 +34,7 @@ function createMockCollection(overrides: Partial<Collection> = {}): Collection {
     sort_order: 1,
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -48,7 +48,7 @@ function createMockNote(overrides: Partial<Note> = {}): Note {
     deleted_at: null,
     title_modified: false,
     collection_id: null,
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -68,7 +68,7 @@ describe('collectionsApi', () => {
         name: 'My Collection',
         description: 'Description',
         color: '#EF4444',
-        icon: 'star'
+        icon: 'star',
       });
       expect(result).toEqual(mockCollection);
     });
@@ -83,7 +83,7 @@ describe('collectionsApi', () => {
         name: 'Simple Collection',
         description: undefined,
         color: undefined,
-        icon: undefined
+        icon: undefined,
       });
       expect(result.name).toBe('Simple Collection');
     });
@@ -118,7 +118,7 @@ describe('collectionsApi', () => {
       const mockCollections = [
         createMockCollection({ id: 'col-1', name: 'Work' }),
         createMockCollection({ id: 'col-2', name: 'Personal' }),
-        createMockCollection({ id: 'col-3', name: 'Ideas' })
+        createMockCollection({ id: 'col-3', name: 'Ideas' }),
       ];
       vi.mocked(invoke).mockResolvedValue(mockCollections);
 
@@ -146,7 +146,7 @@ describe('collectionsApi', () => {
 
       expect(invoke).toHaveBeenCalledWith('update_collection', {
         id: 'col-123',
-        name: 'Updated Name'
+        name: 'Updated Name',
       });
       expect(result.name).toBe('Updated Name');
     });
@@ -155,21 +155,21 @@ describe('collectionsApi', () => {
       const mockCollection = createMockCollection({
         name: 'New Name',
         color: '#22C55E',
-        description: 'New description'
+        description: 'New description',
       });
       vi.mocked(invoke).mockResolvedValue(mockCollection);
 
       await updateCollection('col-123', {
         name: 'New Name',
         color: '#22C55E',
-        description: 'New description'
+        description: 'New description',
       });
 
       expect(invoke).toHaveBeenCalledWith('update_collection', {
         id: 'col-123',
         name: 'New Name',
         color: '#22C55E',
-        description: 'New description'
+        description: 'New description',
       });
     });
 
@@ -181,7 +181,7 @@ describe('collectionsApi', () => {
 
       expect(invoke).toHaveBeenCalledWith('update_collection', {
         id: 'col-123',
-        sort_order: 5
+        sort_order: 5,
       });
     });
   });
@@ -211,7 +211,7 @@ describe('collectionsApi', () => {
 
       expect(invoke).toHaveBeenCalledWith('update_note_collection', {
         noteId: 'note-1',
-        collectionId: 'col-123'
+        collectionId: 'col-123',
       });
       expect(result.collection_id).toBe('col-123');
     });
@@ -224,7 +224,7 @@ describe('collectionsApi', () => {
 
       expect(invoke).toHaveBeenCalledWith('update_note_collection', {
         noteId: 'note-1',
-        collectionId: null
+        collectionId: null,
       });
       expect(result.collection_id).toBeNull();
     });
@@ -234,7 +234,7 @@ describe('collectionsApi', () => {
     it('should list notes in a collection', async () => {
       const mockNotes = [
         createMockNote({ id: 'note-1', collection_id: 'col-1' }),
-        createMockNote({ id: 'note-2', collection_id: 'col-1' })
+        createMockNote({ id: 'note-2', collection_id: 'col-1' }),
       ];
       vi.mocked(invoke).mockResolvedValue(mockNotes);
 
@@ -257,7 +257,7 @@ describe('collectionsApi', () => {
     it('should list notes without a collection', async () => {
       const mockNotes = [
         createMockNote({ id: 'note-1', collection_id: null }),
-        createMockNote({ id: 'note-2', collection_id: null })
+        createMockNote({ id: 'note-2', collection_id: null }),
       ];
       vi.mocked(invoke).mockResolvedValue(mockNotes);
 
@@ -265,7 +265,7 @@ describe('collectionsApi', () => {
 
       expect(invoke).toHaveBeenCalledWith('list_uncategorized_notes');
       expect(result).toHaveLength(2);
-      expect(result.every(n => n.collection_id === null)).toBe(true);
+      expect(result.every((n) => n.collection_id === null)).toBe(true);
     });
   });
 
@@ -292,7 +292,7 @@ describe('collectionsApi', () => {
     it('should have valid hex color codes', () => {
       const hexColorRegex = /^#[0-9A-Fa-f]{6}$/;
 
-      COLLECTION_COLORS.forEach(color => {
+      COLLECTION_COLORS.forEach((color) => {
         expect(color).toMatch(hexColorRegex);
       });
     });

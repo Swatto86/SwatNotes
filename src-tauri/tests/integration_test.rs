@@ -74,9 +74,12 @@ async fn test_note_crud_operations() {
     // Delete note (soft delete)
     notes_service.delete_note(&note.id).await.unwrap();
 
-    // Verify deleted
-    let deleted_note = notes_service.get_note(&note.id).await.unwrap();
-    assert!(deleted_note.deleted_at.is_some());
+    // Verify deleted - get_note filters out soft-deleted notes, so it should return NoteNotFound
+    let deleted_result = notes_service.get_note(&note.id).await;
+    assert!(
+        deleted_result.is_err(),
+        "get_note should return error for soft-deleted note"
+    );
 
     // List should be empty (soft-deleted notes aren't listed)
     let notes = notes_service.list_notes().await.unwrap();
@@ -160,7 +163,7 @@ async fn test_backup_and_restore_workflow() {
     let temp_dir = TempDir::new().unwrap();
     let app_data_dir = temp_dir.path().to_path_buf();
 
-    let db_path = app_data_dir.join("test.db");
+    let db_path = app_data_dir.join("db.sqlite");
     let pool = create_pool(&db_path).await.unwrap();
     let repo = Repository::new(pool);
 
@@ -206,6 +209,11 @@ async fn test_backup_and_restore_workflow() {
         .await
         .unwrap();
 
+    // After restore, the original pool is closed. Reconnect to verify.
+    let pool = create_pool(&db_path).await.unwrap();
+    let repo = Repository::new(pool);
+    let notes_service = NotesService::new(repo);
+
     // Verify notes are restored
     let restored_notes = notes_service.list_notes().await.unwrap();
     assert_eq!(restored_notes.len(), 2, "Both notes should be restored");
@@ -227,7 +235,14 @@ async fn test_backup_with_wrong_password() {
     let blob_store = BlobStore::new(app_data_dir.join("blobs"));
     blob_store.initialize().await.unwrap();
 
+    let notes_service = NotesService::new(repo.clone());
     let backup_service = BackupService::new(repo, blob_store, app_data_dir.clone());
+
+    // Must create at least one note before backup
+    notes_service
+        .create_note("Test Note".to_string(), "{}".to_string())
+        .await
+        .unwrap();
 
     // Create backup
     let correct_password = "correct_password";
@@ -257,11 +272,18 @@ async fn test_list_backups() {
     let blob_store = BlobStore::new(app_data_dir.join("blobs"));
     blob_store.initialize().await.unwrap();
 
+    let notes_service = NotesService::new(repo.clone());
     let backup_service = BackupService::new(repo, blob_store, app_data_dir.clone());
 
     // Initially no backups
     let backups = backup_service.list_backups().await.unwrap();
     assert_eq!(backups.len(), 0);
+
+    // Must create at least one note before backup
+    notes_service
+        .create_note("Test Note".to_string(), "{}".to_string())
+        .await
+        .unwrap();
 
     // Create a backup
     let password = "password";
@@ -400,7 +422,7 @@ async fn test_regression_backup_with_attachments() {
     let temp_dir = TempDir::new().unwrap();
     let app_data_dir = temp_dir.path().to_path_buf();
 
-    let db_path = app_data_dir.join("test.db");
+    let db_path = app_data_dir.join("db.sqlite");
     let pool = create_pool(&db_path).await.unwrap();
     let repo = Repository::new(pool);
 
@@ -444,6 +466,11 @@ async fn test_regression_backup_with_attachments() {
         .restore_backup(&backup_path, password)
         .await
         .unwrap();
+
+    // After restore, the original pool is closed. Reconnect to verify.
+    let pool = create_pool(&db_path).await.unwrap();
+    let repo = Repository::new(pool);
+    let notes_service = NotesService::new(repo.clone());
 
     // Verify attachment is restored
     let restored_notes = notes_service.list_notes().await.unwrap();

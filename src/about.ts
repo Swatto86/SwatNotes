@@ -13,7 +13,7 @@ import type { AppInfo, UpdateInfo } from './types';
 // Initialize about window
 document.addEventListener('DOMContentLoaded', async () => {
   let appDataDir = '';
-  
+
   // Get app info (includes data directory)
   try {
     const info = await invoke<AppInfo>('get_app_info');
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (err) {
     console.error('Failed to get app info:', err);
   }
-  
+
   // Set version
   try {
     const version = await getVersion();
@@ -57,16 +57,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Check for updates
   const checkUpdatesBtn = document.getElementById('check-for-updates-btn');
   const updateStatus = document.getElementById('update-status');
-  
+
   checkUpdatesBtn?.addEventListener('click', async () => {
-    if (!updateStatus) return;
-    
+    if (!updateStatus) {
+      return;
+    }
+
     updateStatus.classList.remove('hidden', 'text-success', 'text-error', 'text-warning');
     updateStatus.textContent = 'Checking for updates...';
-    
+
     try {
       const result: UpdateInfo = await checkForUpdate();
-      
+
       if (result.available) {
         updateStatus.classList.add('text-warning');
         updateStatus.innerHTML = `Update available: <strong>v${result.version}</strong>`;

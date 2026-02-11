@@ -9,7 +9,7 @@ import type { Reminder } from '../types';
 
 // Mock Tauri invoke
 vi.mock('@tauri-apps/api/core', () => ({
-  invoke: vi.fn()
+  invoke: vi.fn(),
 }));
 
 describe('remindersApi', () => {
@@ -29,7 +29,7 @@ describe('remindersApi', () => {
         sound_enabled: null,
         sound_type: null,
         shake_enabled: null,
-        glow_enabled: null
+        glow_enabled: null,
       };
 
       vi.mocked(invoke).mockResolvedValue(mockReminder);
@@ -38,7 +38,11 @@ describe('remindersApi', () => {
 
       expect(invoke).toHaveBeenCalledWith('create_reminder', {
         noteId: 'note-id',
-        triggerTime: triggerDate.toISOString()
+        triggerTime: triggerDate.toISOString(),
+        soundEnabled: null,
+        soundType: null,
+        shakeEnabled: null,
+        glowEnabled: null,
       });
       expect(result).toEqual(mockReminder);
     });
@@ -65,7 +69,7 @@ describe('remindersApi', () => {
           sound_enabled: null,
           sound_type: null,
           shake_enabled: null,
-          glow_enabled: null
+          glow_enabled: null,
         },
         {
           id: 'reminder-2',
@@ -76,8 +80,8 @@ describe('remindersApi', () => {
           sound_enabled: null,
           sound_type: null,
           shake_enabled: null,
-          glow_enabled: null
-        }
+          glow_enabled: null,
+        },
       ];
 
       vi.mocked(invoke).mockResolvedValue(mockReminders);
@@ -87,7 +91,7 @@ describe('remindersApi', () => {
       expect(invoke).toHaveBeenCalledWith('list_active_reminders');
       expect(result).toEqual(mockReminders);
       expect(result).toHaveLength(2);
-      expect(result.every(r => r.triggered === false)).toBe(true);
+      expect(result.every((r) => r.triggered === false)).toBe(true);
     });
 
     it('should return empty array when no active reminders exist', async () => {

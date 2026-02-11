@@ -6,7 +6,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { LogicalPosition } from '@tauri-apps/api/dpi';
-import { listen, emit, Event } from '@tauri-apps/api/event';
+import { listen, emit } from '@tauri-apps/api/event';
 import Quill from 'quill';
 import type { Note, Reminder, ReminderSettings, Attachment } from './types';
 import { showAlert } from './utils/modal';
@@ -21,10 +21,7 @@ import {
   createDataUrl,
   readFileAsBytes,
 } from './utils/attachmentsApi';
-import {
-  registerAttachmentBlots,
-  insertInlineAttachment,
-} from './utils/quillAttachmentBlots';
+import { registerAttachmentBlots, insertInlineAttachment } from './utils/quillAttachmentBlots';
 import {
   escapeHtml,
   formatFileSize,
@@ -33,7 +30,12 @@ import {
 } from './utils/formatters';
 import { applySmartPaste } from './utils/smartPaste';
 import { playNotificationSound } from './utils/notificationSound';
-import { listCollections, updateNoteCollection, createCollection, COLLECTION_COLORS } from './utils/collectionsApi';
+import {
+  listCollections,
+  updateNoteCollection,
+  createCollection,
+  COLLECTION_COLORS,
+} from './utils/collectionsApi';
 import { showPrompt } from './utils/modal';
 import type { Collection } from './types';
 
@@ -178,15 +180,15 @@ async function init(): Promise<void> {
       theme: 'snow',
       modules: {
         toolbar: [
-          [{ 'header': [1, 2, 3, false] }],
+          [{ header: [1, 2, 3, false] }],
           ['bold', 'italic', 'underline', 'strike'],
-          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-          [{ 'color': [] }, { 'background': [] }],
+          [{ list: 'ordered' }, { list: 'bullet' }],
+          [{ color: [] }, { background: [] }],
           ['link', 'blockquote', 'code-block'],
-          ['clean']
-        ]
+          ['clean'],
+        ],
       },
-      placeholder: 'Start typing...'
+      placeholder: 'Start typing...',
     });
 
     // Load content
@@ -221,7 +223,9 @@ async function init(): Promise<void> {
         updateTitleDisplay();
 
         // Debounce auto-save
-        if (saveTimeout) clearTimeout(saveTimeout);
+        if (saveTimeout) {
+          clearTimeout(saveTimeout);
+        }
         saveTimeout = setTimeout(async () => {
           await saveNote();
         }, 1000);
@@ -266,7 +270,6 @@ async function init(): Promise<void> {
     } catch (e) {
       logger.error('Failed to show window', LOG_CONTEXT, e);
     }
-
   } catch (error) {
     logger.error('Failed to load note', LOG_CONTEXT, error);
     showAlert('Failed to load note: ' + error, { title: 'Error', type: 'error' });
@@ -295,7 +298,9 @@ function setupTitleHandlers(): void {
       document.title = titleInput.value.trim() || 'Untitled';
 
       // Debounce save
-      if (saveTimeout) clearTimeout(saveTimeout);
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
       saveTimeout = setTimeout(async () => {
         await saveNote();
       }, 1000);
@@ -328,7 +333,9 @@ function setupTitleHandlers(): void {
       updateSaveStatus('saving');
 
       // Save immediately when toggling
-      if (saveTimeout) clearTimeout(saveTimeout);
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
       saveTimeout = setTimeout(async () => {
         await saveNote();
       }, 500);
@@ -341,10 +348,13 @@ function setupEventHandlers(): void {
   currentWindow.onFocusChanged(({ payload: focused }) => {
     logger.debug(`Focus changed: ${focused} for window: ${windowLabel}`, LOG_CONTEXT);
     if (focused) {
-      logger.debug(`Window gained focus, setting last focused window to: ${windowLabel}`, LOG_CONTEXT);
+      logger.debug(
+        `Window gained focus, setting last focused window to: ${windowLabel}`,
+        LOG_CONTEXT
+      );
       invoke('set_last_focused_note_window', { windowLabel: windowLabel })
         .then(() => logger.debug('Successfully set last focused window', LOG_CONTEXT))
-        .catch(err => logger.error('Failed to set last focused window', LOG_CONTEXT, err));
+        .catch((err) => logger.error('Failed to set last focused window', LOG_CONTEXT, err));
     }
   });
 
@@ -397,7 +407,7 @@ function setupEventHandlers(): void {
 
     // Use current title for confirmation
     const titleInput = document.getElementById('note-title') as HTMLInputElement;
-    const noteTitle = titleInput?.value.trim() || generateTitleFromContent(editor);
+    const _noteTitle = titleInput?.value.trim() || generateTitleFromContent(editor);
 
     logger.info(`Deleting note: ${noteId}`, LOG_CONTEXT);
     try {
@@ -445,7 +455,9 @@ function setupEventHandlers(): void {
 }
 
 async function saveNote(): Promise<void> {
-  if (!isDirty || !editor || !currentNote) return;
+  if (!isDirty || !editor || !currentNote) {
+    return;
+  }
 
   // Don't save empty notes
   if (isNoteEmpty(editor)) {
@@ -492,7 +504,9 @@ async function saveNote(): Promise<void> {
 
 function updateSaveStatus(status: 'saving' | 'saved' | 'error'): void {
   const statusEl = document.getElementById('save-status');
-  if (!statusEl) return;
+  if (!statusEl) {
+    return;
+  }
 
   switch (status) {
     case 'saving':
@@ -519,7 +533,9 @@ function setupReminderHandlers(): void {
 
   // Set minimum datetime to now
   const now = new Date();
-  const localDatetime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const localDatetime = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 16);
   if (reminderDatetime) {
     reminderDatetime.min = localDatetime;
   }
@@ -551,27 +567,33 @@ function setupReminderHandlers(): void {
 
     try {
       const triggerDate = new Date(reminderDatetime.value);
-      
+
       // Check if settings panel was opened (user wants custom settings)
-      const settingsToggle = document.getElementById('reminder-settings-toggle') as HTMLInputElement;
+      const settingsToggle = document.getElementById(
+        'reminder-settings-toggle'
+      ) as HTMLInputElement;
       const soundEnabled = document.getElementById('reminder-sound-enabled') as HTMLInputElement;
       const soundType = document.getElementById('reminder-sound-type') as HTMLSelectElement;
       const shakeEnabled = document.getElementById('reminder-shake-enabled') as HTMLInputElement;
       const glowEnabled = document.getElementById('reminder-glow-enabled') as HTMLInputElement;
-      
+
       // Only pass custom settings if the user opened the settings panel
-      const settings = settingsToggle?.checked ? {
-        sound_enabled: soundEnabled?.checked,
-        sound_type: soundType?.value,
-        shake_enabled: shakeEnabled?.checked,
-        glow_enabled: glowEnabled?.checked,
-      } : undefined;
-      
+      const settings = settingsToggle?.checked
+        ? {
+            sound_enabled: soundEnabled?.checked,
+            sound_type: soundType?.value,
+            shake_enabled: shakeEnabled?.checked,
+            glow_enabled: glowEnabled?.checked,
+          }
+        : undefined;
+
       await createReminder(noteId!, triggerDate, settings);
       reminderModal?.close();
-      
+
       // Reset the settings panel for next time
-      if (settingsToggle) settingsToggle.checked = false;
+      if (settingsToggle) {
+        settingsToggle.checked = false;
+      }
     } catch (error) {
       logger.error('Failed to create reminder', LOG_CONTEXT, error);
       await showAlert('Failed to create reminder: ' + error, { title: 'Error', type: 'error' });
@@ -581,14 +603,17 @@ function setupReminderHandlers(): void {
 
 async function loadReminders(): Promise<void> {
   const activeRemindersDiv = document.getElementById('active-reminders');
-  if (!activeRemindersDiv || !noteId) return;
+  if (!activeRemindersDiv || !noteId) {
+    return;
+  }
 
   try {
     const allReminders: Reminder[] = await listActiveReminders();
     const noteReminders = allReminders.filter((r: Reminder) => r.note_id === noteId);
 
     if (noteReminders.length === 0) {
-      activeRemindersDiv.innerHTML = '<p class="text-base-content/50 text-sm">No active reminders for this note.</p>';
+      activeRemindersDiv.innerHTML =
+        '<p class="text-base-content/50 text-sm">No active reminders for this note.</p>';
       return;
     }
 
@@ -617,7 +642,9 @@ async function loadReminders(): Promise<void> {
     activeRemindersDiv.querySelectorAll('.delete-reminder-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const reminderId = btn.getAttribute('data-reminder-id');
-        if (!reminderId) return;
+        if (!reminderId) {
+          return;
+        }
 
         try {
           await deleteReminder(reminderId);
@@ -651,9 +678,12 @@ function setupAttachmentHandlers(): void {
 
   // Helper function to upload file and insert inline
   async function handleFileUpload(file: File | Blob, filename?: string): Promise<void> {
-    if (!noteId || !editor) return;
+    if (!noteId || !editor) {
+      return;
+    }
 
-    const actualFilename = filename || (file instanceof File ? file.name : `pasted-image-${Date.now()}.png`);
+    const actualFilename =
+      filename || (file instanceof File ? file.name : `pasted-image-${Date.now()}.png`);
     const mimeType = file.type || 'application/octet-stream';
 
     try {
@@ -711,7 +741,9 @@ function setupAttachmentHandlers(): void {
   fileUploadInput?.addEventListener('change', async (e) => {
     const target = e.target as HTMLInputElement;
     const files = target.files;
-    if (!files || files.length === 0 || !noteId) return;
+    if (!files || files.length === 0 || !noteId) {
+      return;
+    }
 
     for (const file of Array.from(files)) {
       await handleFileUpload(file);
@@ -724,8 +756,10 @@ function setupAttachmentHandlers(): void {
   // Clipboard paste handler for images and smart text formatting
   const pasteHandler = async (e: ClipboardEvent) => {
     const clipboardData = e.clipboardData || (window as any).clipboardData;
-    if (!clipboardData) return;
-    
+    if (!clipboardData) {
+      return;
+    }
+
     const items = clipboardData.items;
 
     // Check for images first - handle them specially
@@ -739,7 +773,7 @@ function setupAttachmentHandlers(): void {
         return;
       }
     }
-    
+
     // Try smart paste for plain text (detect titles, lists, URLs, etc.)
     if (editor) {
       try {
@@ -780,7 +814,9 @@ function setupAttachmentHandlers(): void {
     }
 
     const files = e.dataTransfer?.files;
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0) {
+      return;
+    }
 
     for (const file of Array.from(files)) {
       await handleFileUpload(file);
@@ -801,7 +837,9 @@ function setupAttachmentHandlers(): void {
 
 async function updateAttachmentsCount(): Promise<void> {
   const attachmentsCountSpan = document.getElementById('attachments-count');
-  if (!attachmentsCountSpan || !noteId) return;
+  if (!attachmentsCountSpan || !noteId) {
+    return;
+  }
 
   try {
     const attachments: Attachment[] = await listAttachments(noteId);
@@ -818,7 +856,9 @@ async function updateAttachmentsCount(): Promise<void> {
 
 async function loadAttachments(): Promise<void> {
   const attachmentsList = document.getElementById('attachments-list');
-  if (!attachmentsList || !noteId) return;
+  if (!attachmentsList || !noteId) {
+    return;
+  }
 
   try {
     const attachments: Attachment[] = await listAttachments(noteId);
@@ -827,7 +867,8 @@ async function loadAttachments(): Promise<void> {
     await updateAttachmentsCount();
 
     if (attachments.length === 0) {
-      attachmentsList.innerHTML = '<p class="text-base-content/50 text-sm text-center py-4">No attachments yet.<br>Add files using the button above.</p>';
+      attachmentsList.innerHTML =
+        '<p class="text-base-content/50 text-sm text-center py-4">No attachments yet.<br>Add files using the button above.</p>';
       return;
     }
 
@@ -859,7 +900,9 @@ async function loadAttachments(): Promise<void> {
         const mimeType = el.getAttribute('data-mime');
         const filename = el.getAttribute('data-filename');
 
-        if (!blobHash || !mimeType) return;
+        if (!blobHash || !mimeType) {
+          return;
+        }
 
         try {
           const data = await getAttachmentData(blobHash);
@@ -889,7 +932,9 @@ async function loadAttachments(): Promise<void> {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation(); // Prevent triggering view
         const id = btn.getAttribute('data-id');
-        if (!id) return;
+        if (!id) {
+          return;
+        }
 
         try {
           await deleteAttachment(id);
@@ -914,7 +959,9 @@ async function setupCollectionSelector(): Promise<void> {
   const collectionSelect = document.getElementById('collection-select') as HTMLSelectElement;
   const colorIndicator = document.getElementById('collection-color-indicator');
 
-  if (!collectionSelect || !currentNote) return;
+  if (!collectionSelect || !currentNote) {
+    return;
+  }
 
   async function loadCollections(): Promise<void> {
     try {
@@ -936,7 +983,7 @@ async function setupCollectionSelector(): Promise<void> {
 
   function updateColorIndicator(collections: Collection[]): void {
     const selectedValue = collectionSelect?.value;
-    const collection = collections.find(c => c.id === selectedValue);
+    const collection = collections.find((c) => c.id === selectedValue);
 
     if (colorIndicator) {
       if (collection) {
@@ -952,7 +999,9 @@ async function setupCollectionSelector(): Promise<void> {
   collectionSelect.addEventListener('change', async () => {
     const selectedValue = collectionSelect.value || null;
 
-    if (!noteId) return;
+    if (!noteId) {
+      return;
+    }
 
     try {
       const updatedNote = await updateNoteCollection(noteId, selectedValue);
@@ -979,7 +1028,7 @@ async function setupCollectionSelector(): Promise<void> {
   addCollectionBtn?.addEventListener('click', async () => {
     const name = await showPrompt('Enter collection name:', {
       title: 'New Collection',
-      input: { type: 'text', placeholder: 'Collection name' }
+      input: { type: 'text', placeholder: 'Collection name' },
     });
 
     if (name && name.trim()) {
@@ -1043,7 +1092,7 @@ async function setupReminderListener(): Promise<void> {
 
       // Reload global settings in case they changed (used as fallback)
       await loadReminderSettings();
-      
+
       // Determine effective settings: per-reminder overrides global
       const effectiveSoundEnabled = sound_enabled ?? reminderSettings.sound_enabled;
       const effectiveSoundType = sound_type ?? reminderSettings.sound_type;
@@ -1057,7 +1106,7 @@ async function setupReminderListener(): Promise<void> {
 
       // Add a small delay to ensure the window is fully visible and rendered
       // before applying visual effects. This ensures animations are visible.
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 150));
 
       // Apply visual and audio effects based on effective settings (per-reminder or global)
       try {
@@ -1132,8 +1181,10 @@ async function shakeWindow(): Promise<void> {
       const currentX = startX + (targetX - startX) * easedProgress;
       const currentY = startY + (targetY - startY) * easedProgress + arcOffset;
 
-      await currentWindow.setPosition(new LogicalPosition(Math.round(currentX), Math.round(currentY)));
-      await new Promise(resolve => setTimeout(resolve, frameDelay));
+      await currentWindow.setPosition(
+        new LogicalPosition(Math.round(currentX), Math.round(currentY))
+      );
+      await new Promise((resolve) => setTimeout(resolve, frameDelay));
     }
 
     // Quick bounce/wiggle at the end
@@ -1142,27 +1193,34 @@ async function shakeWindow(): Promise<void> {
       { x: -10, y: 8 },
       { x: 8, y: -5 },
       { x: -5, y: 3 },
-      { x: 0, y: 0 }
+      { x: 0, y: 0 },
     ];
 
     for (const offset of bounceFrames) {
       await currentWindow.setPosition(new LogicalPosition(targetX + offset.x, targetY + offset.y));
-      await new Promise(resolve => setTimeout(resolve, 40));
+      await new Promise((resolve) => setTimeout(resolve, 40));
     }
 
     // Ensure we end at exact center position
     await currentWindow.setPosition(new LogicalPosition(targetX, targetY));
-    logger.debug(`Window swoosh animation completed - centered at ${targetX}, ${targetY}`, LOG_CONTEXT);
+    logger.debug(
+      `Window swoosh animation completed - centered at ${targetX}, ${targetY}`,
+      LOG_CONTEXT
+    );
   } catch (error) {
     logger.error('Failed to animate window', LOG_CONTEXT, error);
   }
 }
 
 function startGlowEffect(): void {
-  if (isGlowing) return;
+  if (isGlowing) {
+    return;
+  }
 
   const container = document.getElementById('sticky-note-container');
-  if (!container) return;
+  if (!container) {
+    return;
+  }
 
   isGlowing = true;
   container.classList.add('reminder-glow');
@@ -1170,10 +1228,14 @@ function startGlowEffect(): void {
 }
 
 function stopGlowEffect(): void {
-  if (!isGlowing) return;
+  if (!isGlowing) {
+    return;
+  }
 
   const container = document.getElementById('sticky-note-container');
-  if (!container) return;
+  if (!container) {
+    return;
+  }
 
   isGlowing = false;
   container.classList.remove('reminder-glow');
@@ -1198,11 +1260,15 @@ function setupGlowStopListeners(): void {
   // Stop glow when editor gets focus
   const editorElement = document.getElementById('sticky-note-editor');
   if (editorElement) {
-    editorElement.addEventListener('focus', () => {
-      if (isGlowing) {
-        stopGlowEffect();
-      }
-    }, true);
+    editorElement.addEventListener(
+      'focus',
+      () => {
+        if (isGlowing) {
+          stopGlowEffect();
+        }
+      },
+      true
+    );
   }
 
   // Listen for window focus events

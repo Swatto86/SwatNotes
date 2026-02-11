@@ -67,7 +67,8 @@ class AppState {
     isSearching: false,
   };
 
-  private subscribers: Map<StateChangeEvent, Set<StateSubscriber<any> | GlobalSubscriber>> = new Map();
+  private subscribers: Map<StateChangeEvent, Set<StateSubscriber<any> | GlobalSubscriber>> =
+    new Map();
 
   // ============================================================================
   // Getters - Read state values
@@ -244,7 +245,9 @@ class AppState {
     oldValue: AppStateData[K]
   ): void {
     // Skip if value hasn't changed
-    if (newValue === oldValue) return;
+    if (newValue === oldValue) {
+      return;
+    }
 
     // Notify specific subscribers
     this.subscribers.get(key)?.forEach((callback) => {

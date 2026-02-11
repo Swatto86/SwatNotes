@@ -4,7 +4,6 @@
  */
 
 import { invoke } from '@tauri-apps/api/core';
-import type { Note, Collection } from '../types';
 
 /**
  * OneNote Section information

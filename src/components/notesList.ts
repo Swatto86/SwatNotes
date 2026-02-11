@@ -20,7 +20,7 @@ function updateSelectionHighlight(): void {
   const selectedNoteId = appState.selectedNoteId;
 
   // Remove selection from all cards
-  document.querySelectorAll('.note-card').forEach(card => {
+  document.querySelectorAll('.note-card').forEach((card) => {
     card.classList.remove('ring-2', 'ring-primary', 'bg-primary/10');
   });
 
@@ -74,13 +74,13 @@ export async function renderNotesList(
       return;
     }
 
-    container.innerHTML = notes.map(note => createNoteCard(note)).join('');
+    container.innerHTML = notes.map((note) => createNoteCard(note)).join('');
 
     // Update selection highlight after rendering
     updateSelectionHighlight();
 
     // Attach event listeners
-    notes.forEach(note => {
+    notes.forEach((note) => {
       const card = document.getElementById(`note-${note.id}`);
       if (card) {
         card.addEventListener('click', () => {

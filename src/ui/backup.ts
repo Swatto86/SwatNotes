@@ -5,7 +5,7 @@
 
 import { createBackup, listBackups, restoreBackup, deleteBackup } from '../utils/backupApi';
 import { MIN_PASSWORD_LENGTH, BACKUP_LIST_LIMIT } from '../config';
-import { showPrompt, showAlert } from '../utils/modal';
+import { showPrompt } from '../utils/modal';
 import { logger } from '../utils/logger';
 import { exit, relaunch } from '@tauri-apps/plugin-process';
 
@@ -38,7 +38,9 @@ export async function handleBackupNow() {
       return;
     }
 
-    if (btnEl) btnEl.disabled = true;
+    if (btnEl) {
+      btnEl.disabled = true;
+    }
     if (statusEl) {
       statusEl.textContent = 'Creating encrypted backup...';
       statusEl.className = 'text-sm text-info';
@@ -60,7 +62,9 @@ export async function handleBackupNow() {
     await loadBackupsList();
 
     setTimeout(() => {
-      if (statusEl) statusEl.textContent = '';
+      if (statusEl) {
+        statusEl.textContent = '';
+      }
     }, 3000);
   } catch (error) {
     logger.error('Backup failed', LOG_CONTEXT, error);
@@ -69,7 +73,9 @@ export async function handleBackupNow() {
       statusEl.className = 'text-sm text-error';
     }
   } finally {
-    if (btnEl) btnEl.disabled = false;
+    if (btnEl) {
+      btnEl.disabled = false;
+    }
   }
 }
 
@@ -78,7 +84,9 @@ export async function handleBackupNow() {
  */
 export async function loadBackupsList() {
   const listEl = document.getElementById('backups-list');
-  if (!listEl) return;
+  if (!listEl) {
+    return;
+  }
 
   try {
     const backups = await listBackups();
@@ -136,7 +144,9 @@ export async function loadBackupsList() {
  * @returns {string} Formatted size string
  */
 function formatFileSize(bytes) {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) {
+    return '0 B';
+  }
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -158,10 +168,10 @@ function formatDate(dateString) {
  * @param {string} backupPath - Path to backup file
  * @param {string} backupTimestamp - Backup creation timestamp
  */
-async function handleRestoreBackup(backupPath: string, backupTimestamp: string) {
+async function handleRestoreBackup(backupPath: string, _backupTimestamp: string) {
   const password = await showPrompt('Enter the backup password:', {
     title: 'Restore Backup',
-    input: { type: 'password', placeholder: 'Backup password' }
+    input: { type: 'password', placeholder: 'Backup password' },
   });
   if (!password) {
     return;
@@ -201,7 +211,7 @@ async function handleRestoreBackup(backupPath: string, backupTimestamp: string) 
  * @param {string} backupPath - Path to backup file
  * @param {string} backupTimestamp - Backup creation timestamp
  */
-async function handleDeleteBackup(backupId, backupPath, backupTimestamp) {
+async function handleDeleteBackup(backupId, backupPath, _backupTimestamp) {
   const statusEl = document.getElementById('backup-status');
 
   try {

@@ -103,7 +103,10 @@ async fn import_from_onenote_windows(
     };
 
     if hierarchy_xml.is_empty() {
-        errors.push("OneNote returned empty hierarchy. Make sure OneNote is installed and has notebooks.".to_string());
+        errors.push(
+            "OneNote returned empty hierarchy. Make sure OneNote is installed and has notebooks."
+                .to_string(),
+        );
         return Ok(ImportResult {
             notes_imported,
             collections_created,
@@ -426,8 +429,7 @@ fn parse_sections(hierarchy_xml: &str) -> Result<Vec<OneNoteSection>> {
                     b"Notebook" => {
                         for attr in e.attributes().flatten() {
                             if attr.key.local_name().as_ref() == b"name" {
-                                current_notebook =
-                                    String::from_utf8_lossy(&attr.value).to_string();
+                                current_notebook = String::from_utf8_lossy(&attr.value).to_string();
                             }
                         }
                     }
@@ -439,25 +441,19 @@ fn parse_sections(hierarchy_xml: &str) -> Result<Vec<OneNoteSection>> {
                         for attr in e.attributes().flatten() {
                             match attr.key.local_name().as_ref() {
                                 b"ID" => {
-                                    section_id =
-                                        String::from_utf8_lossy(&attr.value).to_string();
+                                    section_id = String::from_utf8_lossy(&attr.value).to_string();
                                 }
                                 b"name" => {
-                                    section_name =
-                                        String::from_utf8_lossy(&attr.value).to_string();
+                                    section_name = String::from_utf8_lossy(&attr.value).to_string();
                                 }
                                 b"isInRecycleBin" => {
-                                    is_recycle_bin =
-                                        String::from_utf8_lossy(&attr.value) == "true";
+                                    is_recycle_bin = String::from_utf8_lossy(&attr.value) == "true";
                                 }
                                 _ => {}
                             }
                         }
 
-                        if !section_id.is_empty()
-                            && !section_name.is_empty()
-                            && !is_recycle_bin
-                        {
+                        if !section_id.is_empty() && !section_name.is_empty() && !is_recycle_bin {
                             sections.push(OneNoteSection {
                                 id: section_id,
                                 name: section_name,
@@ -501,10 +497,10 @@ fn parse_all_pages(hierarchy_xml: &str) -> Result<HashMap<String, Vec<OneNotePag
                 match local.as_ref() {
                     b"SectionGroup" => {
                         for attr in e.attributes().flatten() {
-                            if attr.key.local_name().as_ref() == b"isRecycleBin" {
-                                if String::from_utf8_lossy(&attr.value) == "true" {
-                                    in_recycle_bin = true;
-                                }
+                            if attr.key.local_name().as_ref() == b"isRecycleBin"
+                                && String::from_utf8_lossy(&attr.value) == "true"
+                            {
+                                in_recycle_bin = true;
                             }
                         }
                     }
@@ -543,8 +539,7 @@ fn parse_all_pages(hierarchy_xml: &str) -> Result<HashMap<String, Vec<OneNotePag
                             for attr in e.attributes().flatten() {
                                 match attr.key.local_name().as_ref() {
                                     b"ID" => {
-                                        page_id =
-                                            String::from_utf8_lossy(&attr.value).to_string();
+                                        page_id = String::from_utf8_lossy(&attr.value).to_string();
                                     }
                                     b"name" => {
                                         page_title =
@@ -710,9 +705,7 @@ fn convert_onenote_to_quill(page_xml: &str) -> Result<String> {
                             } else {
                                 ops.push(json!({ "insert": "\n" }));
                             }
-                            if oe_depth > 0 {
-                                oe_depth -= 1;
-                            }
+                            oe_depth = oe_depth.saturating_sub(1);
                         }
                     }
                     b"List" => {

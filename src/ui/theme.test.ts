@@ -8,7 +8,7 @@ import { getStoredTheme, setTheme, initTheme, setupThemeSwitcher } from './theme
 // Mock config
 vi.mock('../config', () => ({
   THEME_KEY: 'swatnotes-theme',
-  DEFAULT_THEME: 'light'
+  DEFAULT_THEME: 'light',
 }));
 
 describe('theme', () => {
@@ -16,7 +16,7 @@ describe('theme', () => {
 
   beforeEach(() => {
     // Clear mock storage
-    Object.keys(mockLocalStorage).forEach(key => delete mockLocalStorage[key]);
+    Object.keys(mockLocalStorage).forEach((key) => delete mockLocalStorage[key]);
 
     // Mock localStorage
     vi.stubGlobal('localStorage', {
@@ -26,7 +26,7 @@ describe('theme', () => {
       }),
       removeItem: vi.fn((key: string) => {
         delete mockLocalStorage[key];
-      })
+      }),
     });
 
     // Reset document state
@@ -77,10 +77,21 @@ describe('theme', () => {
     });
 
     it('should handle various DaisyUI themes', () => {
-      const themes = ['light', 'dark', 'cupcake', 'bumblebee', 'emerald', 'corporate',
-                      'synthwave', 'retro', 'cyberpunk', 'valentine', 'halloween'];
+      const themes = [
+        'light',
+        'dark',
+        'cupcake',
+        'bumblebee',
+        'emerald',
+        'corporate',
+        'synthwave',
+        'retro',
+        'cyberpunk',
+        'valentine',
+        'halloween',
+      ];
 
-      themes.forEach(theme => {
+      themes.forEach((theme) => {
         setTheme(theme);
         expect(document.documentElement.getAttribute('data-theme')).toBe(theme);
       });
@@ -116,7 +127,7 @@ describe('theme', () => {
       // Simulate storage event from another window
       const storageEvent = new StorageEvent('storage', {
         key: 'swatnotes-theme',
-        newValue: 'cyberpunk'
+        newValue: 'cyberpunk',
       });
       window.dispatchEvent(storageEvent);
 
@@ -129,7 +140,7 @@ describe('theme', () => {
 
       const storageEvent = new StorageEvent('storage', {
         key: 'other-key',
-        newValue: 'dark'
+        newValue: 'dark',
       });
       window.dispatchEvent(storageEvent);
 
@@ -142,7 +153,7 @@ describe('theme', () => {
 
       const storageEvent = new StorageEvent('storage', {
         key: 'swatnotes-theme',
-        newValue: null
+        newValue: null,
       });
       window.dispatchEvent(storageEvent);
 
@@ -243,7 +254,7 @@ describe('theme', () => {
       // Window 2 changes theme (simulated via storage event)
       const storageEvent = new StorageEvent('storage', {
         key: 'swatnotes-theme',
-        newValue: 'retro'
+        newValue: 'retro',
       });
       window.dispatchEvent(storageEvent);
 

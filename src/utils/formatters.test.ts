@@ -13,7 +13,7 @@ import {
   formatRelativeDate,
   getFileIcon,
   getFileIconSvg,
-  getFileIconSmall
+  getFileIconSmall,
 } from './formatters';
 
 describe('formatters', () => {
@@ -104,18 +104,14 @@ describe('formatters', () => {
   describe('extractTextPreview', () => {
     it('should extract text from Quill Delta JSON', () => {
       const delta = JSON.stringify({
-        ops: [{ insert: 'Hello World\n' }]
+        ops: [{ insert: 'Hello World\n' }],
       });
       expect(extractTextPreview(delta)).toBe('Hello World');
     });
 
     it('should handle multiple operations', () => {
       const delta = JSON.stringify({
-        ops: [
-          { insert: 'Line 1\n' },
-          { insert: 'Line 2\n' },
-          { insert: 'Line 3\n' }
-        ]
+        ops: [{ insert: 'Line 1\n' }, { insert: 'Line 2\n' }, { insert: 'Line 3\n' }],
       });
       expect(extractTextPreview(delta)).toBe('Line 1 Line 2 Line 3');
     });
@@ -123,7 +119,7 @@ describe('formatters', () => {
     it('should truncate long text', () => {
       const longText = 'A'.repeat(200);
       const delta = JSON.stringify({
-        ops: [{ insert: longText + '\n' }]
+        ops: [{ insert: longText + '\n' }],
       });
       const result = extractTextPreview(delta, 100);
       expect(result.length).toBe(103); // 100 chars + '...'
@@ -132,21 +128,21 @@ describe('formatters', () => {
 
     it('should use custom max length', () => {
       const delta = JSON.stringify({
-        ops: [{ insert: 'Hello World\n' }]
+        ops: [{ insert: 'Hello World\n' }],
       });
       expect(extractTextPreview(delta, 5)).toBe('Hello...');
     });
 
     it('should return empty text message for empty content', () => {
       const delta = JSON.stringify({
-        ops: [{ insert: '\n' }]
+        ops: [{ insert: '\n' }],
       });
       expect(extractTextPreview(delta)).toBe('Empty note');
     });
 
     it('should use custom empty text', () => {
       const delta = JSON.stringify({
-        ops: [{ insert: '\n' }]
+        ops: [{ insert: '\n' }],
       });
       expect(extractTextPreview(delta, 100, 'No content')).toBe('No content');
     });
@@ -165,15 +161,15 @@ describe('formatters', () => {
         ops: [
           { insert: 'Text before ' },
           { insert: { image: 'data:image/png...' } },
-          { insert: ' text after\n' }
-        ]
+          { insert: ' text after\n' },
+        ],
       });
       expect(extractTextPreview(delta)).toBe('Text before  text after');
     });
 
     it('should collapse multiple newlines', () => {
       const delta = JSON.stringify({
-        ops: [{ insert: 'Line 1\n\n\n\nLine 2\n' }]
+        ops: [{ insert: 'Line 1\n\n\n\nLine 2\n' }],
       });
       expect(extractTextPreview(delta)).toBe('Line 1 Line 2');
     });
@@ -266,13 +262,13 @@ describe('formatters', () => {
     });
 
     it('should handle various image formats', () => {
-      ['image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml'].forEach(type => {
+      ['image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml'].forEach((type) => {
         expect(getFileIcon(type)).toContain('text-primary');
       });
     });
 
     it('should handle various video formats', () => {
-      ['video/mp4', 'video/webm', 'video/ogg'].forEach(type => {
+      ['video/mp4', 'video/webm', 'video/ogg'].forEach((type) => {
         expect(getFileIcon(type)).toContain('text-secondary');
       });
     });
@@ -292,7 +288,7 @@ describe('formatters', () => {
     });
 
     it('should return archive icon for compressed files', () => {
-      ['application/zip', 'application/x-compressed', 'application/x-archive'].forEach(type => {
+      ['application/zip', 'application/x-compressed', 'application/x-archive'].forEach((type) => {
         expect(getFileIconSvg(type)).toContain('svg');
       });
     });
@@ -337,8 +333,8 @@ describe('formatters', () => {
           { insert: 'Bold', attributes: { bold: true } },
           { insert: ' and ' },
           { insert: 'italic', attributes: { italic: true } },
-          { insert: '\n' }
-        ]
+          { insert: '\n' },
+        ],
       });
       expect(extractTextPreview(delta)).toBe('Bold and italic');
     });

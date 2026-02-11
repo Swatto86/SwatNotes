@@ -55,10 +55,12 @@ function applyTheme(theme?: string): void {
   localStorage.setItem(THEME_KEY, selectedTheme);
 
   // Notify other windows of theme change
-  window.dispatchEvent(new StorageEvent('storage', {
-    key: THEME_KEY,
-    newValue: selectedTheme,
-  }));
+  window.dispatchEvent(
+    new StorageEvent('storage', {
+      key: THEME_KEY,
+      newValue: selectedTheme,
+    })
+  );
 }
 
 /**
@@ -117,9 +119,11 @@ async function checkAutoBackupPasswordStatus(): Promise<void> {
 
     if (statusEl) {
       if (hasPassword) {
-        statusEl.innerHTML = '<span class="text-xs text-success flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>Password set</span>';
+        statusEl.innerHTML =
+          '<span class="text-xs text-success flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>Password set</span>';
       } else {
-        statusEl.innerHTML = '<span class="text-xs text-warning flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>No password set</span>';
+        statusEl.innerHTML =
+          '<span class="text-xs text-warning flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>No password set</span>';
       }
     }
 
@@ -131,7 +135,8 @@ async function checkAutoBackupPasswordStatus(): Promise<void> {
     logger.error('Failed to check password status', LOG_CONTEXT, error);
     // Show error state in the UI
     if (statusEl) {
-      statusEl.innerHTML = '<span class="text-xs text-error flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>Error checking status</span>';
+      statusEl.innerHTML =
+        '<span class="text-xs text-error flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>Error checking status</span>';
     }
     // Disable clear button on error
     if (clearBtn) {
@@ -266,16 +271,34 @@ async function loadHotkeySettings(): Promise<void> {
     const newNoteInput = document.getElementById('hotkey-new-note-input') as HTMLInputElement;
     const toggleNoteInput = document.getElementById('hotkey-toggle-note-input') as HTMLInputElement;
     const openSearchInput = document.getElementById('hotkey-open-search-input') as HTMLInputElement;
-    const openSettingsInput = document.getElementById('hotkey-open-settings-input') as HTMLInputElement;
-    const toggleAllNotesInput = document.getElementById('hotkey-toggle-all-notes-input') as HTMLInputElement;
-    const quickCaptureInput = document.getElementById('hotkey-quick-capture-input') as HTMLInputElement;
+    const openSettingsInput = document.getElementById(
+      'hotkey-open-settings-input'
+    ) as HTMLInputElement;
+    const toggleAllNotesInput = document.getElementById(
+      'hotkey-toggle-all-notes-input'
+    ) as HTMLInputElement;
+    const quickCaptureInput = document.getElementById(
+      'hotkey-quick-capture-input'
+    ) as HTMLInputElement;
 
-    if (newNoteInput) newNoteInput.value = hotkeys.new_note;
-    if (toggleNoteInput) toggleNoteInput.value = hotkeys.toggle_note;
-    if (openSearchInput) openSearchInput.value = hotkeys.open_search;
-    if (openSettingsInput) openSettingsInput.value = hotkeys.open_settings;
-    if (toggleAllNotesInput) toggleAllNotesInput.value = hotkeys.toggle_all_notes;
-    if (quickCaptureInput) quickCaptureInput.value = hotkeys.quick_capture;
+    if (newNoteInput) {
+      newNoteInput.value = hotkeys.new_note;
+    }
+    if (toggleNoteInput) {
+      toggleNoteInput.value = hotkeys.toggle_note;
+    }
+    if (openSearchInput) {
+      openSearchInput.value = hotkeys.open_search;
+    }
+    if (openSettingsInput) {
+      openSettingsInput.value = hotkeys.open_settings;
+    }
+    if (toggleAllNotesInput) {
+      toggleAllNotesInput.value = hotkeys.toggle_all_notes;
+    }
+    if (quickCaptureInput) {
+      quickCaptureInput.value = hotkeys.quick_capture;
+    }
   } catch (error) {
     logger.error('Failed to load hotkey settings', LOG_CONTEXT, error);
   }
@@ -292,10 +315,18 @@ function formatRelativeTime(date: Date): string {
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffSecs < 60) return 'Just now';
-  if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
-  if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+  if (diffSecs < 60) {
+    return 'Just now';
+  }
+  if (diffMins < 60) {
+    return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+  }
+  if (diffHours < 24) {
+    return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+  }
+  if (diffDays < 7) {
+    return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+  }
   return date.toLocaleDateString();
 }
 
@@ -306,7 +337,9 @@ function updateLastBackupDisplay(backups: any[]): void {
   const lastBackupTime = document.getElementById('last-backup-time');
   const lastBackupAge = document.getElementById('last-backup-age');
 
-  if (!lastBackupTime || !lastBackupAge) return;
+  if (!lastBackupTime || !lastBackupAge) {
+    return;
+  }
 
   if (backups.length === 0) {
     lastBackupTime.textContent = 'No backups yet';
@@ -350,14 +383,19 @@ async function loadBackupsList(): Promise<void> {
     // Update the prominent last backup display
     updateLastBackupDisplay(backups);
 
-    if (!backupsList) return;
-
-    if (backups.length === 0) {
-      backupsList.innerHTML = '<div class="text-base-content/50 text-sm text-center py-4">No backups found</div>';
+    if (!backupsList) {
       return;
     }
 
-    backupsList.innerHTML = backups.map((backup, index) => `
+    if (backups.length === 0) {
+      backupsList.innerHTML =
+        '<div class="text-base-content/50 text-sm text-center py-4">No backups found</div>';
+      return;
+    }
+
+    backupsList.innerHTML = backups
+      .map(
+        (backup, index) => `
       <div class="bg-base-200 rounded-lg p-3 flex justify-between items-center mb-2">
         <div>
           <div class="text-base-content font-medium">${new Date(backup.timestamp).toLocaleString()}</div>
@@ -372,7 +410,9 @@ async function loadBackupsList(): Promise<void> {
           </button>
         </div>
       </div>
-    `).join('');
+    `
+      )
+      .join('');
 
     // Attach event listeners for restore buttons
     document.querySelectorAll('.restore-backup-btn').forEach((btn, index) => {
@@ -398,8 +438,12 @@ async function loadBackupsList(): Promise<void> {
  * Format file size
  */
 function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  if (bytes < 1024) {
+    return bytes + ' B';
+  }
+  if (bytes < 1024 * 1024) {
+    return (bytes / 1024).toFixed(1) + ' KB';
+  }
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
@@ -409,16 +453,21 @@ function formatFileSize(bytes: number): string {
 async function handleRestoreBackup(backup: Backup): Promise<void> {
   const password = await showPrompt('Enter the backup password:', {
     title: 'Restore Backup',
-    input: { type: 'password', placeholder: 'Backup password' }
+    input: { type: 'password', placeholder: 'Backup password' },
   });
-  if (!password) return;
+  if (!password) {
+    return;
+  }
 
   try {
     await invoke('restore_backup', { backupPath: backup.path, password });
-    await showAlert('Restore completed successfully!\n\nThe application will now restart to load the restored data.', {
-      title: 'Success',
-      type: 'success'
-    });
+    await showAlert(
+      'Restore completed successfully!\n\nThe application will now restart to load the restored data.',
+      {
+        title: 'Success',
+        type: 'success',
+      }
+    );
     // Restart the application to load the restored database
     await invoke('restart_app');
   } catch (error) {
@@ -462,7 +511,9 @@ function setupEventHandlers(): void {
   }
 
   // Minimize to tray checkbox
-  const minimizeToTrayCheckbox = document.getElementById('minimize-to-tray-checkbox') as HTMLInputElement;
+  const minimizeToTrayCheckbox = document.getElementById(
+    'minimize-to-tray-checkbox'
+  ) as HTMLInputElement;
   if (minimizeToTrayCheckbox) {
     minimizeToTrayCheckbox.checked = settings.minimizeToTray;
     minimizeToTrayCheckbox.addEventListener('change', () => {
@@ -482,7 +533,9 @@ function setupEventHandlers(): void {
   }
 
   // Start with Windows checkbox
-  const startWithWindowsCheckbox = document.getElementById('start-with-windows-checkbox') as HTMLInputElement;
+  const startWithWindowsCheckbox = document.getElementById(
+    'start-with-windows-checkbox'
+  ) as HTMLInputElement;
   if (startWithWindowsCheckbox) {
     startWithWindowsCheckbox.checked = settings.startWithWindows;
     startWithWindowsCheckbox.addEventListener('change', async () => {
@@ -494,7 +547,10 @@ function setupEventHandlers(): void {
         await invoke('set_autostart', { enabled: startWithWindowsCheckbox.checked });
       } catch (error) {
         logger.error('Failed to set autostart', LOG_CONTEXT, error);
-        await showAlert('Failed to update startup settings: ' + error, { title: 'Error', type: 'error' });
+        await showAlert('Failed to update startup settings: ' + error, {
+          title: 'Error',
+          type: 'error',
+        });
         // Revert checkbox on error
         startWithWindowsCheckbox.checked = !startWithWindowsCheckbox.checked;
         settings.startWithWindows = startWithWindowsCheckbox.checked;
@@ -517,11 +573,13 @@ function setupEventHandlers(): void {
   }
 
   // Reminder settings (loaded from backend)
-  loadReminderSettings().then(reminderSettings => {
+  loadReminderSettings().then((reminderSettings) => {
     const soundCheckbox = document.getElementById('reminder-sound-checkbox') as HTMLInputElement;
     const shakeCheckbox = document.getElementById('reminder-shake-checkbox') as HTMLInputElement;
     const glowCheckbox = document.getElementById('reminder-glow-checkbox') as HTMLInputElement;
-    const shakeDurationInput = document.getElementById('reminder-shake-duration-input') as HTMLInputElement;
+    const shakeDurationInput = document.getElementById(
+      'reminder-shake-duration-input'
+    ) as HTMLInputElement;
     const testBtn = document.getElementById('test-reminder-btn');
 
     // Initialize checkboxes
@@ -582,7 +640,9 @@ function setupEventHandlers(): void {
     }
 
     // Initialize sound type dropdown
-    const soundTypeSelect = document.getElementById('reminder-sound-type-select') as HTMLSelectElement;
+    const soundTypeSelect = document.getElementById(
+      'reminder-sound-type-select'
+    ) as HTMLSelectElement;
     if (soundTypeSelect) {
       soundTypeSelect.value = reminderSettings.sound_type || 'whoosh';
       soundTypeSelect.addEventListener('change', async () => {
@@ -605,7 +665,9 @@ function setupEventHandlers(): void {
   });
 
   // Auto-backup password management
-  const autoBackupPasswordInput = document.getElementById('auto-backup-password-input') as HTMLInputElement;
+  const autoBackupPasswordInput = document.getElementById(
+    'auto-backup-password-input'
+  ) as HTMLInputElement;
   const savePasswordBtn = document.getElementById('save-auto-backup-password-btn');
   const deletePasswordBtn = document.getElementById('delete-auto-backup-password-btn');
 
@@ -619,7 +681,9 @@ function setupEventHandlers(): void {
 
     try {
       await invoke('store_auto_backup_password', { password });
-      if (autoBackupPasswordInput) autoBackupPasswordInput.value = '';
+      if (autoBackupPasswordInput) {
+        autoBackupPasswordInput.value = '';
+      }
       await checkAutoBackupPasswordStatus();
       logger.info('Auto-backup password saved successfully', LOG_CONTEXT);
     } catch (error) {
@@ -646,8 +710,12 @@ function setupEventHandlers(): void {
       if (autoBackupSettings.enabled) {
         autoBackupSettings.enabled = false;
         await saveAutoBackupSettings(autoBackupSettings);
-        const checkbox = document.getElementById('auto-backup-enabled-checkbox') as HTMLInputElement;
-        if (checkbox) checkbox.checked = false;
+        const checkbox = document.getElementById(
+          'auto-backup-enabled-checkbox'
+        ) as HTMLInputElement;
+        if (checkbox) {
+          checkbox.checked = false;
+        }
       }
       logger.info('Auto-backup password cleared successfully', LOG_CONTEXT);
     } catch (error) {
@@ -668,7 +736,7 @@ function setupEventHandlers(): void {
       const selected = await open({
         directory: true,
         multiple: false,
-        title: 'Select Backup Location'
+        title: 'Select Backup Location',
       });
 
       if (selected && typeof selected === 'string') {
@@ -703,10 +771,16 @@ function setupEventHandlers(): void {
   });
 
   // Auto backup settings (loaded from backend)
-  loadAutoBackupSettings().then(autoBackupSettings => {
-    const autoBackupEnabledCheckbox = document.getElementById('auto-backup-enabled-checkbox') as HTMLInputElement;
-    const backupFrequencyInput = document.getElementById('backup-frequency-input') as HTMLInputElement;
-    const backupRetentionSelect = document.getElementById('backup-retention-select') as HTMLSelectElement;
+  loadAutoBackupSettings().then((autoBackupSettings) => {
+    const autoBackupEnabledCheckbox = document.getElementById(
+      'auto-backup-enabled-checkbox'
+    ) as HTMLInputElement;
+    const backupFrequencyInput = document.getElementById(
+      'backup-frequency-input'
+    ) as HTMLInputElement;
+    const backupRetentionSelect = document.getElementById(
+      'backup-retention-select'
+    ) as HTMLSelectElement;
 
     if (autoBackupEnabledCheckbox) {
       autoBackupEnabledCheckbox.checked = autoBackupSettings.enabled;
@@ -927,12 +1001,25 @@ function setupEventHandlers(): void {
   const newNoteInput = document.getElementById('hotkey-new-note-input') as HTMLInputElement;
   const toggleNoteInput = document.getElementById('hotkey-toggle-note-input') as HTMLInputElement;
   const openSearchInput = document.getElementById('hotkey-open-search-input') as HTMLInputElement;
-  const openSettingsInput = document.getElementById('hotkey-open-settings-input') as HTMLInputElement;
-  const toggleAllNotesInput = document.getElementById('hotkey-toggle-all-notes-input') as HTMLInputElement;
-  const quickCaptureInput = document.getElementById('hotkey-quick-capture-input') as HTMLInputElement;
+  const openSettingsInput = document.getElementById(
+    'hotkey-open-settings-input'
+  ) as HTMLInputElement;
+  const toggleAllNotesInput = document.getElementById(
+    'hotkey-toggle-all-notes-input'
+  ) as HTMLInputElement;
+  const quickCaptureInput = document.getElementById(
+    'hotkey-quick-capture-input'
+  ) as HTMLInputElement;
 
   saveHotkeysBtn?.addEventListener('click', async () => {
-    if (!newNoteInput || !toggleNoteInput || !openSearchInput || !openSettingsInput || !toggleAllNotesInput || !quickCaptureInput) {
+    if (
+      !newNoteInput ||
+      !toggleNoteInput ||
+      !openSearchInput ||
+      !openSettingsInput ||
+      !toggleAllNotesInput ||
+      !quickCaptureInput
+    ) {
       await showAlert('Failed to get hotkey input fields', { title: 'Error', type: 'error' });
       return;
     }
@@ -946,7 +1033,14 @@ function setupEventHandlers(): void {
       quick_capture: quickCaptureInput.value.trim(),
     };
 
-    if (!hotkeys.new_note || !hotkeys.toggle_note || !hotkeys.open_search || !hotkeys.open_settings || !hotkeys.toggle_all_notes || !hotkeys.quick_capture) {
+    if (
+      !hotkeys.new_note ||
+      !hotkeys.toggle_note ||
+      !hotkeys.open_search ||
+      !hotkeys.open_settings ||
+      !hotkeys.toggle_all_notes ||
+      !hotkeys.quick_capture
+    ) {
       await showAlert('All hotkey fields must be filled', { title: 'Error', type: 'warning' });
       return;
     }
@@ -995,7 +1089,9 @@ function setupUpdateChecker(): void {
   const updateStatus = document.getElementById('update-status');
 
   checkBtn?.addEventListener('click', async () => {
-    if (!updateStatus) return;
+    if (!updateStatus) {
+      return;
+    }
 
     // Show checking state
     checkBtn.setAttribute('disabled', 'true');
@@ -1042,7 +1138,10 @@ function setupUpdateChecker(): void {
             logger.error('Failed to download update', LOG_CONTEXT, error);
             installBtn.removeAttribute('disabled');
             installBtn.textContent = 'Retry Download';
-            await showAlert('Failed to download update: ' + error, { title: 'Update Error', type: 'error' });
+            await showAlert('Failed to download update: ' + error, {
+              title: 'Update Error',
+              type: 'error',
+            });
           }
         });
       } else {
@@ -1140,16 +1239,24 @@ if (document.readyState === 'loading') {
 (window as any).restoreBackup = async (backupId: string) => {
   const password = await showPrompt('Enter backup password:', {
     title: 'Restore Backup',
-    input: { type: 'password', placeholder: 'Backup password' }
+    input: { type: 'password', placeholder: 'Backup password' },
   });
-  if (!password) return;
+  if (!password) {
+    return;
+  }
 
   try {
     await invoke('restore_backup', { backupPath: backupId, password });
-    await showAlert('Backup restored successfully. The application will now restart.', { title: 'Backup Restored', type: 'success' });
+    await showAlert('Backup restored successfully. The application will now restart.', {
+      title: 'Backup Restored',
+      type: 'success',
+    });
     await invoke('restart_app');
   } catch (error) {
     logger.error('Failed to restore backup', LOG_CONTEXT, error);
-    await showAlert('Failed to restore backup: ' + error, { title: 'Restore Error', type: 'error' });
+    await showAlert('Failed to restore backup: ' + error, {
+      title: 'Restore Error',
+      type: 'error',
+    });
   }
 };

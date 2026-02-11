@@ -8,12 +8,12 @@ import { listen, emit } from '@tauri-apps/api/event';
 import { initTheme, setupThemeSwitcher } from './ui/theme';
 import { setupEventHandlers, setupReminderListener } from './events/handlers';
 import { createNoteEditor } from './components/noteEditor';
-import { deleteNote, createNote } from './utils/notesApi';
+import { deleteNote } from './utils/notesApi';
 import { showAlert, showPrompt } from './utils/modal';
 import { appState } from './state/appState';
 import { logger } from './utils/logger';
-import { escapeHtml, extractTextPreview, formatRelativeDate } from './utils/formatters';
-import { DEFAULT_NOTE_TITLE, DEFAULT_NOTE_CONTENT } from './config';
+import { extractTextPreview, formatRelativeDate } from './utils/formatters';
+
 import type { AppInfo, Note, Collection } from './types';
 import {
   listCollections,
@@ -65,7 +65,9 @@ async function cleanupEmptyNotes(): Promise<void> {
         if (content.ops && Array.isArray(content.ops)) {
           // Extract text from all ops
           const text = content.ops
-            .map((op: { insert?: string | object }) => (typeof op.insert === 'string' ? op.insert : ''))
+            .map((op: { insert?: string | object }) =>
+              typeof op.insert === 'string' ? op.insert : ''
+            )
             .join('')
             .trim();
 
@@ -108,7 +110,9 @@ async function cleanupEmptyNotes(): Promise<void> {
  */
 function showNotesListView(): void {
   const container = document.getElementById('editor-container');
-  if (!container) return;
+  if (!container) {
+    return;
+  }
 
   // Clear state
   appState.closeNote();
@@ -130,11 +134,15 @@ function showNotesListView(): void {
  * Get the current filter display name
  */
 async function getFilterDisplayName(): Promise<string> {
-  if (currentFilter === 'all') return 'All Notes';
-  if (currentFilter === 'uncategorized') return 'Uncategorized';
+  if (currentFilter === 'all') {
+    return 'All Notes';
+  }
+  if (currentFilter === 'uncategorized') {
+    return 'Uncategorized';
+  }
   try {
     const collections = await listCollections();
-    const coll = collections.find(c => c.id === currentFilter);
+    const coll = collections.find((c) => c.id === currentFilter);
     return coll ? coll.name : 'Notes';
   } catch {
     return 'Notes';
@@ -149,18 +157,26 @@ async function renderNotesGrid(notes: Note[]): Promise<void> {
   const countEl = document.getElementById('notes-list-count');
   const titleEl = document.getElementById('notes-view-title');
 
-  if (!container) return;
+  if (!container) {
+    return;
+  }
 
   // Update header
   const filterName = await getFilterDisplayName();
-  if (titleEl) titleEl.textContent = filterName;
-  if (countEl) countEl.textContent = `${notes.length} note${notes.length !== 1 ? 's' : ''}`;
+  if (titleEl) {
+    titleEl.textContent = filterName;
+  }
+  if (countEl) {
+    countEl.textContent = `${notes.length} note${notes.length !== 1 ? 's' : ''}`;
+  }
 
   // Get collections for colors
   let collections: Collection[] = [];
   try {
     collections = await listCollections();
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   if (notes.length === 0) {
     container.innerHTML = `
@@ -175,25 +191,27 @@ async function renderNotesGrid(notes: Note[]): Promise<void> {
     return;
   }
 
-  container.innerHTML = notes.map(note => {
-    const preview = extractTextPreview(note.content_json);
-    const date = formatRelativeDate(note.updated_at);
-    const collection = collections.find(c => c.id === note.collection_id);
-    const color = collection?.color || null;
-    const collName = collection?.name || null;
+  container.innerHTML = notes
+    .map((note) => {
+      const preview = extractTextPreview(note.content_json);
+      const date = formatRelativeDate(note.updated_at);
+      const collection = collections.find((c) => c.id === note.collection_id);
+      const color = collection?.color || null;
+      const collName = collection?.name || null;
 
-    const colorBar = color
-      ? `<div class="absolute top-0 left-0 right-0 h-1 rounded-t-lg" style="background-color: ${color}"></div>`
-      : '';
+      const colorBar = color
+        ? `<div class="absolute top-0 left-0 right-0 h-1 rounded-t-lg" style="background-color: ${color}"></div>`
+        : '';
 
-    const collBadge = collName && color
-      ? `<div class="flex items-center gap-1 mt-2">
+      const collBadge =
+        collName && color
+          ? `<div class="flex items-center gap-1 mt-2">
            <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: ${color}"></span>
            <span class="text-xs text-base-content/50 truncate">${escapeHtml(collName)}</span>
          </div>`
-      : '';
+          : '';
 
-    return `
+      return `
       <div class="note-grid-card relative card bg-base-100 border border-base-300 hover:shadow-lg hover:border-base-content/20 cursor-pointer transition-all duration-200 overflow-hidden group" data-note-id="${note.id}">
         ${colorBar}
         <div class="card-body p-4">
@@ -211,21 +229,26 @@ async function renderNotesGrid(notes: Note[]): Promise<void> {
         </div>
       </div>
     `;
-  }).join('');
+    })
+    .join('');
 
   // Attach click handlers
-  container.querySelectorAll('.note-grid-card').forEach(card => {
+  container.querySelectorAll('.note-grid-card').forEach((card) => {
     card.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
-      if (target.closest('.popout-btn')) return; // handled separately
+      if (target.closest('.popout-btn')) {
+        return;
+      } // handled separately
       const noteId = card.getAttribute('data-note-id');
-      const note = notes.find(n => n.id === noteId);
-      if (note) openNoteInEditor(note);
+      const note = notes.find((n) => n.id === noteId);
+      if (note) {
+        openNoteInEditor(note);
+      }
     });
   });
 
   // Attach popout handlers
-  container.querySelectorAll('.popout-btn').forEach(btn => {
+  container.querySelectorAll('.popout-btn').forEach((btn) => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const noteId = (btn as HTMLElement).getAttribute('data-note-id');
@@ -243,7 +266,7 @@ async function renderNotesGrid(notes: Note[]): Promise<void> {
 /**
  * Update toolbar buttons visibility based on note selection
  */
-function updateToolbarButtons(_noteSelected: boolean): void {
+function _updateToolbarButtons(_noteSelected: boolean): void {
   // No-op: toolbar buttons removed
 }
 
@@ -320,7 +343,7 @@ async function deleteCurrentNote(): Promise<void> {
 
     try {
       await invoke('delete_note_and_close_window', { id: noteId });
-    } catch (e) {
+    } catch (_e) {
       // Window might not be open, ignore
     }
 
@@ -374,9 +397,11 @@ function openColorPicker(collectionId: string, currentColor: string): void {
   colorPickCollectionId = collectionId;
   const modal = document.getElementById('color-picker-modal') as HTMLDialogElement;
   const grid = document.getElementById('color-picker-grid');
-  if (!modal || !grid) return;
+  if (!modal || !grid) {
+    return;
+  }
 
-  grid.innerHTML = COLLECTION_COLORS.map(color => {
+  grid.innerHTML = COLLECTION_COLORS.map((color) => {
     const isActive = color.toLowerCase() === currentColor.toLowerCase();
     return `
       <button class="color-pick-btn w-8 h-8 rounded-full cursor-pointer transition-transform hover:scale-110 ${isActive ? 'ring-2 ring-offset-2 ring-primary' : 'ring-1 ring-black/10'}"
@@ -386,7 +411,7 @@ function openColorPicker(collectionId: string, currentColor: string): void {
   }).join('');
 
   // Attach click handlers
-  grid.querySelectorAll('.color-pick-btn').forEach(btn => {
+  grid.querySelectorAll('.color-pick-btn').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const newColor = (btn as HTMLElement).getAttribute('data-color');
       if (newColor && colorPickCollectionId) {
@@ -415,7 +440,9 @@ async function renderCollections(): Promise<void> {
     const collections = await listCollections();
     const collectionsContainer = document.getElementById('collections-items');
 
-    if (!collectionsContainer) return;
+    if (!collectionsContainer) {
+      return;
+    }
 
     // Get note counts
     const allNotes = await invoke<Note[]>('list_notes');
@@ -425,15 +452,20 @@ async function renderCollections(): Promise<void> {
     const allNotesCount = document.getElementById('all-notes-count');
     const uncategorizedCount = document.getElementById('uncategorized-count');
 
-    if (allNotesCount) allNotesCount.textContent = allNotes.length.toString();
-    if (uncategorizedCount) uncategorizedCount.textContent = uncategorizedNotes.length.toString();
+    if (allNotesCount) {
+      allNotesCount.textContent = allNotes.length.toString();
+    }
+    if (uncategorizedCount) {
+      uncategorizedCount.textContent = uncategorizedNotes.length.toString();
+    }
 
     // Render collection items
-    collectionsContainer.innerHTML = collections.map(collection => {
-      const count = allNotes.filter(n => n.collection_id === collection.id).length;
-      const isActive = currentFilter === collection.id;
+    collectionsContainer.innerHTML = collections
+      .map((collection) => {
+        const count = allNotes.filter((n) => n.collection_id === collection.id).length;
+        const isActive = currentFilter === collection.id;
 
-      return `
+        return `
         <div class="collection-item group flex items-center gap-0.5" data-collection-id="${collection.id}">
           <button class="color-dot-btn flex-shrink-0 w-3 h-3 rounded-full ml-3 cursor-pointer hover:scale-125 transition-transform ring-1 ring-black/10" style="background-color: ${collection.color}" data-collection-id="${collection.id}" data-color="${collection.color}" title="Change color"></button>
           <button class="collection-btn flex-1 flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-base-content hover:bg-base-300 transition-colors ${isActive ? 'bg-base-300 font-medium' : ''}">
@@ -447,20 +479,23 @@ async function renderCollections(): Promise<void> {
           </button>
         </div>
       `;
-    }).join('');
+      })
+      .join('');
 
     // Color dot click -> open color picker
-    collectionsContainer.querySelectorAll('.color-dot-btn').forEach(btn => {
+    collectionsContainer.querySelectorAll('.color-dot-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const collId = (btn as HTMLElement).getAttribute('data-collection-id');
         const color = (btn as HTMLElement).getAttribute('data-color') || '#6B7280';
-        if (collId) openColorPicker(collId, color);
+        if (collId) {
+          openColorPicker(collId, color);
+        }
       });
     });
 
     // Collection name click -> filter
-    collectionsContainer.querySelectorAll('.collection-btn').forEach(btn => {
+    collectionsContainer.querySelectorAll('.collection-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const collectionId = btn.closest('.collection-item')?.getAttribute('data-collection-id');
         if (collectionId) {
@@ -470,7 +505,7 @@ async function renderCollections(): Promise<void> {
     });
 
     // Delete buttons
-    collectionsContainer.querySelectorAll('.delete-collection-btn').forEach(btn => {
+    collectionsContainer.querySelectorAll('.delete-collection-btn').forEach((btn) => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const collectionId = btn.closest('.collection-item')?.getAttribute('data-collection-id');
@@ -511,14 +546,16 @@ function updateCollectionActiveStates(): void {
 
   allNotesBtn?.classList.remove('bg-base-300', 'font-medium');
   uncategorizedBtn?.classList.remove('bg-base-300', 'font-medium');
-  collectionItems.forEach(btn => btn.classList.remove('bg-base-300', 'font-medium'));
+  collectionItems.forEach((btn) => btn.classList.remove('bg-base-300', 'font-medium'));
 
   if (currentFilter === 'all') {
     allNotesBtn?.classList.add('bg-base-300', 'font-medium');
   } else if (currentFilter === 'uncategorized') {
     uncategorizedBtn?.classList.add('bg-base-300', 'font-medium');
   } else {
-    const activeBtn = document.querySelector(`.collection-item[data-collection-id="${currentFilter}"] .collection-btn`);
+    const activeBtn = document.querySelector(
+      `.collection-item[data-collection-id="${currentFilter}"] .collection-btn`
+    );
     activeBtn?.classList.add('bg-base-300', 'font-medium');
   }
 }
@@ -561,7 +598,7 @@ function setupCollectionHandlers(): void {
   addCollectionBtn?.addEventListener('click', async () => {
     const name = await showPrompt('Enter collection name:', {
       title: 'New Collection',
-      input: { type: 'text', placeholder: 'Collection name' }
+      input: { type: 'text', placeholder: 'Collection name' },
     });
 
     if (name && name.trim()) {
@@ -578,10 +615,14 @@ function setupCollectionHandlers(): void {
   });
 
   // All notes filter
-  document.getElementById('filter-all-notes')?.addEventListener('click', () => setCollectionFilter('all'));
+  document
+    .getElementById('filter-all-notes')
+    ?.addEventListener('click', () => setCollectionFilter('all'));
 
   // Uncategorized filter
-  document.getElementById('filter-uncategorized')?.addEventListener('click', () => setCollectionFilter('uncategorized'));
+  document
+    .getElementById('filter-uncategorized')
+    ?.addEventListener('click', () => setCollectionFilter('uncategorized'));
 }
 
 /**

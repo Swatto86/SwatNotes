@@ -9,7 +9,7 @@ import type { Backup } from '../types';
 
 // Mock Tauri invoke
 vi.mock('@tauri-apps/api/core', () => ({
-  invoke: vi.fn()
+  invoke: vi.fn(),
 }));
 
 describe('backupApi', () => {
@@ -49,15 +49,15 @@ describe('backupApi', () => {
           timestamp: '2024-01-01T10:00:00Z',
           path: '/backups/backup1.zip',
           size: 1024000,
-          manifest_hash: 'abc123'
+          manifest_hash: 'abc123',
         },
         {
           id: 'backup-2',
           timestamp: '2024-01-02T10:00:00Z',
           path: '/backups/backup2.zip',
           size: 2048000,
-          manifest_hash: 'def456'
-        }
+          manifest_hash: 'def456',
+        },
       ];
 
       vi.mocked(invoke).mockResolvedValue(mockBackups);
@@ -93,7 +93,7 @@ describe('backupApi', () => {
 
       expect(invoke).toHaveBeenCalledWith('restore_backup', {
         backupPath: '/path/to/backup.zip',
-        password: 'password123'
+        password: 'password123',
       });
     });
 
@@ -106,7 +106,9 @@ describe('backupApi', () => {
     it('should handle missing backup file', async () => {
       vi.mocked(invoke).mockRejectedValue(new Error('Backup file not found'));
 
-      await expect(restoreBackup('/nonexistent.zip', 'password')).rejects.toThrow('Backup file not found');
+      await expect(restoreBackup('/nonexistent.zip', 'password')).rejects.toThrow(
+        'Backup file not found'
+      );
     });
 
     it('should handle corrupted backup', async () => {
@@ -124,7 +126,7 @@ describe('backupApi', () => {
 
       expect(invoke).toHaveBeenCalledWith('delete_backup', {
         backupId: 'backup-123',
-        backupPath: '/path/to/backup.zip'
+        backupPath: '/path/to/backup.zip',
       });
     });
 
@@ -149,7 +151,7 @@ describe('backupApi', () => {
         timestamp: new Date().toISOString(),
         path: mockPath,
         size: 512000,
-        manifest_hash: 'newhash'
+        manifest_hash: 'newhash',
       };
 
       // Create
@@ -168,7 +170,7 @@ describe('backupApi', () => {
       await deleteBackup(mockBackup.id, mockBackup.path);
       expect(invoke).toHaveBeenLastCalledWith('delete_backup', {
         backupId: mockBackup.id,
-        backupPath: mockBackup.path
+        backupPath: mockBackup.path,
       });
     });
   });

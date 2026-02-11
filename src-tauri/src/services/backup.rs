@@ -119,6 +119,8 @@ impl BackupService {
             FileOptions::<()>::default().compression_method(zip::CompressionMethod::Deflated);
 
         // Add database file
+        // First, checkpoint WAL to ensure all data is flushed to the main DB file
+        self.repo.checkpoint_wal().await?;
         let db_path = self.app_data_dir.join("db.sqlite");
         if db_path.exists() {
             let db_data = fs::read(&db_path).await?;

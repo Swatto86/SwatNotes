@@ -9,7 +9,7 @@ import type { UpdateInfo } from '../types';
 
 // Mock Tauri invoke
 vi.mock('@tauri-apps/api/core', () => ({
-  invoke: vi.fn()
+  invoke: vi.fn(),
 }));
 
 describe('updateApi', () => {
@@ -25,7 +25,7 @@ describe('updateApi', () => {
         version: '1.1.0',
         body: 'Bug fixes and improvements',
         release_url: null,
-        installer_url: null
+        installer_url: null,
       };
       vi.mocked(invoke).mockResolvedValue(mockUpdateInfo);
 
@@ -44,7 +44,7 @@ describe('updateApi', () => {
         version: '1.1.0',
         body: null,
         release_url: null,
-        installer_url: null
+        installer_url: null,
       };
       vi.mocked(invoke).mockResolvedValue(mockUpdateInfo);
 
@@ -55,7 +55,9 @@ describe('updateApi', () => {
     });
 
     it('should handle network error during update check', async () => {
-      vi.mocked(invoke).mockRejectedValue(new Error('Network error: Unable to reach update server'));
+      vi.mocked(invoke).mockRejectedValue(
+        new Error('Network error: Unable to reach update server')
+      );
 
       await expect(checkForUpdate()).rejects.toThrow('Network error');
     });
@@ -116,7 +118,7 @@ describe('updateApi', () => {
         version: '2.0.0',
         body: 'Major update with new features',
         release_url: null,
-        installer_url: null
+        installer_url: null,
       };
       vi.mocked(invoke).mockResolvedValueOnce(mockUpdateInfo);
 
@@ -137,7 +139,7 @@ describe('updateApi', () => {
         version: '2.0.0',
         body: null,
         release_url: null,
-        installer_url: null
+        installer_url: null,
       };
       vi.mocked(invoke).mockResolvedValueOnce(mockUpdateInfo);
 

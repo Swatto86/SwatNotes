@@ -411,7 +411,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(reminder.note_id, note.id);
-        assert_eq!(reminder.triggered, false);
+        assert!(!reminder.triggered);
     }
 
     #[tokio::test]

@@ -107,11 +107,16 @@ async function requestNotesListRefresh(): Promise<void> {
  * @returns HTML with highlighted matches
  */
 function highlightText(text: string, query: string): string {
-  if (!query) return escapeHtml(text);
+  if (!query) {
+    return escapeHtml(text);
+  }
 
   const escapedText = escapeHtml(text);
   const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
-  return escapedText.replace(regex, '<mark class="bg-warning text-warning-content px-1 rounded">$1</mark>');
+  return escapedText.replace(
+    regex,
+    '<mark class="bg-warning text-warning-content px-1 rounded">$1</mark>'
+  );
 }
 
 /**
@@ -135,10 +140,16 @@ function renderFilteredNotes(notes: Note[], query: string = ''): void {
   const titleEl = document.getElementById('notes-view-title');
   const countEl = document.getElementById('notes-list-count');
 
-  if (!container) return;
+  if (!container) {
+    return;
+  }
 
-  if (titleEl) titleEl.textContent = query ? `Search: "${query}"` : 'All Notes';
-  if (countEl) countEl.textContent = `${notes.length} result${notes.length !== 1 ? 's' : ''}`;
+  if (titleEl) {
+    titleEl.textContent = query ? `Search: "${query}"` : 'All Notes';
+  }
+  if (countEl) {
+    countEl.textContent = `${notes.length} result${notes.length !== 1 ? 's' : ''}`;
+  }
 
   if (notes.length === 0) {
     container.innerHTML = `
@@ -149,13 +160,14 @@ function renderFilteredNotes(notes: Note[], query: string = ''): void {
     return;
   }
 
-  container.innerHTML = notes.map(note => {
-    const preview = extractTextPreview(note.content_json);
-    const date = formatRelativeDate(note.updated_at);
-    const highlightedTitle = highlightText(note.title, query);
-    const highlightedPreview = highlightText(preview, query);
+  container.innerHTML = notes
+    .map((note) => {
+      const preview = extractTextPreview(note.content_json);
+      const date = formatRelativeDate(note.updated_at);
+      const highlightedTitle = highlightText(note.title, query);
+      const highlightedPreview = highlightText(preview, query);
 
-    return `
+      return `
       <div id="note-${note.id}" class="note-grid-card relative card bg-base-100 border border-base-300 hover:shadow-lg hover:border-base-content/20 cursor-pointer transition-all duration-200 overflow-hidden group" data-note-id="${note.id}">
         <div class="card-body p-4">
           <h3 class="card-title text-sm font-semibold line-clamp-1">${highlightedTitle}</h3>
@@ -171,15 +183,18 @@ function renderFilteredNotes(notes: Note[], query: string = ''): void {
         </div>
       </div>
     `;
-  }).join('');
+    })
+    .join('');
 
   // Attach event listeners - clicking card opens note via emit
-  notes.forEach(note => {
+  notes.forEach((note) => {
     const card = document.querySelector(`.note-grid-card[data-note-id="${note.id}"]`);
     if (card) {
       card.addEventListener('click', async (e) => {
         const target = e.target as HTMLElement;
-        if (target.closest('.popout-btn')) return;
+        if (target.closest('.popout-btn')) {
+          return;
+        }
         try {
           await invoke('open_note_window', { noteId: note.id });
         } catch (error) {
@@ -214,7 +229,7 @@ interface ReminderTriggeredPayload {
 
 export async function setupReminderListener(): Promise<void> {
   await listen<ReminderTriggeredPayload>('reminder-triggered', (event) => {
-    const { note_id, note_title } = event.payload;
+    const { note_id: _note_id, note_title } = event.payload;
     logger.info(`Reminder triggered for note: ${note_title}`, LOG_CONTEXT);
 
     // Play notification sound
