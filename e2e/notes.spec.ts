@@ -22,7 +22,7 @@ describe('Notes CRUD Operations', () => {
     it('should create a new note when clicking New Note button', async () => {
       // Get initial note count
       const initialCards = await $$('.note-card');
-      const initialCount = initialCards.length;
+      const _initialCount = initialCards.length;
 
       // Click the new note button
       const newNoteBtn = await $('#new-note-btn');

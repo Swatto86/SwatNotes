@@ -122,10 +122,10 @@ describe('Window Sizes and Layout', () => {
       await browser.pause(300);
 
       // Check that key elements don't overflow
-      const app = await $('#app');
+      const _app = await $('#app');
       const hasOverflow = await browser.execute(() => {
         const appEl = document.getElementById('app');
-        if (!appEl) return false;
+        if (!appEl) { return false; }
         return appEl.scrollWidth > appEl.clientWidth;
       });
       expect(hasOverflow).toBe(false);
@@ -372,7 +372,7 @@ describe('Window Sizes and Layout', () => {
       // The key is that the overflow is not excessive (user shouldn't need to scroll horizontally)
       const overflowAmount = await browser.execute(() => {
         const appEl = document.getElementById('app');
-        if (!appEl) return 0;
+        if (!appEl) { return 0; }
         return appEl.scrollWidth - appEl.clientWidth;
       });
       

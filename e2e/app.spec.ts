@@ -128,10 +128,10 @@ describe('SwatNotes Application', () => {
     });
 
     it('should not have horizontal overflow at default size', async () => {
-      const app = await $('#app');
+      const _app = await $('#app');
       const hasHorizontalScroll = await browser.execute(() => {
         const appEl = document.getElementById('app');
-        if (!appEl) return false;
+        if (!appEl) { return false; }
         return appEl.scrollWidth > appEl.clientWidth;
       });
       expect(hasHorizontalScroll).toBe(false);

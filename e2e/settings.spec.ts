@@ -544,7 +544,7 @@ describe('Settings Window', () => {
       // Scroll to bottom
       await browser.execute(() => {
         const content = document.getElementById('settings-content');
-        if (content) content.scrollTop = content.scrollHeight;
+        if (content) { content.scrollTop = content.scrollHeight; }
       });
       await browser.pause(300);
 
@@ -555,14 +555,14 @@ describe('Settings Window', () => {
       // Scroll back to top
       await browser.execute(() => {
         const content = document.getElementById('settings-content');
-        if (content) content.scrollTop = 0;
+        if (content) { content.scrollTop = 0; }
       });
       await browser.pause(300);
     });
 
     it('should not have horizontal overflow', async () => {
       // Check that the main body doesn't have horizontal overflow
-      const hasBodyOverflow = await browser.execute(() => {
+      const _hasBodyOverflow = await browser.execute(() => {
         return document.body.scrollWidth > document.body.clientWidth + 5; // 5px tolerance
       });
       
@@ -571,7 +571,7 @@ describe('Settings Window', () => {
       // Minor overflow (< 10px) is acceptable due to scrollbars
       const overflowAmount = await browser.execute(() => {
         const content = document.getElementById('settings-content');
-        if (!content) return 0;
+        if (!content) { return 0; }
         return content.scrollWidth - content.clientWidth;
       });
       

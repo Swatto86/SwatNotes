@@ -422,15 +422,15 @@ describe('Reminders', () => {
         // Close any open modals by clicking their backdrop or close button
         const backdrops = document.querySelectorAll('[id*="backdrop"], .modal-backdrop');
         backdrops.forEach((el) => {
-          if (el instanceof HTMLElement) el.click();
+          if (el instanceof HTMLElement) { el.click(); }
         });
         // Also close DaisyUI modals
         const modals = document.querySelectorAll('dialog.modal[open]');
         modals.forEach((modal) => {
-          if (modal instanceof HTMLDialogElement) modal.close();
+          if (modal instanceof HTMLDialogElement) { modal.close(); }
         });
         // Hide the reminder form
-        const reminderForm = document.getElementById('reminder-form');
+        const _reminderForm = document.getElementById('reminder-form');
         if (reminderForm) {
           reminderForm.classList.add('hidden');
         }
@@ -459,11 +459,11 @@ describe('Reminders', () => {
       await browser.execute(() => {
         const backdrops = document.querySelectorAll('[id*="backdrop"], .modal-backdrop');
         backdrops.forEach((el) => {
-          if (el instanceof HTMLElement) el.click();
+          if (el instanceof HTMLElement) { el.click(); }
         });
         const modals = document.querySelectorAll('dialog.modal[open]');
         modals.forEach((modal) => {
-          if (modal instanceof HTMLDialogElement) modal.close();
+          if (modal instanceof HTMLDialogElement) { modal.close(); }
         });
       });
       await browser.pause(300);

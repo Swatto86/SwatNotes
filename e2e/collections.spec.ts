@@ -243,7 +243,7 @@ describe('Collections', () => {
       await uncategorizedFilter.click();
       await browser.pause(300);
 
-      const uncatClass = await uncategorizedFilter.getAttribute('class');
+      const _uncatClass = await uncategorizedFilter.getAttribute('class');
       // Uncategorized should now be selected
 
       // Click All Notes again

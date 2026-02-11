@@ -37,6 +37,7 @@ export default tseslint.config(
       'target/',
       '*.config.js',
       '*.config.cjs',
+      '*.conf.cjs',
       'postcss.config.js',
     ],
   }

@@ -92,7 +92,7 @@ exports.config = {
       try {
         spawnSync('cmd', ['/c', 'for /f "tokens=5" %a in (\'netstat -ano ^| findstr :4444\') do taskkill /F /PID %a'], { shell: true, stdio: 'ignore' });
         spawnSync('cmd', ['/c', 'for /f "tokens=5" %a in (\'netstat -ano ^| findstr :9222\') do taskkill /F /PID %a'], { shell: true, stdio: 'ignore' });
-      } catch (e) {
+      } catch (_e) {
         // Ignore errors
       }
     }
@@ -110,12 +110,12 @@ exports.config = {
 
     tauriApp.stdout.on('data', (data) => {
       const msg = data.toString().trim();
-      if (msg) console.log('[SwatNotes]', msg);
+      if (msg) { console.log('[SwatNotes]', msg); }
     });
 
     tauriApp.stderr.on('data', (data) => {
       const msg = data.toString().trim();
-      if (msg) console.log('[SwatNotes]', msg);
+      if (msg) { console.log('[SwatNotes]', msg); }
     });
 
     tauriApp.on('error', (err) => {
@@ -135,12 +135,12 @@ exports.config = {
 
     edgeDriver.stdout.on('data', (data) => {
       const msg = data.toString().trim();
-      if (msg) console.log('[msedgedriver]', msg);
+      if (msg) { console.log('[msedgedriver]', msg); }
     });
 
     edgeDriver.stderr.on('data', (data) => {
       const msg = data.toString().trim();
-      if (msg) console.log('[msedgedriver]', msg);
+      if (msg) { console.log('[msedgedriver]', msg); }
     });
 
     edgeDriver.on('error', (err) => {
