@@ -5,7 +5,10 @@
 //! - Encryption/decryption
 //! - Backup and restore workflows
 
-use swatnotes::database::{create_pool, Repository};
+use chrono::{Duration, Utc};
+use swatnotes::database::{
+    create_pool, CreateCollectionRequest, CreateNoteRequest, Repository, UpdateCollectionRequest,
+};
 use swatnotes::services::BackupService;
 use swatnotes::services::NotesService;
 use swatnotes::storage::BlobStore;
@@ -658,4 +661,330 @@ async fn test_same_password_different_nonce() {
 
     // Same password but random nonce means different ciphertext each time
     assert_ne!(encrypted1, encrypted2);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Collections tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn test_collection_crud() {
+    let (repo, _temp) = create_test_db().await;
+
+    // Create
+    let collection = repo
+        .create_collection(CreateCollectionRequest {
+            name: "Work".to_string(),
+            description: Some("Work notes".to_string()),
+            color: Some("#ff0000".to_string()),
+            icon: Some("briefcase".to_string()),
+        })
+        .await
+        .unwrap();
+    assert_eq!(collection.name, "Work");
+    assert_eq!(collection.description.as_deref(), Some("Work notes"));
+    assert_eq!(collection.color, "#ff0000");
+    assert_eq!(collection.icon.as_deref(), Some("briefcase"));
+
+    // Get
+    let fetched = repo.get_collection(&collection.id).await.unwrap();
+    assert_eq!(fetched.id, collection.id);
+    assert_eq!(fetched.name, "Work");
+
+    // List
+    let collections = repo.list_collections().await.unwrap();
+    assert_eq!(collections.len(), 1);
+
+    // Update
+    let updated = repo
+        .update_collection(UpdateCollectionRequest {
+            id: collection.id.clone(),
+            name: Some("Personal".to_string()),
+            description: None,
+            color: Some("#00ff00".to_string()),
+            icon: None,
+            sort_order: Some(5),
+        })
+        .await
+        .unwrap();
+    assert_eq!(updated.name, "Personal");
+    assert_eq!(updated.color, "#00ff00");
+    assert_eq!(updated.sort_order, 5);
+
+    // Delete
+    repo.delete_collection(&collection.id).await.unwrap();
+    let collections = repo.list_collections().await.unwrap();
+    assert!(collections.is_empty());
+}
+
+#[tokio::test]
+async fn test_collection_note_assignment() {
+    let (repo, _temp) = create_test_db().await;
+
+    let collection = repo
+        .create_collection(CreateCollectionRequest {
+            name: "Inbox".to_string(),
+            description: None,
+            color: None,
+            icon: None,
+        })
+        .await
+        .unwrap();
+
+    // Create notes
+    let note1 = repo
+        .create_note(CreateNoteRequest {
+            title: "Note A".to_string(),
+            content_json: "{}".to_string(),
+        })
+        .await
+        .unwrap();
+    let note2 = repo
+        .create_note(CreateNoteRequest {
+            title: "Note B".to_string(),
+            content_json: "{}".to_string(),
+        })
+        .await
+        .unwrap();
+
+    // Initially uncategorized
+    let uncategorized = repo.list_uncategorized_notes().await.unwrap();
+    assert_eq!(uncategorized.len(), 2);
+    assert_eq!(
+        repo.count_notes_in_collection(&collection.id)
+            .await
+            .unwrap(),
+        0
+    );
+
+    // Assign note1 to collection
+    repo.update_note_collection(&note1.id, Some(&collection.id))
+        .await
+        .unwrap();
+
+    let in_collection = repo.list_notes_in_collection(&collection.id).await.unwrap();
+    assert_eq!(in_collection.len(), 1);
+    assert_eq!(in_collection[0].id, note1.id);
+
+    let uncategorized = repo.list_uncategorized_notes().await.unwrap();
+    assert_eq!(uncategorized.len(), 1);
+    assert_eq!(uncategorized[0].id, note2.id);
+
+    assert_eq!(
+        repo.count_notes_in_collection(&collection.id)
+            .await
+            .unwrap(),
+        1
+    );
+
+    // Un-assign note1
+    repo.update_note_collection(&note1.id, None).await.unwrap();
+    let in_collection = repo.list_notes_in_collection(&collection.id).await.unwrap();
+    assert!(in_collection.is_empty());
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reminders service tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn test_reminder_crud() {
+    let (repo, _temp) = create_test_db().await;
+
+    // Create a note to attach reminders to
+    let note = repo
+        .create_note(CreateNoteRequest {
+            title: "Reminder note".to_string(),
+            content_json: "{}".to_string(),
+        })
+        .await
+        .unwrap();
+
+    let trigger = Utc::now() + Duration::hours(1);
+
+    // Create reminder
+    let reminder = repo
+        .create_reminder(
+            &note.id,
+            trigger,
+            Some(true),
+            Some("bell".to_string()),
+            Some(false),
+            Some(true),
+        )
+        .await
+        .unwrap();
+    assert_eq!(reminder.note_id, note.id);
+    assert!(!reminder.triggered);
+    assert_eq!(reminder.sound_enabled, Some(true));
+    assert_eq!(reminder.sound_type.as_deref(), Some("bell"));
+    assert_eq!(reminder.shake_enabled, Some(false));
+    assert_eq!(reminder.glow_enabled, Some(true));
+
+    // List active
+    let active = repo.list_active_reminders().await.unwrap();
+    assert_eq!(active.len(), 1);
+    assert_eq!(active[0].id, reminder.id);
+
+    // Delete
+    repo.delete_reminder(&reminder.id).await.unwrap();
+    let active = repo.list_active_reminders().await.unwrap();
+    assert!(active.is_empty());
+}
+
+#[tokio::test]
+async fn test_reminder_triggered_excluded_from_active() {
+    let (repo, _temp) = create_test_db().await;
+
+    let note = repo
+        .create_note(CreateNoteRequest {
+            title: "Test".to_string(),
+            content_json: "{}".to_string(),
+        })
+        .await
+        .unwrap();
+
+    let trigger = Utc::now() + Duration::hours(1);
+    let reminder = repo
+        .create_reminder(&note.id, trigger, None, None, None, None)
+        .await
+        .unwrap();
+
+    // Mark as triggered
+    repo.mark_reminder_triggered(&reminder.id).await.unwrap();
+
+    // Should not appear in active list
+    let active = repo.list_active_reminders().await.unwrap();
+    assert!(active.is_empty());
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Settings service tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn test_settings_defaults() {
+    use swatnotes::services::SettingsService;
+    let temp_dir = TempDir::new().unwrap();
+    let settings = SettingsService::new(temp_dir.path().to_path_buf());
+
+    // No file on disk yet — should return defaults
+    let app = settings.load().await.unwrap();
+    assert_eq!(app.hotkeys.new_note, "Ctrl+Shift+N");
+    assert!(!app.start_with_windows);
+    assert!(!app.auto_backup.enabled);
+    assert_eq!(app.auto_backup.frequency, "weekly");
+    assert!(app.reminders.sound_enabled);
+    assert!(app.reminders.shake_enabled);
+    assert!(app.reminders.glow_enabled);
+}
+
+#[tokio::test]
+async fn test_settings_round_trip() {
+    use swatnotes::services::SettingsService;
+    let temp_dir = TempDir::new().unwrap();
+    let settings = SettingsService::new(temp_dir.path().to_path_buf());
+
+    let mut app = settings.load().await.unwrap();
+    app.hotkeys.new_note = "Ctrl+N".to_string();
+    app.start_with_windows = true;
+    app.auto_backup.enabled = true;
+    app.auto_backup.frequency = "daily".to_string();
+    app.reminders.sound_type = "chime".to_string();
+    settings.save(&app).await.unwrap();
+
+    // Reload from disk
+    let loaded = settings.load().await.unwrap();
+    assert_eq!(loaded.hotkeys.new_note, "Ctrl+N");
+    assert!(loaded.start_with_windows);
+    assert!(loaded.auto_backup.enabled);
+    assert_eq!(loaded.auto_backup.frequency, "daily");
+    assert_eq!(loaded.reminders.sound_type, "chime");
+}
+
+#[tokio::test]
+async fn test_settings_partial_update() {
+    use swatnotes::services::SettingsService;
+    let temp_dir = TempDir::new().unwrap();
+    let settings = SettingsService::new(temp_dir.path().to_path_buf());
+
+    // Update only hotkeys
+    let mut hotkeys = settings.get_hotkeys().await.unwrap();
+    hotkeys.toggle_note = "Ctrl+T".to_string();
+    settings.update_hotkeys(hotkeys).await.unwrap();
+
+    // Other settings should remain at defaults
+    let app = settings.load().await.unwrap();
+    assert_eq!(app.hotkeys.toggle_note, "Ctrl+T");
+    assert_eq!(app.hotkeys.new_note, "Ctrl+Shift+N"); // unchanged
+    assert!(!app.auto_backup.enabled); // unchanged
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Notes: count_deleted and prune_deleted
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn test_count_and_prune_deleted_notes() {
+    let (repo, _temp) = create_test_db().await;
+    let notes_service = NotesService::new(repo.clone());
+
+    // Create 3 notes
+    let n1 = notes_service
+        .create_note("Note 1".to_string(), "{}".to_string())
+        .await
+        .unwrap();
+    let n2 = notes_service
+        .create_note("Note 2".to_string(), "{}".to_string())
+        .await
+        .unwrap();
+    let _n3 = notes_service
+        .create_note("Note 3".to_string(), "{}".to_string())
+        .await
+        .unwrap();
+
+    assert_eq!(repo.count_deleted_notes().await.unwrap(), 0);
+
+    // Soft-delete two notes
+    notes_service.delete_note(&n1.id).await.unwrap();
+    notes_service.delete_note(&n2.id).await.unwrap();
+
+    assert_eq!(repo.count_deleted_notes().await.unwrap(), 2);
+
+    // List should only show 1
+    let listed = notes_service.list_notes().await.unwrap();
+    assert_eq!(listed.len(), 1);
+
+    // Prune
+    let pruned = repo.prune_deleted_notes().await.unwrap();
+    assert_eq!(pruned, 2);
+
+    assert_eq!(repo.count_deleted_notes().await.unwrap(), 0);
+
+    // Still 1 note alive
+    let listed = notes_service.list_notes().await.unwrap();
+    assert_eq!(listed.len(), 1);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Repository: settings key-value store
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn test_db_settings_kv() {
+    let (repo, _temp) = create_test_db().await;
+
+    // Initially empty
+    let val = repo.get_setting("theme").await.unwrap();
+    assert!(val.is_none());
+
+    // Set and get
+    repo.set_setting("theme", "dark").await.unwrap();
+    let val = repo.get_setting("theme").await.unwrap();
+    assert_eq!(val.as_deref(), Some("dark"));
+
+    // Overwrite
+    repo.set_setting("theme", "light").await.unwrap();
+    let val = repo.get_setting("theme").await.unwrap();
+    assert_eq!(val.as_deref(), Some("light"));
 }
