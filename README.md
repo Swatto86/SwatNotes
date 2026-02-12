@@ -2,7 +2,7 @@
 
 A production-grade desktop notes application built with Rust and Tauri v2. SwatNotes combines powerful features with a clean, intuitive interface for seamless note-taking.
 
-![Version](https://img.shields.io/badge/version-1.0.6-blue)
+![Version](https://img.shields.io/badge/version-2.0.6-blue)
 ![Rust](https://img.shields.io/badge/rust-1.70%2B-orange)
 ![Tauri](https://img.shields.io/badge/tauri-v2-green)
 

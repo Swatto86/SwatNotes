@@ -1,5 +1,13 @@
 # Copilot Instructions for SwatNotes
 
+## Key Documents
+
+- **PROJECT_ATLAS.md** — The authoritative navigation index. Read it first. Any structural change MUST update it.
+- **docs/TESTING.md** — Testing policy (regression tests, failure-mode coverage, test evidence).
+- **docs/PRE_IMPLEMENTATION_CHECKLIST.md** — Must be completed before any non-trivial implementation.
+- **docs/BRANCHING.md** — Branch naming, merge rules, parallel work coordination.
+- **ARCHITECTURE.md** — Detailed architecture and data-flow documentation.
+
 ## Verification Mandate
 
 Before declaring any task complete, run:
@@ -52,3 +60,7 @@ This is the single source of truth for "the repo is healthy." All 9 steps must p
 - Do not skip the verification script — it catches real bugs.
 - Do not run `cargo test --lib` — it will crash with STATUS_ENTRYPOINT_NOT_FOUND.
 - Do not add e2e tests to `src/` — they belong in `e2e/` and use WebDriverIO, not Vitest.
+- Do not begin implementation without completing the pre-implementation checklist (docs/PRE_IMPLEMENTATION_CHECKLIST.md).
+- Do not merge without test evidence in the PR.
+- Do not modify existing database migration files — always add a new numbered migration.
+- Do not make structural/API/boundary changes without updating PROJECT_ATLAS.md in the same increment.

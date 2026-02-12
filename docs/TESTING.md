@@ -1,6 +1,40 @@
 # Testing Guide
 
-This guide covers how to run tests for SwatNotes, including both frontend (TypeScript) and backend (Rust) tests.
+> See also [PRE_IMPLEMENTATION_CHECKLIST.md](PRE_IMPLEMENTATION_CHECKLIST.md) for the pre-coding testing strategy step.
+
+This guide covers how to run tests for SwatNotes, including both frontend (TypeScript) and backend (Rust) tests, as well as the **mandatory testing policies** enforced by the DevWorkflow contract.
+
+---
+
+## Testing Policy (Non-Negotiable)
+
+These rules come from Part A, Rule 3 of the DevWorkflow AI Operating Contract and are enforced via the PR template.
+
+### 1. E2E Tests Are Mandatory for User-Visible Features
+
+E2E tests MUST exercise the application through its real runtime (built app), using real storage and real code paths. They live in `e2e/` and use WebDriverIO.
+
+### 2. Regression Tests Are Mandatory for Every Bug Fix
+
+Every bug fix MUST add a regression test that **fails on the pre-fix code and passes on the fixed code**. Prefer E2E regression when the bug is user-facing.
+
+### 3. Minimal Unit Tests Only Where They Unlock E2E
+
+Unit tests are OPTIONAL. They may be added only to validate pure logic that is hard to cover via E2E (e.g., parsing, serialisation), but they MUST NOT replace required E2E coverage.
+
+### 4. Mocks Are Optional and Tightly Scoped
+
+Mocks MUST NOT be used for core business logic or user flows. Mocks may be used only to isolate truly external dependencies (e.g., Tauri `invoke()` in frontend tests). If used, the PR MUST explain why a real-system test is not feasible.
+
+### 5. Failure-Mode Coverage Is Required
+
+Tests MUST include at least one scenario covering failure or partial-success relevant to the change (e.g., missing file, corrupted data, permission denied, interrupted write).
+
+### 6. Test Evidence Is Required
+
+PRs MUST include the commands used to run tests and the observed results (logs, screenshots, or structured output) in the PR template's "Test Evidence" section.
+
+---
 
 ## Prerequisites
 

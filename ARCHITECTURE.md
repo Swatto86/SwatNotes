@@ -1,5 +1,7 @@
 # SwatNotes Architecture
 
+> See also [PROJECT_ATLAS.md](PROJECT_ATLAS.md) — the authoritative navigation index for this repository.
+
 ## Overview
 SwatNotes is a production-grade desktop notes application built with Rust + Tauri v2, featuring a DaisyUI-themed UI with comprehensive backup, reminder, and system integration capabilities.
 
@@ -244,7 +246,7 @@ Mark reminder as triggered in DB
 - **Tailwind CSS**: Utility-first styling
 - **DaisyUI**: Component library with theme system
 - **Quill.js**: Rich text editor (WYSIWYG)
-- **Alpine.js** or **Vanilla JS**: Lightweight interactivity
+- **Vanilla TypeScript**: Lightweight interactivity (no framework)
 
 ## Security Considerations
 
@@ -264,9 +266,12 @@ Mark reminder as triggered in DB
 
 ## Testing Strategy
 
-1. **Unit Tests**: Repository layer, blob store, backup manifest
-2. **Integration Tests**: Full backup/restore cycle
-3. **Manual Tests**: UI flows, reminder triggers, tray interactions
+1. **Frontend Unit Tests** (Vitest + happy-dom): API wrappers, state management, components — colocated `*.test.ts` files
+2. **Rust Integration Tests** (`src-tauri/tests/integration_test.rs`): Repository, services, backup/restore cycles
+3. **E2E Tests** (WebDriverIO + msedgedriver in `e2e/`): Full application flows through the real built app
+4. **Manual Tests**: System tray interactions, platform-specific behaviours
+
+See [docs/TESTING.md](docs/TESTING.md) for the full testing policy including regression, failure-mode, and test-evidence requirements.
 
 ## Extensibility
 
