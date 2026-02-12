@@ -8,11 +8,11 @@
       1. Frontend format check (Prettier)
       2. Frontend lint (ESLint)
       3. Frontend type check (TypeScript)
-      4. Rust format check (cargo fmt)
-      5. Rust lint (cargo clippy)
-      6. Frontend unit tests (Vitest)
-      7. Rust tests (cargo test)
-      8. Frontend build (Vite)
+      4. Frontend unit tests (Vitest)
+      5. Frontend build (Vite) — must precede Rust steps (tauri::generate_context! needs dist/)
+      6. Rust format check (cargo fmt)
+      7. Rust lint (cargo clippy)
+      8. Rust tests (cargo test)
       9. Rust/Tauri release build (cargo build --release)
 
     Stops immediately on any failure and exits non-zero.
@@ -83,27 +83,28 @@ try {
     Write-Section "3/9  Frontend Type Check (TypeScript)"
     Invoke-Step "TypeScript --noEmit" "npx" @("tsc", "--noEmit")
 
-    # ── 4. Rust Format Check ──────────────────────────────────────────────────
-    Write-Section "4/9  Rust Format Check (cargo fmt)"
-    Invoke-Step "cargo fmt --check" "cargo" @("fmt", "--manifest-path", "src-tauri/Cargo.toml", "--", "--check")
-
-    # ── 5. Rust Lint ──────────────────────────────────────────────────────────
-    Write-Section "5/9  Rust Lint (cargo clippy)"
-    Invoke-Step "cargo clippy" "cargo" @("clippy", "--manifest-path", "src-tauri/Cargo.toml", "--all-targets", "--", "-D", "warnings")
-
-    # ── 6. Frontend Unit Tests ────────────────────────────────────────────────
-    Write-Section "6/9  Frontend Unit Tests (Vitest)"
+    # ── 4. Frontend Unit Tests ────────────────────────────────────────────────
+    Write-Section "4/9  Frontend Unit Tests (Vitest)"
     Invoke-Step "Vitest run" "npx" @("vitest", "run")
 
-    # ── 7. Rust Tests ─────────────────────────────────────────────────────────
-    Write-Section "7/9  Rust Tests (cargo test)"
+    # ── 5. Frontend Build (Vite) ──────────────────────────────────────────────
+    # Must run before Rust steps: tauri::generate_context!() requires dist/ at compile time
+    Write-Section "5/9  Frontend Build (Vite)"
+    Invoke-Step "Vite build" "npx" @("vite", "build")
+
+    # ── 6. Rust Format Check ──────────────────────────────────────────────────
+    Write-Section "6/9  Rust Format Check (cargo fmt)"
+    Invoke-Step "cargo fmt --check" "cargo" @("fmt", "--manifest-path", "src-tauri/Cargo.toml", "--", "--check")
+
+    # ── 7. Rust Lint ──────────────────────────────────────────────────────────
+    Write-Section "7/9  Rust Lint (cargo clippy)"
+    Invoke-Step "cargo clippy" "cargo" @("clippy", "--manifest-path", "src-tauri/Cargo.toml", "--all-targets", "--", "-D", "warnings")
+
+    # ── 8. Rust Tests ─────────────────────────────────────────────────────────
+    Write-Section "8/9  Rust Tests (cargo test)"
     # Note: --lib tests are excluded because they link against Tauri/WebView2
     # which requires the full runtime. Integration tests cover all core logic.
     Invoke-Step "cargo test (integration)" "cargo" @("test", "--manifest-path", "src-tauri/Cargo.toml", "--test", "integration_test")
-
-    # ── 8. Frontend Build ─────────────────────────────────────────────────────
-    Write-Section "8/9  Frontend Build (Vite)"
-    Invoke-Step "Vite build" "npx" @("vite", "build")
 
     # ── 9. Rust Release Build ─────────────────────────────────────────────────
     Write-Section "9/9  Rust Release Build"
