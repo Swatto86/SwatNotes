@@ -20,6 +20,7 @@ pub struct Note {
     /// Whether the title was manually modified (vs auto-generated from content)
     pub title_modified: bool,
     /// Optional collection/folder this note belongs to
+    #[sqlx(default)]
     #[serde(default)]
     pub collection_id: Option<String>,
 }

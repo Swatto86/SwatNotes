@@ -11,7 +11,9 @@ CREATE TABLE IF NOT EXISTS collections (
 );
 
 -- Add collection_id to notes table
-ALTER TABLE notes ADD COLUMN collection_id TEXT REFERENCES collections(id) ON DELETE SET NULL;
+-- Note: FK constraint omitted from ALTER TABLE ADD COLUMN for broad SQLite
+-- version compatibility. FK is enforced by application logic and PRAGMA foreign_keys.
+ALTER TABLE notes ADD COLUMN collection_id TEXT;
 
 -- Index for faster lookups
 CREATE INDEX IF NOT EXISTS idx_notes_collection_id ON notes(collection_id);
