@@ -370,7 +370,10 @@ function setupAttachments(
   }
 
   async function handleImagePaste(blob: Blob): Promise<void> {
-    await handleFileUpload(blob, `pasted-image-${Date.now()}.png`);
+    // Derive file extension from actual MIME type (e.g., image/jpeg → jpg)
+    const mimeSubtype = blob.type.split('/')[1] || 'png';
+    const ext = mimeSubtype === 'jpeg' ? 'jpg' : mimeSubtype.split('+')[0];
+    await handleFileUpload(blob, `pasted-image-${Date.now()}.${ext}`);
   }
 
   // Clipboard paste handler for images and smart text formatting
@@ -384,7 +387,7 @@ function setupAttachments(
 
     // Check for images first - handle them specially
     for (let i = 0; i < items.length; i++) {
-      if (items[i].type.indexOf('image') !== -1) {
+      if (items[i].type.startsWith('image/')) {
         e.preventDefault();
         const blob = items[i].getAsFile();
         if (blob) {

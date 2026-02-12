@@ -19,7 +19,8 @@ file attachments, reminders, system-tray integration, and auto-updates.
 |---------|-------------|
 | **Note** | A rich-text document stored as Quill Delta JSON with title, timestamps, and optional collection membership. |
 | **Collection** | A user-defined colour-coded folder for grouping notes. |
-| **Attachment** | A file or image linked to a note, stored as a content-addressed blob. |
+| **Attachment** | A file or image linked to a note, stored as a content-addressed blob. Inline images are pasted from the clipboard directly into the Quill editor. |
+| **Inline Image** | An image pasted from clipboard (Ctrl+V) into a note. Stored as an attachment blob with a reference embedded in the Quill Delta content. |
 | **Reminder** | A time-based trigger linked to a note that fires a notification. |
 | **Backup** | An AES-256-GCM encrypted ZIP snapshot of the database and blob store with SHA-256 manifest checksums. |
 | **Blob** | A content-addressed (SHA-256) deduplicated file stored under `blobs/`. |
@@ -225,6 +226,32 @@ To add a new feature, follow this pattern:
 4. **Frontend API** → `src/utils/{feature}Api.ts` (invoke wrappers)
 5. **UI** → Wire into components/state/events as needed
 
+### Inline Image Paste Flow
+
+```
+User pastes image (Ctrl+V) in Quill editor
+  ↓
+noteEditor.ts: pasteHandler detects image/* clipboard item
+  ↓
+handleImagePaste → handleFileUpload (reads blob, derives MIME-based extension)
+  ↓
+attachmentsApi.ts: createAttachment(noteId, filename, mimeType, data)
+  ↓ Tauri invoke
+commands/attachments.rs: create_attachment
+  ↓
+services/attachments.rs: validates MIME format + file size + sanitises filename
+  ↓
+blobStore.write(data) → SHA-256 hash (atomic temp+rename)
+  ↓
+repository.create_attachment(note_id, hash, filename, mime_type, size)
+  ↓
+Frontend: insertInlineAttachment → Quill attachment-image blot at cursor
+  ↓
+Autosave: note content_json includes blot reference with blobHash
+```
+
+On reload, `AttachmentImageBlot.loadImage` fetches blob data via `get_attachment_data` and renders `<img>`.
+
 ---
 
 ## 5. Build, Test, CI & Release Locations
@@ -247,6 +274,7 @@ To add a new feature, follow this pattern:
 | Frontend unit tests | `npx vitest run` | `src/**/*.test.ts` (colocated) |
 | Rust integration tests | `cargo test --manifest-path src-tauri/Cargo.toml --test integration_test` | `src-tauri/tests/integration_test.rs` |
 | E2E tests | `npm run test:e2e` (requires built app) | `e2e/*.spec.ts` |
+| E2E inline images | `npm run test:e2e` (requires built app) | `e2e/inline-images.spec.ts` |
 | Type check | `npx tsc --noEmit` | `tsconfig.json` |
 | Lint (TS) | `npx eslint src/` | `eslint.config.js` |
 | Lint (Rust) | `cargo clippy ... -D warnings` | Clippy defaults |

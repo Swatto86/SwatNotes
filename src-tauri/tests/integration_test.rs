@@ -9,6 +9,7 @@ use chrono::{Duration, Utc};
 use swatnotes::database::{
     create_pool, CreateCollectionRequest, CreateNoteRequest, Repository, UpdateCollectionRequest,
 };
+use swatnotes::services::AttachmentsService;
 use swatnotes::services::BackupService;
 use swatnotes::services::NotesService;
 use swatnotes::storage::BlobStore;
@@ -987,4 +988,351 @@ async fn test_db_settings_kv() {
     repo.set_setting("theme", "light").await.unwrap();
     let val = repo.get_setting("theme").await.unwrap();
     assert_eq!(val.as_deref(), Some("light"));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Inline Image Paste: Full flow tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Helper: create AttachmentsService with real repo + blob store
+async fn create_attachments_service() -> (AttachmentsService, Repository, BlobStore, TempDir) {
+    let temp_dir = TempDir::new().unwrap();
+    let db_path = temp_dir.path().join("test.db");
+    let pool = create_pool(&db_path).await.unwrap();
+    let repo = Repository::new(pool);
+    let blob_store = BlobStore::new(temp_dir.path().join("blobs"));
+    blob_store.initialize().await.unwrap();
+    let service = AttachmentsService::new(repo.clone(), blob_store.clone());
+    (service, repo, blob_store, temp_dir)
+}
+
+/// Minimal valid 1x1 PNG (68 bytes)
+fn minimal_png() -> Vec<u8> {
+    vec![
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
+        0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52, // IHDR chunk
+        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, // 1x1
+        0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, // RGB, 8-bit
+        0xDE, 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41, // IDAT chunk
+        0x54, 0x08, 0xD7, 0x63, 0xF8, 0xCF, 0xC0, 0x00, // compressed
+        0x00, 0x00, 0x02, 0x00, 0x01, 0xE2, 0x21, 0xBC, // ...
+        0x33, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, // IEND chunk
+        0x44, 0xAE, 0x42, 0x60, 0x82,
+    ]
+}
+
+#[tokio::test]
+async fn test_inline_image_paste_full_flow() {
+    // Simulates the full inline image paste flow:
+    // 1. Create note
+    // 2. "Paste" image data → create attachment via service
+    // 3. Verify attachment metadata and blob persist
+    // 4. Read back blob data and confirm it matches
+    // 5. Verify note + attachment survive service reload (no in-memory-only state)
+
+    let (service, repo, blob_store, _temp) = create_attachments_service().await;
+
+    // Step 1: Create a note (simulates the open note editor)
+    let note = repo
+        .create_note(CreateNoteRequest {
+            title: "Note with pasted image".to_string(),
+            content_json: r#"{"ops":[{"insert":"Before image\n"}]}"#.to_string(),
+        })
+        .await
+        .unwrap();
+
+    // Step 2: Simulate image paste → create attachment
+    let image_data = minimal_png();
+    let attachment = service
+        .create_attachment(&note.id, "pasted-image-1234.png", "image/png", &image_data)
+        .await
+        .unwrap();
+
+    assert_eq!(attachment.note_id, note.id);
+    assert_eq!(attachment.mime_type, "image/png");
+    assert_eq!(attachment.filename, "pasted-image-1234.png");
+    assert_eq!(attachment.size, image_data.len() as i64);
+    assert!(!attachment.blob_hash.is_empty());
+
+    // Step 3: Verify blob persisted on disk
+    assert!(blob_store.exists(&attachment.blob_hash).await.unwrap());
+
+    // Step 4: Read back and verify data integrity
+    let retrieved = service
+        .get_attachment_by_hash(&attachment.blob_hash)
+        .await
+        .unwrap();
+    assert_eq!(retrieved, image_data);
+
+    // Step 5: List attachments for note (simulates note reopen)
+    let attachments = service.list_attachments(&note.id).await.unwrap();
+    assert_eq!(attachments.len(), 1);
+    assert_eq!(attachments[0].blob_hash, attachment.blob_hash);
+}
+
+#[tokio::test]
+async fn test_inline_image_save_close_reopen() {
+    // Verifies that image attachments survive across "sessions" (new service instance)
+    let temp_dir = TempDir::new().unwrap();
+    let db_path = temp_dir.path().join("test.db");
+    let blob_root = temp_dir.path().join("blobs");
+
+    let image_data = minimal_png();
+    let note_id: String;
+    let blob_hash: String;
+
+    // Session 1: Create note + paste image
+    {
+        let pool = create_pool(&db_path).await.unwrap();
+        let repo = Repository::new(pool);
+        let blob_store = BlobStore::new(blob_root.clone());
+        blob_store.initialize().await.unwrap();
+        let service = AttachmentsService::new(repo.clone(), blob_store);
+
+        let note = repo
+            .create_note(CreateNoteRequest {
+                title: "Persistent image note".to_string(),
+                content_json: "{}".to_string(),
+            })
+            .await
+            .unwrap();
+        note_id = note.id.clone();
+
+        let att = service
+            .create_attachment(&note.id, "screenshot.png", "image/png", &image_data)
+            .await
+            .unwrap();
+        blob_hash = att.blob_hash.clone();
+    }
+    // Pool is dropped here — simulates app close
+
+    // Session 2: Reopen and verify everything persists
+    {
+        let pool = create_pool(&db_path).await.unwrap();
+        let repo = Repository::new(pool);
+        let blob_store = BlobStore::new(blob_root);
+        let service = AttachmentsService::new(repo, blob_store.clone());
+
+        // Note still exists with correct content
+        let attachments = service.list_attachments(&note_id).await.unwrap();
+        assert_eq!(attachments.len(), 1);
+        assert_eq!(attachments[0].blob_hash, blob_hash);
+
+        // Blob data is intact
+        let data = service.get_attachment_by_hash(&blob_hash).await.unwrap();
+        assert_eq!(data, image_data);
+    }
+}
+
+#[tokio::test]
+async fn test_inline_image_existing_notes_unaffected() {
+    // Ensures existing notes without images continue to load unchanged
+    let (service, repo, _blob_store, _temp) = create_attachments_service().await;
+
+    // Create a plain text note (no images)
+    let note = repo
+        .create_note(CreateNoteRequest {
+            title: "Plain text note".to_string(),
+            content_json: r#"{"ops":[{"insert":"Just text, no images\n"}]}"#.to_string(),
+        })
+        .await
+        .unwrap();
+
+    // Should have zero attachments
+    let attachments = service.list_attachments(&note.id).await.unwrap();
+    assert!(attachments.is_empty());
+
+    // Note content is untouched
+    let notes_service = NotesService::new(repo);
+    let loaded = notes_service.get_note(&note.id).await.unwrap();
+    assert_eq!(
+        loaded.content_json,
+        r#"{"ops":[{"insert":"Just text, no images\n"}]}"#
+    );
+}
+
+#[tokio::test]
+async fn test_inline_image_content_addressed_dedup() {
+    // Pasting the same image twice should deduplicate in blob store
+    let (service, repo, blob_store, _temp) = create_attachments_service().await;
+
+    let note = repo
+        .create_note(CreateNoteRequest {
+            title: "Dedup test".to_string(),
+            content_json: "{}".to_string(),
+        })
+        .await
+        .unwrap();
+
+    let image_data = minimal_png();
+
+    let att1 = service
+        .create_attachment(&note.id, "paste1.png", "image/png", &image_data)
+        .await
+        .unwrap();
+    let att2 = service
+        .create_attachment(&note.id, "paste2.png", "image/png", &image_data)
+        .await
+        .unwrap();
+
+    // Same content → same blob hash (content-addressed)
+    assert_eq!(att1.blob_hash, att2.blob_hash);
+
+    // Two attachment records exist (different IDs)
+    assert_ne!(att1.id, att2.id);
+    let attachments = service.list_attachments(&note.id).await.unwrap();
+    assert_eq!(attachments.len(), 2);
+
+    // Only one blob on disk
+    let all_blobs = blob_store.list_all().await.unwrap();
+    assert_eq!(all_blobs.len(), 1);
+}
+
+#[tokio::test]
+async fn test_inline_image_corrupted_blob_read() {
+    // Failure mode: blob file is corrupted/truncated on disk
+    let temp_dir = TempDir::new().unwrap();
+    let db_path = temp_dir.path().join("test.db");
+    let blob_root = temp_dir.path().join("blobs");
+
+    let pool = create_pool(&db_path).await.unwrap();
+    let repo = Repository::new(pool);
+    let blob_store = BlobStore::new(blob_root.clone());
+    blob_store.initialize().await.unwrap();
+    let service = AttachmentsService::new(repo.clone(), blob_store.clone());
+
+    let note = repo
+        .create_note(CreateNoteRequest {
+            title: "Corrupt test".to_string(),
+            content_json: "{}".to_string(),
+        })
+        .await
+        .unwrap();
+
+    let image_data = minimal_png();
+    let att = service
+        .create_attachment(&note.id, "image.png", "image/png", &image_data)
+        .await
+        .unwrap();
+
+    // Simulate corruption: delete the blob file manually
+    blob_store.delete(&att.blob_hash).await.unwrap();
+
+    // Attempt to read — should fail gracefully with error, not panic
+    let result = service.get_attachment_by_hash(&att.blob_hash).await;
+    assert!(result.is_err());
+    let err_msg = result.unwrap_err().to_string();
+    assert!(
+        err_msg.contains("not found") || err_msg.contains("Blob"),
+        "Expected blob-not-found error, got: {}",
+        err_msg
+    );
+
+    // Attachment metadata still exists (only blob is gone)
+    let attachments = service.list_attachments(&note.id).await.unwrap();
+    assert_eq!(attachments.len(), 1);
+}
+
+#[tokio::test]
+async fn test_regression_mime_type_validation() {
+    // Regression test: MIME type must contain a slash (type/subtype format)
+    // This test verifies the fix for accepting arbitrary MIME strings
+    let (service, repo, _blob_store, _temp) = create_attachments_service().await;
+
+    let note = repo
+        .create_note(CreateNoteRequest {
+            title: "MIME test".to_string(),
+            content_json: "{}".to_string(),
+        })
+        .await
+        .unwrap();
+
+    // Invalid MIME: no slash
+    let result = service
+        .create_attachment(&note.id, "file.bin", "invalid", b"data")
+        .await;
+    assert!(result.is_err());
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("Invalid MIME type"));
+
+    // Invalid MIME: empty string
+    let result = service
+        .create_attachment(&note.id, "file.bin", "", b"data")
+        .await;
+    assert!(result.is_err());
+
+    // Valid MIME types should succeed
+    let result = service
+        .create_attachment(&note.id, "image.png", "image/png", b"data")
+        .await;
+    assert!(result.is_ok());
+
+    let result = service
+        .create_attachment(&note.id, "doc.pdf", "application/pdf", b"data")
+        .await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn test_inline_image_backup_and_restore() {
+    // Full backup-restore cycle with inline images
+    let temp_dir = TempDir::new().unwrap();
+    let app_data_dir = temp_dir.path().to_path_buf();
+
+    let db_path = app_data_dir.join("db.sqlite");
+    let pool = create_pool(&db_path).await.unwrap();
+    let repo = Repository::new(pool);
+    let blob_store = BlobStore::new(app_data_dir.join("blobs"));
+    blob_store.initialize().await.unwrap();
+
+    let notes_service = NotesService::new(repo.clone());
+    let att_service = AttachmentsService::new(repo.clone(), blob_store.clone());
+    let backup_service = BackupService::new(repo.clone(), blob_store.clone(), app_data_dir.clone());
+
+    // Create note with inline image attachment
+    let note = notes_service
+        .create_note(
+            "Image backup test".to_string(),
+            r#"{"ops":[{"insert":{"attachment-image":{"blobHash":"<hash>","mimeType":"image/png","filename":"screenshot.png","attachmentId":"<id>"}}},{"insert":"\n"}]}"#.to_string(),
+        )
+        .await
+        .unwrap();
+
+    let image_data = minimal_png();
+    let att = att_service
+        .create_attachment(&note.id, "screenshot.png", "image/png", &image_data)
+        .await
+        .unwrap();
+
+    // Create backup
+    let backup_path = backup_service.create_backup("test_pass").await.unwrap();
+    assert!(std::path::Path::new(&backup_path).exists());
+
+    // Destroy original data
+    notes_service.delete_note(&note.id).await.unwrap();
+    blob_store.delete(&att.blob_hash).await.unwrap();
+    assert!(!blob_store.exists(&att.blob_hash).await.unwrap());
+
+    // Restore from backup
+    backup_service
+        .restore_backup(&backup_path, "test_pass")
+        .await
+        .unwrap();
+
+    // Reconnect after restore
+    let pool = create_pool(&db_path).await.unwrap();
+    let repo = Repository::new(pool);
+
+    // Verify note + attachment + blob all restored
+    let notes = NotesService::new(repo.clone()).list_notes().await.unwrap();
+    assert!(!notes.is_empty());
+
+    let attachments = repo.list_attachments(&notes[0].id).await.unwrap();
+    assert_eq!(attachments.len(), 1);
+    assert_eq!(attachments[0].mime_type, "image/png");
+
+    let blob_data = blob_store.read(&attachments[0].blob_hash).await.unwrap();
+    assert_eq!(blob_data, image_data);
 }

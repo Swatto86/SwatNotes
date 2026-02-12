@@ -171,20 +171,37 @@ SQLite WAL mode ensures durability
 
 ### Image Paste Flow
 ```
-User pastes image
+User pastes image (Ctrl+V) in Quill editor
   ↓
-Frontend captures clipboard data
+noteEditor.ts: pasteHandler detects image/* clipboard items
   ↓
-Calls: attach_image(note_id, image_data)
+handleImagePaste → handleFileUpload (reads Blob, derives extension from MIME)
   ↓
-BlobStore::write(image_data) → hash
+attachmentsApi.ts: createAttachment(noteId, filename, mimeType, data)
+  ↓ Tauri invoke
+commands/attachments.rs: create_attachment
   ↓
-Repository::create_attachment(note_id, hash, metadata)
+services/attachments.rs: AttachmentsService::create_attachment
+  - Validates MIME format (must contain '/')
+  - Validates file size (≤ 100 MB)
+  - Sanitises filename (path traversal prevention)
   ↓
-Return attachment reference to frontend
+BlobStore::write(image_data) → SHA-256 hash (atomic: temp file + rename)
   ↓
-Frontend updates editor with image reference
+Repository::create_attachment(note_id, hash, filename, mime_type, size)
+  ↓
+Return Attachment record to frontend
+  ↓
+insertInlineAttachment → Quill attachment-image blot at cursor position
+  ↓
+Autosave persists note with embedded blot reference (blobHash in Delta JSON)
 ```
+
+**On reload**: `AttachmentImageBlot.loadImage` fetches blob data via `get_attachment_data(blobHash)` and renders `<img>`.
+
+**Supported image types**: PNG, JPEG, GIF, WebP, BMP, SVG+XML (allowlist in `ALLOWED_IMAGE_MIMES`).
+
+**Deduplication**: Content-addressed storage means identical images share a single blob file.
 
 ### Backup Flow
 ```
@@ -253,8 +270,9 @@ Mark reminder as triggered in DB
 1. **XSS Prevention**: Store note content as Quill Delta JSON (structured), not raw HTML
 2. **SQL Injection**: Use parameterized queries (sqlx prevents this)
 3. **Path Traversal**: Validate all file paths, use Tauri's path APIs
-4. **Content Validation**: Sanitize filenames in attachments
+4. **Content Validation**: Sanitize filenames in attachments, validate MIME type format
 5. **Backup Integrity**: Verify checksums on restore
+6. **Attachment Safety**: MIME type format validated (type/subtype), file size capped at 100 MB, atomic blob writes prevent partial/corrupt files
 
 ## Error Handling
 

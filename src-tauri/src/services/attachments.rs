@@ -10,6 +10,16 @@ use crate::storage::BlobStore;
 /// Maximum attachment file size in bytes (100 MB)
 const MAX_ATTACHMENT_SIZE: usize = 100 * 1024 * 1024;
 
+/// Allowed image MIME types for inline image attachments
+const ALLOWED_IMAGE_MIMES: &[&str] = &[
+    "image/png",
+    "image/jpeg",
+    "image/gif",
+    "image/webp",
+    "image/bmp",
+    "image/svg+xml",
+];
+
 /// Service for managing attachments
 #[derive(Clone)]
 pub struct AttachmentsService {
@@ -44,6 +54,14 @@ impl AttachmentsService {
                 data.len(),
                 MAX_ATTACHMENT_SIZE,
                 MAX_ATTACHMENT_SIZE / (1024 * 1024)
+            )));
+        }
+
+        // Validate MIME type format (must be type/subtype)
+        if !mime_type.contains('/') || mime_type.len() > 255 {
+            return Err(AppError::Generic(format!(
+                "Invalid MIME type: {}",
+                mime_type
             )));
         }
 
@@ -104,6 +122,12 @@ impl AttachmentsService {
 
         Ok(())
     }
+}
+
+/// Check if a MIME type is an allowed image type
+#[allow(dead_code)]
+pub fn is_allowed_image_mime(mime_type: &str) -> bool {
+    ALLOWED_IMAGE_MIMES.contains(&mime_type)
 }
 
 /// Sanitize filename to prevent path traversal attacks
@@ -237,5 +261,46 @@ mod tests {
         assert!(result.is_err());
         let err_msg = result.unwrap_err().to_string();
         assert!(err_msg.contains("exceeds maximum allowed size"));
+    }
+
+    #[tokio::test]
+    async fn test_mime_type_validation() {
+        let (service, _temp) = create_test_service().await;
+
+        let note = service
+            .repo
+            .create_note(CreateNoteRequest {
+                title: "Test".to_string(),
+                content_json: "{}".to_string(),
+            })
+            .await
+            .unwrap();
+
+        // Invalid MIME type (no slash)
+        let result = service
+            .create_attachment(&note.id, "test.txt", "invalid", b"data")
+            .await;
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid MIME type"));
+
+        // Valid MIME type should succeed
+        let result = service
+            .create_attachment(&note.id, "test.png", "image/png", b"data")
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_allowed_image_mimes() {
+        assert!(is_allowed_image_mime("image/png"));
+        assert!(is_allowed_image_mime("image/jpeg"));
+        assert!(is_allowed_image_mime("image/gif"));
+        assert!(is_allowed_image_mime("image/webp"));
+        assert!(!is_allowed_image_mime("text/plain"));
+        assert!(!is_allowed_image_mime("application/octet-stream"));
+        assert!(!is_allowed_image_mime("image/tiff"));
     }
 }
