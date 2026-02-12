@@ -97,12 +97,16 @@ pub struct Reminder {
     pub triggered: bool,
     pub created_at: DateTime<Utc>,
     /// Per-reminder sound setting (None = use global default)
+    #[sqlx(default)]
     pub sound_enabled: Option<bool>,
     /// Per-reminder sound type (None = use global default)
+    #[sqlx(default)]
     pub sound_type: Option<String>,
     /// Per-reminder shake animation setting (None = use global default)
+    #[sqlx(default)]
     pub shake_enabled: Option<bool>,
     /// Per-reminder glow effect setting (None = use global default)
+    #[sqlx(default)]
     pub glow_enabled: Option<bool>,
 }
 

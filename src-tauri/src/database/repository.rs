@@ -10,6 +10,17 @@ use serde_json::Value;
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
+/// Explicit column list for the notes table.
+/// Using explicit columns instead of `SELECT *` / `RETURNING *` ensures
+/// queries fail clearly at parse time if the schema is out of sync,
+/// rather than panicking at row-decode time.
+const NOTE_COLUMNS: &str =
+    "id, title, content_json, created_at, updated_at, deleted_at, title_modified, collection_id";
+
+/// Explicit column list for the reminders table.
+const REMINDER_COLUMNS: &str =
+    "id, note_id, trigger_time, triggered, created_at, sound_enabled, sound_type, shake_enabled, glow_enabled";
+
 /// Repository for database operations
 #[derive(Clone)]
 pub struct Repository {
@@ -43,20 +54,18 @@ impl Repository {
         let id = Uuid::new_v4().to_string();
         let now = Utc::now();
 
-        let note = sqlx::query_as::<_, Note>(
-            r#"
-            INSERT INTO notes (id, title, content_json, created_at, updated_at, title_modified)
-            VALUES (?, ?, ?, ?, ?, 0)
-            RETURNING *
-            "#,
-        )
-        .bind(&id)
-        .bind(&req.title)
-        .bind(&req.content_json)
-        .bind(now)
-        .bind(now)
-        .fetch_one(&self.pool)
-        .await?;
+        let sql = format!(
+            "INSERT INTO notes (id, title, content_json, created_at, updated_at, title_modified) VALUES (?, ?, ?, ?, ?, 0) RETURNING {}",
+            NOTE_COLUMNS
+        );
+        let note = sqlx::query_as::<_, Note>(&sql)
+            .bind(&id)
+            .bind(&req.title)
+            .bind(&req.content_json)
+            .bind(now)
+            .bind(now)
+            .fetch_one(&self.pool)
+            .await?;
 
         tracing::debug!("Created note: {}", id);
         Ok(note)
@@ -64,15 +73,15 @@ impl Repository {
 
     /// Get a note by ID
     pub async fn get_note(&self, id: &str) -> Result<Note> {
-        let note = sqlx::query_as::<_, Note>(
-            r#"
-            SELECT * FROM notes WHERE id = ? AND deleted_at IS NULL
-            "#,
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await?
-        .ok_or_else(|| AppError::NoteNotFound(id.to_string()))?;
+        let sql = format!(
+            "SELECT {} FROM notes WHERE id = ? AND deleted_at IS NULL",
+            NOTE_COLUMNS
+        );
+        let note = sqlx::query_as::<_, Note>(&sql)
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?
+            .ok_or_else(|| AppError::NoteNotFound(id.to_string()))?;
 
         Ok(note)
     }
@@ -85,8 +94,11 @@ impl Repository {
             return Ok(Vec::new());
         }
 
-        let mut builder: QueryBuilder<sqlx::Sqlite> =
-            QueryBuilder::new("SELECT * FROM notes WHERE deleted_at IS NULL AND id IN (");
+        let prefix = format!(
+            "SELECT {} FROM notes WHERE deleted_at IS NULL AND id IN (",
+            NOTE_COLUMNS
+        );
+        let mut builder: QueryBuilder<sqlx::Sqlite> = QueryBuilder::new(prefix);
 
         let mut separated = builder.separated(", ");
         for id in ids {
@@ -104,15 +116,13 @@ impl Repository {
 
     /// List all notes (non-deleted)
     pub async fn list_notes(&self) -> Result<Vec<Note>> {
-        let notes = sqlx::query_as::<_, Note>(
-            r#"
-            SELECT * FROM notes
-            WHERE deleted_at IS NULL
-            ORDER BY updated_at DESC
-            "#,
-        )
-        .fetch_all(&self.pool)
-        .await?;
+        let sql = format!(
+            "SELECT {} FROM notes WHERE deleted_at IS NULL ORDER BY updated_at DESC",
+            NOTE_COLUMNS
+        );
+        let notes = sqlx::query_as::<_, Note>(&sql)
+            .fetch_all(&self.pool)
+            .await?;
 
         Ok(notes)
     }
@@ -278,23 +288,21 @@ impl Repository {
         let id = Uuid::new_v4().to_string();
         let now = Utc::now();
 
-        let reminder = sqlx::query_as::<_, Reminder>(
-            r#"
-            INSERT INTO reminders (id, note_id, trigger_time, triggered, created_at, sound_enabled, sound_type, shake_enabled, glow_enabled)
-            VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?)
-            RETURNING *
-            "#,
-        )
-        .bind(&id)
-        .bind(note_id)
-        .bind(trigger_time)
-        .bind(now)
-        .bind(sound_enabled)
-        .bind(&sound_type)
-        .bind(shake_enabled)
-        .bind(glow_enabled)
-        .fetch_one(&self.pool)
-        .await?;
+        let sql = format!(
+            "INSERT INTO reminders (id, note_id, trigger_time, triggered, created_at, sound_enabled, sound_type, shake_enabled, glow_enabled) VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?) RETURNING {}",
+            REMINDER_COLUMNS
+        );
+        let reminder = sqlx::query_as::<_, Reminder>(&sql)
+            .bind(&id)
+            .bind(note_id)
+            .bind(trigger_time)
+            .bind(now)
+            .bind(sound_enabled)
+            .bind(&sound_type)
+            .bind(shake_enabled)
+            .bind(glow_enabled)
+            .fetch_one(&self.pool)
+            .await?;
 
         tracing::debug!("Created reminder: {} for note: {}", id, note_id);
         Ok(reminder)
@@ -302,13 +310,13 @@ impl Repository {
 
     /// List active (non-triggered) reminders
     pub async fn list_active_reminders(&self) -> Result<Vec<Reminder>> {
-        let reminders = sqlx::query_as::<_, Reminder>(
-            r#"
-            SELECT * FROM reminders WHERE triggered = 0 ORDER BY trigger_time ASC
-            "#,
-        )
-        .fetch_all(&self.pool)
-        .await?;
+        let sql = format!(
+            "SELECT {} FROM reminders WHERE triggered = 0 ORDER BY trigger_time ASC",
+            REMINDER_COLUMNS
+        );
+        let reminders = sqlx::query_as::<_, Reminder>(&sql)
+            .fetch_all(&self.pool)
+            .await?;
 
         Ok(reminders)
     }
@@ -550,18 +558,21 @@ impl Repository {
         // FTS5 uses MATCH for searching
         let search_query = format!("{}*", query.replace('"', "\"\""));
 
-        let notes = sqlx::query_as::<_, Note>(
-            r#"
-            SELECT n.* FROM notes n
-            INNER JOIN notes_fts fts ON n.id = fts.note_id
-            WHERE notes_fts MATCH ?
-            AND n.deleted_at IS NULL
-            ORDER BY bm25(notes_fts)
-            "#,
-        )
-        .bind(&search_query)
-        .fetch_all(&self.pool)
-        .await?;
+        let sql = format!(
+            "SELECT {} FROM notes n INNER JOIN notes_fts fts ON n.id = fts.note_id WHERE notes_fts MATCH ? AND n.deleted_at IS NULL ORDER BY bm25(notes_fts)",
+            NOTE_COLUMNS.replace("id,", "n.id,")
+                .replace("title,", "n.title,")
+                .replace("content_json,", "n.content_json,")
+                .replace("created_at,", "n.created_at,")
+                .replace("updated_at,", "n.updated_at,")
+                .replace("deleted_at,", "n.deleted_at,")
+                .replace("title_modified,", "n.title_modified,")
+                .replace("collection_id", "n.collection_id")
+        );
+        let notes = sqlx::query_as::<_, Note>(&sql)
+            .bind(&search_query)
+            .fetch_all(&self.pool)
+            .await?;
 
         Ok(notes)
     }
@@ -865,32 +876,27 @@ impl Repository {
 
     /// List notes in a collection
     pub async fn list_notes_in_collection(&self, collection_id: &str) -> Result<Vec<Note>> {
-        let notes = sqlx::query_as::<_, Note>(
-            r#"
-            SELECT * FROM notes
-            WHERE collection_id = ? AND deleted_at IS NULL
-            ORDER BY updated_at DESC
-            "#,
-        )
-        .bind(collection_id)
-        .fetch_all(&self.pool)
-        .await?;
+        let sql = format!(
+            "SELECT {} FROM notes WHERE collection_id = ? AND deleted_at IS NULL ORDER BY updated_at DESC",
+            NOTE_COLUMNS
+        );
+        let notes = sqlx::query_as::<_, Note>(&sql)
+            .bind(collection_id)
+            .fetch_all(&self.pool)
+            .await?;
 
         Ok(notes)
     }
 
     /// List notes without a collection (uncategorized)
     pub async fn list_uncategorized_notes(&self) -> Result<Vec<Note>> {
-        let notes = sqlx::query_as::<_, Note>(
-            r#"
-            SELECT * FROM notes
-            WHERE collection_id IS NULL AND deleted_at IS NULL
-            ORDER BY updated_at DESC
-            "#,
-        )
-        .bind::<Option<String>>(None)
-        .fetch_all(&self.pool)
-        .await?;
+        let sql = format!(
+            "SELECT {} FROM notes WHERE collection_id IS NULL AND deleted_at IS NULL ORDER BY updated_at DESC",
+            NOTE_COLUMNS
+        );
+        let notes = sqlx::query_as::<_, Note>(&sql)
+            .fetch_all(&self.pool)
+            .await?;
 
         Ok(notes)
     }
