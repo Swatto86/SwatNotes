@@ -425,7 +425,12 @@ catch {
 
 # Git operations
 Write-Step "Staging version changes"
+$CargoLockPath = Join-Path $PSScriptRoot "Cargo.lock"
 git add $CargoTomlPath $TauriConfPath $PackageJsonPath $ConfigTsPath $AboutHtmlPath
+if (Test-Path $CargoLockPath) {
+    # Always include Cargo.lock so the tagged commit has lockfile in sync with Cargo.toml
+    git add $CargoLockPath
+}
 if ($LASTEXITCODE -ne 0) {
     Write-ErrorMsg "Failed to stage changes"
     exit 1

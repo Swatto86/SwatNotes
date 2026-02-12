@@ -1,16 +1,13 @@
 # GitHub Actions workflow for building and releasing SwatNotes
-# This workflow builds the app for all platforms and creates a GitHub Release
-# with auto-update support.
+# This workflow builds the app and creates a GitHub Release with auto-update support.
 #
-# To trigger a release:
-# 1. Update the version in src-tauri/Cargo.toml and src-tauri/tauri.conf.json
-# 2. Create and push a tag: git tag v0.1.0 && git push origin v0.1.0
+# Triggering: push a tag via update-application.ps1 or workflow_dispatch.
+# Prerequisites: TAURI_SIGNING_PRIVATE_KEY and TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+# must be set as repository secrets.
 #
-# IMPORTANT: Before using this workflow, you need to:
-# 1. Generate a signing key pair: npx @tauri-apps/cli signer generate -w ~/.tauri/swatnotes.key
-# 2. Add the private key as a repository secret named TAURI_SIGNING_PRIVATE_KEY
-# 3. Add the key password as a repository secret named TAURI_SIGNING_PRIVATE_KEY_PASSWORD
-# 4. Update the pubkey in src-tauri/tauri.conf.json with the public key
+# NOTE: The CI workflow already verifies every push to main (format, lint,
+# tests, clippy, release build). Tags are always created on main, so we
+# skip re-verification here and go straight to the release build.
 
 name: Release
 
@@ -49,47 +46,27 @@ jobs:
           fi
 
       - name: Fetch tags with annotations
-        run: |
-          # Ensure we have all tag data including annotations
-          git fetch --tags --force
-          
+        run: git fetch --tags --force
+
       - name: Get release notes from tag
         id: get-notes
         run: |
-          # Get the tag annotation message (release notes from the Notes parameter)
-          # This extracts what was provided in the update-application.ps1 -Notes parameter
           TAG_NAME="v${{ steps.get-version.outputs.version }}"
-
           echo "Extracting release notes for tag: $TAG_NAME"
-          
-          # Use git for-each-ref to get the FULL tag annotation (body/contents)
-          # This is more reliable than git tag -n which can truncate
+
           NOTES=$(git for-each-ref --format='%(contents)' "refs/tags/$TAG_NAME" 2>/dev/null || echo "")
-          
-          # Debug output
-          echo "Raw notes extracted:"
-          echo "$NOTES"
-          echo "---"
-          
-          # If empty, try the old method as fallback
+
           if [ -z "$(echo "$NOTES" | tr -d '[:space:]')" ]; then
-            echo "Trying fallback method..."
             RAW_NOTES=$(git tag -l -n1000 "$TAG_NAME" 2>/dev/null || echo "")
             if [ -n "$RAW_NOTES" ]; then
               NOTES=$(echo "$RAW_NOTES" | sed "s/^${TAG_NAME}[[:space:]]*//")
             fi
           fi
 
-          # If still empty, use default message
           if [ -z "$(echo "$NOTES" | tr -d '[:space:]')" ]; then
-            echo "No notes found, using default message"
             NOTES=$(printf "Release %s\n\nSee the assets below to download and install this version." "$TAG_NAME")
           fi
 
-          echo "Final release notes:"
-          echo "$NOTES"
-
-          # Escape for GitHub Actions output (handle multi-line)
           {
             echo 'notes<<EOF'
             echo "$NOTES"
@@ -115,37 +92,8 @@ jobs:
             });
             return data.id
 
-  verify:
-    needs: create-release
-    runs-on: windows-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy, rustfmt
-
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: './src-tauri -> target'
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
-          cache: 'npm'
-
-      - name: Install frontend dependencies
-        run: npm ci
-
-      - name: Run verification pipeline
-        run: pwsh -File scripts/verify.ps1
-
   build-tauri:
-    needs: [create-release, verify]
+    needs: create-release
     runs-on: windows-latest
     steps:
       - name: Checkout repository
@@ -190,7 +138,7 @@ jobs:
             github.rest.repos.updateRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              release_id: process.env.release_id,
+              release_id: parseInt(process.env.release_id, 10),
               draft: false,
               prerelease: false
             })

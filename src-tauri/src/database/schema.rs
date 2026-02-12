@@ -10,15 +10,8 @@ use sqlx::{sqlite::SqlitePool, Row};
 pub async fn initialize_database(pool: &SqlitePool) -> Result<()> {
     tracing::info!("Initializing database schema");
 
-    // Enable WAL mode for better performance and crash safety
-    sqlx::query("PRAGMA journal_mode = WAL")
-        .execute(pool)
-        .await?;
-
-    // Enable foreign keys
-    sqlx::query("PRAGMA foreign_keys = ON")
-        .execute(pool)
-        .await?;
+    // NOTE: WAL mode and foreign_keys are set via SqliteConnectOptions
+    // in database/mod.rs so every connection inherits them automatically.
 
     // Create migrations table
     sqlx::query(
