@@ -1,0 +1,10 @@
+# Enforce LF line endings for all text files to match Prettier config (endOfLine: "lf").
+# Without this, Windows CI runners convert LF→CRLF on checkout, failing Prettier checks.
+* text=auto eol=lf
+
+# Ensure these binary formats are never treated as text
+*.png binary
+*.ico binary
+*.exe binary
+*.msi binary
+*.nsis binary

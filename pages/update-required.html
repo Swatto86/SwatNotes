@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Update Required - SwatNotes</title>
+    <link rel="stylesheet" href="/src/styles/main.css" />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: oklch(var(--b1));
+      }
+      #update-container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        padding: 2rem;
+        box-sizing: border-box;
+      }
+      .update-icon {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 1.5rem;
+        color: oklch(var(--wa));
+      }
+      .update-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 0.5rem;
+        color: oklch(var(--bc));
+      }
+      .update-subtitle {
+        font-size: 0.875rem;
+        text-align: center;
+        color: oklch(var(--bc) / 0.7);
+        margin-bottom: 1.5rem;
+      }
+      .version-info {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        margin-bottom: 1.5rem;
+      }
+      .version-box {
+        text-align: center;
+        padding: 0.75rem 1.5rem;
+        background: oklch(var(--b2));
+        border-radius: 0.5rem;
+        border: 1px solid oklch(var(--bc) / 0.1);
+      }
+      .version-label {
+        font-size: 0.75rem;
+        color: oklch(var(--bc) / 0.6);
+        margin-bottom: 0.25rem;
+      }
+      .version-value {
+        font-size: 1rem;
+        font-weight: 600;
+        font-family: monospace;
+        color: oklch(var(--bc));
+      }
+      .version-value.new {
+        color: oklch(var(--su));
+      }
+      .release-notes {
+        flex: 1;
+        background: oklch(var(--b2));
+        border-radius: 0.5rem;
+        border: 1px solid oklch(var(--bc) / 0.1);
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        overflow-y: auto;
+      }
+      .release-notes-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: oklch(var(--bc));
+        margin-bottom: 0.5rem;
+      }
+      .release-notes-content {
+        font-size: 0.8125rem;
+        color: oklch(var(--bc) / 0.8);
+        white-space: pre-wrap;
+        line-height: 1.5;
+      }
+      .button-row {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+      }
+      .btn-update {
+        flex: 1;
+        max-width: 200px;
+      }
+    </style>
+  </head>
+  <body class="bg-base-100" data-theme="dark">
+    <div id="update-container">
+      <svg class="update-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+
+      <h1 class="update-title">Update Required</h1>
+      <p class="update-subtitle">A new version of SwatNotes is available and must be installed to continue.</p>
+
+      <div class="version-info">
+        <div class="version-box">
+          <div class="version-label">Current Version</div>
+          <div class="version-value" id="current-version">0.0.0</div>
+        </div>
+        <div class="version-box">
+          <div class="version-label">New Version</div>
+          <div class="version-value new" id="new-version">0.0.0</div>
+        </div>
+      </div>
+
+      <div class="release-notes">
+        <div class="release-notes-title">What's New</div>
+        <div class="release-notes-content" id="release-notes">Loading...</div>
+      </div>
+
+      <div class="button-row">
+        <button class="btn btn-ghost btn-update" id="quit-btn">Quit</button>
+        <button class="btn btn-primary btn-update" id="update-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Download Update
+        </button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/update-required.ts"></script>
+  </body>
+</html>
