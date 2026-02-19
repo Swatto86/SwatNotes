@@ -34,62 +34,39 @@ const currentWindow = getCurrentWebviewWindow();
  * Show a brief success indicator next to an element
  * @param element - The element to show the indicator next to
  */
-function showSaveSuccess(element: HTMLElement): void {
-  // Find the settings-row container
-  const parent = element.closest('.settings-row') || element.closest('label');
-  if (!parent) {
-    return;
-  }
-
-  // Remove any existing indicator
-  const existing = parent.querySelector('.save-indicator');
-  if (existing) {
-    existing.remove();
-  }
-
-  // Create success indicator
-  const indicator = document.createElement('span');
-  indicator.className = 'save-indicator text-success ml-2 animate-fade-in';
-  indicator.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-
-  // Always append to the parent container
-  parent.appendChild(indicator);
-
-  // Fade out and remove after delay
-  setTimeout(() => {
-    indicator.classList.add('animate-fade-out');
-    setTimeout(() => indicator.remove(), 300);
-  }, 1500);
-}
+let statusTimeout: ReturnType<typeof setTimeout> | null = null;
 
 /**
- * Show a brief error indicator next to an element
- * @param element - The element to show the indicator next to
+ * Show a status message in the status bar
+ * @param message - The message to display
+ * @param type - 'success' | 'error' | 'info'
  */
-function showSaveError(element: HTMLElement): void {
-  const parent = element.closest('.settings-row') || element.closest('label');
-  if (!parent) {
+function showStatusMessage(message: string, type: 'success' | 'error' | 'info' = 'success'): void {
+  const statusBar = document.getElementById('status-bar');
+  const statusMessage = document.getElementById('status-message');
+
+  if (!statusBar || !statusMessage) {
     return;
   }
 
-  // Remove any existing indicator
-  const existing = parent.querySelector('.save-indicator');
-  if (existing) {
-    existing.remove();
+  // Clear any existing timeout
+  if (statusTimeout) {
+    clearTimeout(statusTimeout);
   }
 
-  // Create error indicator
-  const indicator = document.createElement('span');
-  indicator.className = 'save-indicator text-error ml-2 animate-fade-in';
-  indicator.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
+  // Remove all type classes
+  statusBar.classList.remove('status-success', 'status-error', 'status-info');
 
-  parent.appendChild(indicator);
+  // Add appropriate class and show
+  statusBar.classList.add(`status-${type}`);
+  statusBar.classList.remove('hidden');
+  statusMessage.textContent = message;
 
-  // Fade out and remove after delay
-  setTimeout(() => {
-    indicator.classList.add('animate-fade-out');
-    setTimeout(() => indicator.remove(), 300);
-  }, 2000);
+  // Auto-hide after delay (longer for errors)
+  const delay = type === 'error' ? 4000 : 2500;
+  statusTimeout = setTimeout(() => {
+    statusBar.classList.add('hidden');
+  }, delay);
 }
 
 /**
@@ -582,12 +559,11 @@ function setupEventHandlers(): void {
         behaviorSettings.minimize_to_tray = minimizeToTrayCheckbox.checked;
         try {
           await saveBehaviorSettings(behaviorSettings);
-          showSaveSuccess(minimizeToTrayCheckbox);
-          minimizeToTrayCheckbox.classList.add('checkbox-success-flash');
-          setTimeout(() => minimizeToTrayCheckbox.classList.remove('checkbox-success-flash'), 500);
+          const state = minimizeToTrayCheckbox.checked ? 'enabled' : 'disabled';
+          showStatusMessage(`Minimize to tray ${state}`);
         } catch (error) {
           logger.error('Failed to save behavior settings', LOG_CONTEXT, error);
-          showSaveError(minimizeToTrayCheckbox);
+          showStatusMessage('Failed to save minimize to tray setting', 'error');
           await showAlert('Failed to save settings: ' + error, { title: 'Error', type: 'error' });
           // Revert on error
           minimizeToTrayCheckbox.checked = !minimizeToTrayCheckbox.checked;
@@ -606,12 +582,11 @@ function setupEventHandlers(): void {
         behaviorSettings.close_to_tray = closeToTrayCheckbox.checked;
         try {
           await saveBehaviorSettings(behaviorSettings);
-          showSaveSuccess(closeToTrayCheckbox);
-          closeToTrayCheckbox.classList.add('checkbox-success-flash');
-          setTimeout(() => closeToTrayCheckbox.classList.remove('checkbox-success-flash'), 500);
+          const state = closeToTrayCheckbox.checked ? 'enabled' : 'disabled';
+          showStatusMessage(`Close to tray ${state}`);
         } catch (error) {
           logger.error('Failed to save behavior settings', LOG_CONTEXT, error);
-          showSaveError(closeToTrayCheckbox);
+          showStatusMessage('Failed to save close to tray setting', 'error');
           await showAlert('Failed to save settings: ' + error, { title: 'Error', type: 'error' });
           // Revert on error
           closeToTrayCheckbox.checked = !closeToTrayCheckbox.checked;
@@ -630,10 +605,10 @@ function setupEventHandlers(): void {
           behaviorSettings.auto_save_delay = value;
           try {
             await saveBehaviorSettings(behaviorSettings);
-            showSaveSuccess(autoSaveDelayInput);
+            showStatusMessage(`Auto-save delay set to ${value}ms`);
           } catch (error) {
             logger.error('Failed to save behavior settings', LOG_CONTEXT, error);
-            showSaveError(autoSaveDelayInput);
+            showStatusMessage('Failed to save auto-save delay', 'error');
           }
         }
       });
@@ -651,15 +626,11 @@ function setupEventHandlers(): void {
         // Call backend to actually enable/disable autostart
         try {
           await invoke('set_autostart', { enabled: startWithWindowsCheckbox.checked });
-          showSaveSuccess(startWithWindowsCheckbox);
-          startWithWindowsCheckbox.classList.add('checkbox-success-flash');
-          setTimeout(
-            () => startWithWindowsCheckbox.classList.remove('checkbox-success-flash'),
-            500
-          );
+          const state = startWithWindowsCheckbox.checked ? 'enabled' : 'disabled';
+          showStatusMessage(`Start with Windows ${state}`);
         } catch (error) {
           logger.error('Failed to set autostart', LOG_CONTEXT, error);
-          showSaveError(startWithWindowsCheckbox);
+          showStatusMessage('Failed to update startup settings', 'error');
           await showAlert('Failed to update startup settings: ' + error, {
             title: 'Error',
             type: 'error',
@@ -688,12 +659,11 @@ function setupEventHandlers(): void {
         reminderSettings.sound_enabled = soundCheckbox.checked;
         try {
           await saveReminderSettings(reminderSettings);
-          showSaveSuccess(soundCheckbox);
-          soundCheckbox.classList.add('checkbox-success-flash');
-          setTimeout(() => soundCheckbox.classList.remove('checkbox-success-flash'), 500);
+          const state = soundCheckbox.checked ? 'enabled' : 'disabled';
+          showStatusMessage(`Reminder sound ${state}`);
         } catch (error) {
           logger.error('Failed to save reminder settings', LOG_CONTEXT, error);
-          showSaveError(soundCheckbox);
+          showStatusMessage('Failed to save sound setting', 'error');
           await showAlert('Failed to save settings: ' + error, { title: 'Error', type: 'error' });
         }
       });
@@ -705,12 +675,11 @@ function setupEventHandlers(): void {
         reminderSettings.shake_enabled = shakeCheckbox.checked;
         try {
           await saveReminderSettings(reminderSettings);
-          showSaveSuccess(shakeCheckbox);
-          shakeCheckbox.classList.add('checkbox-success-flash');
-          setTimeout(() => shakeCheckbox.classList.remove('checkbox-success-flash'), 500);
+          const state = shakeCheckbox.checked ? 'enabled' : 'disabled';
+          showStatusMessage(`Reminder shake ${state}`);
         } catch (error) {
           logger.error('Failed to save reminder settings', LOG_CONTEXT, error);
-          showSaveError(shakeCheckbox);
+          showStatusMessage('Failed to save shake setting', 'error');
           await showAlert('Failed to save settings: ' + error, { title: 'Error', type: 'error' });
         }
       });
@@ -722,12 +691,11 @@ function setupEventHandlers(): void {
         reminderSettings.glow_enabled = glowCheckbox.checked;
         try {
           await saveReminderSettings(reminderSettings);
-          showSaveSuccess(glowCheckbox);
-          glowCheckbox.classList.add('checkbox-success-flash');
-          setTimeout(() => glowCheckbox.classList.remove('checkbox-success-flash'), 500);
+          const state = glowCheckbox.checked ? 'enabled' : 'disabled';
+          showStatusMessage(`Reminder glow ${state}`);
         } catch (error) {
           logger.error('Failed to save reminder settings', LOG_CONTEXT, error);
-          showSaveError(glowCheckbox);
+          showStatusMessage('Failed to save glow setting', 'error');
           await showAlert('Failed to save settings: ' + error, { title: 'Error', type: 'error' });
         }
       });
@@ -742,10 +710,10 @@ function setupEventHandlers(): void {
           reminderSettings.shake_duration = value;
           try {
             await saveReminderSettings(reminderSettings);
-            showSaveSuccess(shakeDurationInput);
+            showStatusMessage(`Shake duration set to ${value}ms`);
           } catch (error) {
             logger.error('Failed to save reminder settings', LOG_CONTEXT, error);
-            showSaveError(shakeDurationInput);
+            showStatusMessage('Failed to save shake duration', 'error');
             await showAlert('Failed to save settings: ' + error, { title: 'Error', type: 'error' });
           }
         }
@@ -762,12 +730,12 @@ function setupEventHandlers(): void {
         reminderSettings.sound_type = soundTypeSelect.value;
         try {
           await saveReminderSettings(reminderSettings);
-          showSaveSuccess(soundTypeSelect);
+          showStatusMessage(`Sound type changed to ${soundTypeSelect.value}`);
           // Play a preview of the newly selected sound
           playTestSound(soundTypeSelect.value);
         } catch (error) {
           logger.error('Failed to save reminder settings', LOG_CONTEXT, error);
-          showSaveError(soundTypeSelect);
+          showStatusMessage('Failed to save sound type', 'error');
           await showAlert('Failed to save settings: ' + error, { title: 'Error', type: 'error' });
         }
       });
@@ -915,15 +883,11 @@ function setupEventHandlers(): void {
 
         try {
           await saveAutoBackupSettings(autoBackupSettings);
-          showSaveSuccess(autoBackupEnabledCheckbox);
-          autoBackupEnabledCheckbox.classList.add('checkbox-success-flash');
-          setTimeout(
-            () => autoBackupEnabledCheckbox.classList.remove('checkbox-success-flash'),
-            500
-          );
+          const state = autoBackupEnabledCheckbox.checked ? 'enabled' : 'disabled';
+          showStatusMessage(`Auto-backup ${state}`);
         } catch (error) {
           logger.error('Failed to save auto-backup settings', LOG_CONTEXT, error);
-          showSaveError(autoBackupEnabledCheckbox);
+          showStatusMessage('Failed to save auto-backup setting', 'error');
         }
       });
     }
@@ -944,10 +908,10 @@ function setupEventHandlers(): void {
         autoBackupSettings.frequency = value;
         try {
           await saveAutoBackupSettings(autoBackupSettings);
-          showSaveSuccess(backupFrequencyInput);
+          showStatusMessage(`Backup frequency set to ${value}`);
         } catch (error) {
           logger.error('Failed to save auto-backup settings', LOG_CONTEXT, error);
-          showSaveError(backupFrequencyInput);
+          showStatusMessage('Failed to save backup frequency', 'error');
           // Revert on error
           backupFrequencyInput.value = autoBackupSettings.frequency;
         }
@@ -960,10 +924,12 @@ function setupEventHandlers(): void {
         autoBackupSettings.retention_days = parseInt(backupRetentionSelect.value, 10);
         try {
           await saveAutoBackupSettings(autoBackupSettings);
-          showSaveSuccess(backupRetentionSelect);
+          const retentionText =
+            backupRetentionSelect.value === '0' ? 'forever' : `${backupRetentionSelect.value} days`;
+          showStatusMessage(`Backup retention set to ${retentionText}`);
         } catch (error) {
           logger.error('Failed to save auto-backup settings', LOG_CONTEXT, error);
-          showSaveError(backupRetentionSelect);
+          showStatusMessage('Failed to save backup retention', 'error');
         }
       });
     }

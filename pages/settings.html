@@ -145,6 +145,22 @@
         box-shadow: none;
       }
     }
+
+    /* Status bar styles */
+    #status-bar.status-success {
+      background-color: oklch(var(--su) / 0.15);
+      color: oklch(var(--su));
+    }
+
+    #status-bar.status-error {
+      background-color: oklch(var(--er) / 0.15);
+      color: oklch(var(--er));
+    }
+
+    #status-bar.status-info {
+      background-color: oklch(var(--in) / 0.15);
+      color: oklch(var(--in));
+    }
   </style>
 </head>
 
@@ -153,6 +169,12 @@
     <!-- Header -->
     <div class="bg-base-200 border-b border-base-300 py-3">
       <h1 class="text-lg font-bold text-base-content text-center">Settings</h1>
+    </div>
+
+    <!-- Status Bar -->
+    <div id="status-bar"
+      class="hidden px-4 py-2 text-sm text-center transition-all duration-300 border-b border-base-300">
+      <span id="status-message"></span>
     </div>
 
     <!-- Settings content -->
