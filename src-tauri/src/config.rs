@@ -6,11 +6,11 @@
 // ===== Window Dimensions =====
 
 /// Default width for sticky note windows in logical pixels
-pub const STICKY_NOTE_DEFAULT_WIDTH: f64 = 350.0;
+pub const STICKY_NOTE_DEFAULT_WIDTH: f64 = 420.0;
 /// Default height for sticky note windows in logical pixels
-pub const STICKY_NOTE_DEFAULT_HEIGHT: f64 = 400.0;
+pub const STICKY_NOTE_DEFAULT_HEIGHT: f64 = 450.0;
 /// Minimum width for sticky note windows in logical pixels
-pub const STICKY_NOTE_MIN_WIDTH: f64 = 250.0;
+pub const STICKY_NOTE_MIN_WIDTH: f64 = 350.0;
 /// Minimum height for sticky note windows in logical pixels
 pub const STICKY_NOTE_MIN_HEIGHT: f64 = 300.0;
 

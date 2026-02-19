@@ -89,6 +89,62 @@
       max-height: 150px;
       overflow-y: auto;
     }
+
+    /* Save indicator animations */
+    .save-indicator {
+      display: inline-flex;
+      align-items: center;
+      vertical-align: middle;
+    }
+
+    .animate-fade-in {
+      animation: fadeIn 0.2s ease-in;
+    }
+
+    .animate-fade-out {
+      animation: fadeOut 0.3s ease-out forwards;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.8);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @keyframes fadeOut {
+      from {
+        opacity: 1;
+      }
+
+      to {
+        opacity: 0;
+      }
+    }
+
+    /* Checkbox success state animation */
+    .checkbox-success-flash {
+      animation: checkboxFlash 0.5s ease-out;
+    }
+
+    @keyframes checkboxFlash {
+      0% {
+        box-shadow: 0 0 0 0 oklch(var(--su) / 0.7);
+      }
+
+      50% {
+        box-shadow: 0 0 0 4px oklch(var(--su) / 0.3);
+      }
+
+      100% {
+        box-shadow: none;
+      }
+    }
   </style>
 </head>
 

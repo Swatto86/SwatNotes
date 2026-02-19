@@ -8,7 +8,9 @@ use std::iter;
 use std::os::windows::ffi::OsStrExt;
 
 use windows::core::PCWSTR;
-use windows::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_PATH_NOT_FOUND, ERROR_SUCCESS};
+use windows::Win32::Foundation::{
+    ERROR_FILE_NOT_FOUND, ERROR_MORE_DATA, ERROR_PATH_NOT_FOUND, ERROR_SUCCESS,
+};
 use windows::Win32::System::Registry::{
     RegCloseKey, RegDeleteKeyW, RegDeleteValueW, RegOpenKeyExW, RegQueryValueExW, RegSetValueExW,
     HKEY, HKEY_CURRENT_USER, KEY_READ, KEY_SET_VALUE, KEY_WRITE, REG_SZ,
@@ -90,7 +92,8 @@ impl WindowsRegistry {
         // SAFETY: key_handle was opened successfully and must be closed
         let _ = unsafe { RegCloseKey(key_handle) };
 
-        if query_result == ERROR_SUCCESS {
+        // ERROR_SUCCESS means value exists, ERROR_MORE_DATA means value exists but buffer too small
+        if query_result == ERROR_SUCCESS || query_result == ERROR_MORE_DATA {
             Ok(true)
         } else if query_result == ERROR_FILE_NOT_FOUND {
             Ok(false)
