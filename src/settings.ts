@@ -650,7 +650,6 @@ function setupEventHandlers(): void {
     const shakeDurationInput = document.getElementById(
       'reminder-shake-duration-input'
     ) as HTMLInputElement;
-    const testBtn = document.getElementById('test-reminder-btn');
 
     // Initialize checkboxes
     if (soundCheckbox) {
@@ -740,11 +739,6 @@ function setupEventHandlers(): void {
         }
       });
     }
-
-    // Test notification button - plays the currently selected sound preset
-    testBtn?.addEventListener('click', () => {
-      playTestSound(reminderSettings.sound_type);
-    });
   });
 
   // Auto-backup password management

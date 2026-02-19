@@ -32,6 +32,7 @@ import {
   getFileIcon,
 } from '../utils/formatters';
 import { applySmartPaste } from '../utils/smartPaste';
+import { playNotificationSound } from '../utils/notificationSound';
 
 // Register custom blots once at module load
 registerAttachmentBlots();
@@ -580,6 +581,12 @@ function setupReminders(note: Note): { loadReminders: () => Promise<void> } {
     if (settingsToggle) {
       settingsToggle.checked = false;
     }
+  });
+
+  // Play sound preview when changing the sound type dropdown
+  const soundTypeSelect = document.getElementById('reminder-sound-type') as HTMLSelectElement;
+  soundTypeSelect?.addEventListener('change', () => {
+    playNotificationSound(soundTypeSelect.value);
   });
 
   cancelReminderBtn?.addEventListener('click', () => {
