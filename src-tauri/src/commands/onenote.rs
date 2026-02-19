@@ -304,19 +304,14 @@ async fn import_page(
     // Convert OneNote XML to Quill Delta
     let quill_content = convert_onenote_to_quill(&page_xml)?;
 
-    // Create note
+    // Create note with collection assignment
     let note = state
         .db
         .create_note(CreateNoteRequest {
             title: page.title.clone(),
             content_json: quill_content,
+            collection_id: Some(collection_id.to_string()),
         })
-        .await?;
-
-    // Assign to collection
-    state
-        .db
-        .update_note_collection(&note.id, Some(collection_id))
         .await?;
 
     // Update FTS index

@@ -55,10 +55,16 @@ export function setupEventHandlers(): void {
 
 /**
  * Create a new note and open it in a floating window
+ * If a specific collection is selected, the note is created in that collection
  */
 async function handleCreateNote(): Promise<void> {
   try {
-    const newNote = await createNote(DEFAULT_NOTE_TITLE, DEFAULT_NOTE_CONTENT);
+    // Get the current collection filter - if it's a specific collection, use it
+    const currentFilter = appState.currentCollectionFilter;
+    const collectionId =
+      currentFilter !== 'all' && currentFilter !== 'uncategorized' ? currentFilter : null;
+
+    const newNote = await createNote(DEFAULT_NOTE_TITLE, DEFAULT_NOTE_CONTENT, collectionId);
     await requestNotesListRefresh();
     // Open new note in floating window instead of main editor
     await invoke('open_note_window', { noteId: newNote.id });

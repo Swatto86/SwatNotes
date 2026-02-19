@@ -37,6 +37,7 @@ describe('notesApi', () => {
       expect(invoke).toHaveBeenCalledWith('create_note', {
         title: 'Test Note',
         contentJson: '{"ops":[]}',
+        collectionId: null,
       });
       expect(result).toEqual(mockNote);
     });

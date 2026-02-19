@@ -171,6 +171,7 @@ pub async fn create_new_sticky_note(
         .create_note(
             "Untitled".to_string(),
             r#"{"ops":[{"insert":"\n"}]}"#.to_string(),
+            None, // No collection by default
         )
         .await?;
 

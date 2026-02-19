@@ -10,10 +10,15 @@ import type { Note } from '../types';
  * Create a new note
  * @param title - Note title
  * @param contentJson - Quill Delta JSON
+ * @param collectionId - Optional collection ID to create the note in
  * @returns Promise resolving to the created note
  */
-export async function createNote(title: string, contentJson: string): Promise<Note> {
-  return await invoke('create_note', { title, contentJson });
+export async function createNote(
+  title: string,
+  contentJson: string,
+  collectionId?: string | null
+): Promise<Note> {
+  return await invoke('create_note', { title, contentJson, collectionId: collectionId ?? null });
 }
 
 /**

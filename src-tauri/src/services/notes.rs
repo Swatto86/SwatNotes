@@ -18,12 +18,22 @@ impl NotesService {
     }
 
     /// Create a new note
-    pub async fn create_note(&self, title: String, content_json: String) -> Result<Note> {
-        tracing::info!("Creating new note: {}", title);
+    pub async fn create_note(
+        &self,
+        title: String,
+        content_json: String,
+        collection_id: Option<String>,
+    ) -> Result<Note> {
+        tracing::info!(
+            "Creating new note: {} in collection: {:?}",
+            title,
+            collection_id
+        );
 
         let req = CreateNoteRequest {
             title: title.clone(),
             content_json: content_json.clone(),
+            collection_id,
         };
 
         let note = self.repo.create_note(req).await?;
@@ -190,7 +200,7 @@ mod tests {
         let service = create_test_service().await;
 
         let note = service
-            .create_note("Test".to_string(), "{}".to_string())
+            .create_note("Test".to_string(), "{}".to_string(), None)
             .await
             .unwrap();
 
@@ -205,15 +215,15 @@ mod tests {
         let service = create_test_service().await;
 
         service
-            .create_note("Apple".to_string(), "{}".to_string())
+            .create_note("Apple".to_string(), "{}".to_string(), None)
             .await
             .unwrap();
         service
-            .create_note("Banana".to_string(), "{}".to_string())
+            .create_note("Banana".to_string(), "{}".to_string(), None)
             .await
             .unwrap();
         service
-            .create_note("Cherry".to_string(), "{}".to_string())
+            .create_note("Cherry".to_string(), "{}".to_string(), None)
             .await
             .unwrap();
 
@@ -228,7 +238,7 @@ mod tests {
         let service = create_test_service().await;
 
         let note = service
-            .create_note("Original".to_string(), r#"{"ops":[]}"#.to_string())
+            .create_note("Original".to_string(), r#"{"ops":[]}"#.to_string(), None)
             .await
             .unwrap();
 
@@ -266,7 +276,7 @@ mod tests {
         let service = create_test_service().await;
 
         let note = service
-            .create_note("To Delete".to_string(), "{}".to_string())
+            .create_note("To Delete".to_string(), "{}".to_string(), None)
             .await
             .unwrap();
 
@@ -292,15 +302,15 @@ mod tests {
 
         // Create some notes
         service
-            .create_note("Note 1".to_string(), "{}".to_string())
+            .create_note("Note 1".to_string(), "{}".to_string(), None)
             .await
             .unwrap();
         service
-            .create_note("Note 2".to_string(), "{}".to_string())
+            .create_note("Note 2".to_string(), "{}".to_string(), None)
             .await
             .unwrap();
         service
-            .create_note("Note 3".to_string(), "{}".to_string())
+            .create_note("Note 3".to_string(), "{}".to_string(), None)
             .await
             .unwrap();
 
@@ -316,6 +326,7 @@ mod tests {
             .create_note(
                 "Title A".to_string(),
                 r#"{"ops":[{"insert":"Hello World"}]}"#.to_string(),
+                None,
             )
             .await
             .unwrap();
@@ -323,6 +334,7 @@ mod tests {
             .create_note(
                 "Title B".to_string(),
                 r#"{"ops":[{"insert":"Goodbye"}]}"#.to_string(),
+                None,
             )
             .await
             .unwrap();
@@ -338,11 +350,11 @@ mod tests {
         let service = create_test_service().await;
 
         service
-            .create_note("UPPERCASE".to_string(), "{}".to_string())
+            .create_note("UPPERCASE".to_string(), "{}".to_string(), None)
             .await
             .unwrap();
         service
-            .create_note("lowercase".to_string(), "{}".to_string())
+            .create_note("lowercase".to_string(), "{}".to_string(), None)
             .await
             .unwrap();
 

@@ -45,6 +45,7 @@ async fn test_note_crud_operations() {
         .create_note(
             "Test Note".to_string(),
             r#"{"ops":[{"insert":"Hello\n"}]}"#.to_string(),
+            None,
         )
         .await
         .unwrap();
@@ -100,6 +101,7 @@ async fn test_search_functionality() {
         .create_note(
             "Shopping List".to_string(),
             r#"{"ops":[{"insert":"Buy milk\n"}]}"#.to_string(),
+            None,
         )
         .await
         .unwrap();
@@ -108,6 +110,7 @@ async fn test_search_functionality() {
         .create_note(
             "Todo".to_string(),
             r#"{"ops":[{"insert":"Fix bug\n"}]}"#.to_string(),
+            None,
         )
         .await
         .unwrap();
@@ -116,6 +119,7 @@ async fn test_search_functionality() {
         .create_note(
             "Meeting Notes".to_string(),
             r#"{"ops":[{"insert":"Discuss project\n"}]}"#.to_string(),
+            None,
         )
         .await
         .unwrap();
@@ -182,6 +186,7 @@ async fn test_backup_and_restore_workflow() {
         .create_note(
             "Note 1".to_string(),
             r#"{"ops":[{"insert":"Content 1\n"}]}"#.to_string(),
+            None,
         )
         .await
         .unwrap();
@@ -190,6 +195,7 @@ async fn test_backup_and_restore_workflow() {
         .create_note(
             "Note 2".to_string(),
             r#"{"ops":[{"insert":"Content 2\n"}]}"#.to_string(),
+            None,
         )
         .await
         .unwrap();
@@ -244,7 +250,7 @@ async fn test_backup_with_wrong_password() {
 
     // Must create at least one note before backup
     notes_service
-        .create_note("Test Note".to_string(), "{}".to_string())
+        .create_note("Test Note".to_string(), "{}".to_string(), None)
         .await
         .unwrap();
 
@@ -285,7 +291,7 @@ async fn test_list_backups() {
 
     // Must create at least one note before backup
     notes_service
-        .create_note("Test Note".to_string(), "{}".to_string())
+        .create_note("Test Note".to_string(), "{}".to_string(), None)
         .await
         .unwrap();
 
@@ -310,7 +316,7 @@ async fn test_regression_soft_delete_excludes_from_list() {
     // Create multiple notes
     for i in 1..=5 {
         notes_service
-            .create_note(format!("Note {}", i), "{}".to_string())
+            .create_note(format!("Note {}", i), "{}".to_string(), None)
             .await
             .unwrap();
     }
@@ -334,15 +340,15 @@ async fn test_regression_search_empty_query_returns_all() {
     let notes_service = NotesService::new(repo);
 
     notes_service
-        .create_note("Note 1".to_string(), "{}".to_string())
+        .create_note("Note 1".to_string(), "{}".to_string(), None)
         .await
         .unwrap();
     notes_service
-        .create_note("Note 2".to_string(), "{}".to_string())
+        .create_note("Note 2".to_string(), "{}".to_string(), None)
         .await
         .unwrap();
     notes_service
-        .create_note("Note 3".to_string(), "{}".to_string())
+        .create_note("Note 3".to_string(), "{}".to_string(), None)
         .await
         .unwrap();
 
@@ -365,6 +371,7 @@ async fn test_regression_update_preserves_unmodified_fields() {
         .create_note(
             "Original Title".to_string(),
             r#"{"ops":[{"insert":"Original content\n"}]}"#.to_string(),
+            None,
         )
         .await
         .unwrap();
@@ -438,7 +445,7 @@ async fn test_regression_backup_with_attachments() {
 
     // Create note with attachment
     let note = notes_service
-        .create_note("Note with Attachment".to_string(), "{}".to_string())
+        .create_note("Note with Attachment".to_string(), "{}".to_string(), None)
         .await
         .unwrap();
 
@@ -499,6 +506,7 @@ async fn test_regression_delete_note_removes_reminders() {
         .create_note(swatnotes::database::CreateNoteRequest {
             title: "Note with Reminder".to_string(),
             content_json: "{}".to_string(),
+            collection_id: None,
         })
         .await
         .unwrap();
@@ -531,6 +539,7 @@ async fn test_edge_case_unicode_content() {
         .create_note(
             "日本語タイトル".to_string(),
             r#"{"ops":[{"insert":"Unicode: 你好世界\n"}]}"#.to_string(),
+            None,
         )
         .await
         .unwrap();
@@ -550,7 +559,7 @@ async fn test_edge_case_very_long_content() {
     let content = format!(r#"{{"ops":[{{"insert":"{}\n"}}]}}"#, long_text);
 
     let note = notes_service
-        .create_note("Long Content Note".to_string(), content.clone())
+        .create_note("Long Content Note".to_string(), content.clone(), None)
         .await
         .unwrap();
 
@@ -576,7 +585,7 @@ async fn test_edge_case_special_characters_in_title() {
 
     for title in special_titles {
         let note = notes_service
-            .create_note(title.to_string(), "{}".to_string())
+            .create_note(title.to_string(), "{}".to_string(), None)
             .await
             .unwrap();
 
@@ -596,7 +605,7 @@ async fn test_concurrent_note_creation() {
     for i in 0..10 {
         let svc = notes_service.clone();
         let handle = tokio::spawn(async move {
-            svc.create_note(format!("Concurrent Note {}", i), "{}".to_string())
+            svc.create_note(format!("Concurrent Note {}", i), "{}".to_string(), None)
                 .await
         });
         handles.push(handle);
@@ -737,6 +746,7 @@ async fn test_collection_note_assignment() {
         .create_note(CreateNoteRequest {
             title: "Note A".to_string(),
             content_json: "{}".to_string(),
+            collection_id: None,
         })
         .await
         .unwrap();
@@ -744,6 +754,7 @@ async fn test_collection_note_assignment() {
         .create_note(CreateNoteRequest {
             title: "Note B".to_string(),
             content_json: "{}".to_string(),
+            collection_id: None,
         })
         .await
         .unwrap();
@@ -797,6 +808,7 @@ async fn test_reminder_crud() {
         .create_note(CreateNoteRequest {
             title: "Reminder note".to_string(),
             content_json: "{}".to_string(),
+            collection_id: None,
         })
         .await
         .unwrap();
@@ -841,6 +853,7 @@ async fn test_reminder_triggered_excluded_from_active() {
         .create_note(CreateNoteRequest {
             title: "Test".to_string(),
             content_json: "{}".to_string(),
+            collection_id: None,
         })
         .await
         .unwrap();
@@ -932,15 +945,15 @@ async fn test_count_and_prune_deleted_notes() {
 
     // Create 3 notes
     let n1 = notes_service
-        .create_note("Note 1".to_string(), "{}".to_string())
+        .create_note("Note 1".to_string(), "{}".to_string(), None)
         .await
         .unwrap();
     let n2 = notes_service
-        .create_note("Note 2".to_string(), "{}".to_string())
+        .create_note("Note 2".to_string(), "{}".to_string(), None)
         .await
         .unwrap();
     let _n3 = notes_service
-        .create_note("Note 3".to_string(), "{}".to_string())
+        .create_note("Note 3".to_string(), "{}".to_string(), None)
         .await
         .unwrap();
 
@@ -1037,6 +1050,7 @@ async fn test_inline_image_paste_full_flow() {
         .create_note(CreateNoteRequest {
             title: "Note with pasted image".to_string(),
             content_json: r#"{"ops":[{"insert":"Before image\n"}]}"#.to_string(),
+            collection_id: None,
         })
         .await
         .unwrap();
@@ -1093,6 +1107,7 @@ async fn test_inline_image_save_close_reopen() {
             .create_note(CreateNoteRequest {
                 title: "Persistent image note".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1134,6 +1149,7 @@ async fn test_inline_image_existing_notes_unaffected() {
         .create_note(CreateNoteRequest {
             title: "Plain text note".to_string(),
             content_json: r#"{"ops":[{"insert":"Just text, no images\n"}]}"#.to_string(),
+            collection_id: None,
         })
         .await
         .unwrap();
@@ -1160,6 +1176,7 @@ async fn test_inline_image_content_addressed_dedup() {
         .create_note(CreateNoteRequest {
             title: "Dedup test".to_string(),
             content_json: "{}".to_string(),
+            collection_id: None,
         })
         .await
         .unwrap();
@@ -1205,6 +1222,7 @@ async fn test_inline_image_corrupted_blob_read() {
         .create_note(CreateNoteRequest {
             title: "Corrupt test".to_string(),
             content_json: "{}".to_string(),
+            collection_id: None,
         })
         .await
         .unwrap();
@@ -1243,6 +1261,7 @@ async fn test_regression_mime_type_validation() {
         .create_note(CreateNoteRequest {
             title: "MIME test".to_string(),
             content_json: "{}".to_string(),
+            collection_id: None,
         })
         .await
         .unwrap();
@@ -1296,6 +1315,7 @@ async fn test_inline_image_backup_and_restore() {
         .create_note(
             "Image backup test".to_string(),
             r#"{"ops":[{"insert":{"attachment-image":{"blobHash":"<hash>","mimeType":"image/png","filename":"screenshot.png","attachmentId":"<id>"}}},{"insert":"\n"}]}"#.to_string(),
+            None,
         )
         .await
         .unwrap();

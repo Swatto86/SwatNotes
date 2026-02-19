@@ -55,7 +55,7 @@ impl Repository {
         let now = Utc::now();
 
         let sql = format!(
-            "INSERT INTO notes (id, title, content_json, created_at, updated_at, title_modified) VALUES (?, ?, ?, ?, ?, 0) RETURNING {}",
+            "INSERT INTO notes (id, title, content_json, created_at, updated_at, title_modified, collection_id) VALUES (?, ?, ?, ?, ?, 0, ?) RETURNING {}",
             NOTE_COLUMNS
         );
         let note = sqlx::query_as::<_, Note>(&sql)
@@ -64,10 +64,15 @@ impl Repository {
             .bind(&req.content_json)
             .bind(now)
             .bind(now)
+            .bind(&req.collection_id)
             .fetch_one(&self.pool)
             .await?;
 
-        tracing::debug!("Created note: {}", id);
+        tracing::debug!(
+            "Created note: {} in collection: {:?}",
+            id,
+            req.collection_id
+        );
         Ok(note)
     }
 
@@ -941,6 +946,7 @@ mod tests {
         let req = CreateNoteRequest {
             title: "Test Note".to_string(),
             content_json: r#"{"ops":[{"insert":"Hello\n"}]}"#.to_string(),
+            collection_id: None,
         };
 
         let note = repo.create_note(req).await.unwrap();
@@ -958,6 +964,7 @@ mod tests {
         let create_req = CreateNoteRequest {
             title: "Original".to_string(),
             content_json: "{}".to_string(),
+            collection_id: None,
         };
 
         let note = repo.create_note(create_req).await.unwrap();
@@ -981,6 +988,7 @@ mod tests {
             let req = CreateNoteRequest {
                 title: format!("Note {}", i),
                 content_json: "{}".to_string(),
+                collection_id: None,
             };
             repo.create_note(req).await.unwrap();
         }
@@ -996,6 +1004,7 @@ mod tests {
         let req = CreateNoteRequest {
             title: "To Delete".to_string(),
             content_json: "{}".to_string(),
+            collection_id: None,
         };
 
         let note = repo.create_note(req).await.unwrap();
@@ -1017,6 +1026,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Note with attachments".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1040,6 +1050,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Note with reminder".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1088,6 +1099,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Meeting Notes".to_string(),
                 content_json: r#"{"ops":[{"insert":"Discuss project timeline\n"}]}"#.to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1100,6 +1112,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Shopping List".to_string(),
                 content_json: r#"{"ops":[{"insert":"Buy groceries\n"}]}"#.to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1127,6 +1140,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Original Title".to_string(),
                 content_json: r#"{"ops":[{"insert":"Original content\n"}]}"#.to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1173,6 +1187,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Deletable Note".to_string(),
                 content_json: r#"{"ops":[{"insert":"Will be deleted\n"}]}"#.to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1354,6 +1369,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Work Note 1".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1362,6 +1378,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Work Note 2".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1370,6 +1387,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Personal Note".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1417,6 +1435,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Movable Note".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1455,6 +1474,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Note 1".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1463,6 +1483,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Note 2".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1471,6 +1492,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Note 3".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1556,6 +1578,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Test".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1585,6 +1608,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Active Note".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1593,6 +1617,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "To Delete 1".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1601,6 +1626,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "To Delete 2".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1635,6 +1661,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Note with image".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1643,6 +1670,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Note with document".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1678,6 +1706,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Auto Title".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1706,6 +1735,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Note".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -1732,6 +1762,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Note".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();

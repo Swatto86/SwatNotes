@@ -399,6 +399,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Test Note".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -422,6 +423,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Test Note".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();
@@ -451,6 +453,7 @@ mod tests {
             .create_note(CreateNoteRequest {
                 title: "Test Note".to_string(),
                 content_json: "{}".to_string(),
+                collection_id: None,
             })
             .await
             .unwrap();

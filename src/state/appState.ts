@@ -26,6 +26,8 @@ export interface AppStateData {
   searchQuery: string;
   /** Whether a search is currently active */
   isSearching: boolean;
+  /** Current collection filter: 'all', 'uncategorized', 'reminders', or a collection ID */
+  currentCollectionFilter: 'all' | 'uncategorized' | 'reminders' | string;
 }
 
 /** State change event types */
@@ -35,6 +37,7 @@ export type StateChangeEvent =
   | 'currentEditor'
   | 'searchQuery'
   | 'isSearching'
+  | 'currentCollectionFilter'
   | '*'; // Wildcard for all changes
 
 /** Subscriber callback type */
@@ -65,6 +68,7 @@ class AppState {
     currentEditor: null,
     searchQuery: '',
     isSearching: false,
+    currentCollectionFilter: 'all',
   };
 
   private subscribers: Map<StateChangeEvent, Set<StateSubscriber<any> | GlobalSubscriber>> =
@@ -92,6 +96,10 @@ class AppState {
 
   get isSearching(): boolean {
     return this.state.isSearching;
+  }
+
+  get currentCollectionFilter(): 'all' | 'uncategorized' | 'reminders' | string {
+    return this.state.currentCollectionFilter;
   }
 
   // ============================================================================
@@ -134,6 +142,12 @@ class AppState {
     const oldValue = this.state.isSearching;
     this.state.isSearching = searching;
     this.notify('isSearching', searching, oldValue);
+  }
+
+  setCurrentCollectionFilter(filter: 'all' | 'uncategorized' | 'reminders' | string): void {
+    const oldValue = this.state.currentCollectionFilter;
+    this.state.currentCollectionFilter = filter;
+    this.notify('currentCollectionFilter', filter, oldValue);
   }
 
   // ============================================================================
@@ -285,6 +299,7 @@ class AppState {
       hasEditor: this.state.currentEditor !== null,
       searchQuery: this.state.searchQuery,
       isSearching: this.state.isSearching,
+      currentCollectionFilter: this.state.currentCollectionFilter,
     });
   }
 }

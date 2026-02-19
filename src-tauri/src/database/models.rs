@@ -63,6 +63,9 @@ pub struct UpdateCollectionRequest {
 pub struct CreateNoteRequest {
     pub title: String,
     pub content_json: String,
+    /// Optional collection to create the note in
+    #[serde(default)]
+    pub collection_id: Option<String>,
 }
 
 /// Update note request

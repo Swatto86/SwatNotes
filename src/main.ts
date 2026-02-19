@@ -12,7 +12,8 @@ import { deleteNote } from './utils/notesApi';
 import { showAlert, showPrompt } from './utils/modal';
 import { appState } from './state/appState';
 import { logger } from './utils/logger';
-import { extractTextPreview, formatRelativeDate } from './utils/formatters';
+import { extractTextPreview, formatRelativeDate, formatReminderDate } from './utils/formatters';
+import { listActiveReminders } from './utils/remindersApi';
 
 import type { AppInfo, Note, Collection } from './types';
 import {
@@ -27,8 +28,7 @@ import {
 
 const LOG_CONTEXT = 'Main';
 
-// Current collection filter state
-let currentFilter: 'all' | 'uncategorized' | string = 'all';
+// UI state
 let collectionsExpanded = true;
 // Track which collection is being color-picked
 let colorPickCollectionId: string | null = null;
@@ -134,11 +134,15 @@ function showNotesListView(): void {
  * Get the current filter display name
  */
 async function getFilterDisplayName(): Promise<string> {
+  const currentFilter = appState.currentCollectionFilter;
   if (currentFilter === 'all') {
     return 'All Notes';
   }
   if (currentFilter === 'uncategorized') {
     return 'Uncategorized';
+  }
+  if (currentFilter === 'reminders') {
+    return 'Reminders';
   }
   try {
     const collections = await listCollections();
@@ -264,6 +268,177 @@ async function renderNotesGrid(notes: Note[]): Promise<void> {
 }
 
 /**
+ * Update the reminders count in the sidebar
+ */
+async function updateRemindersCount(): Promise<void> {
+  try {
+    const reminders = await listActiveReminders();
+    const countEl = document.getElementById('reminders-count');
+    if (countEl) {
+      countEl.textContent = reminders.length.toString();
+    }
+  } catch (error) {
+    logger.error('Failed to update reminders count', LOG_CONTEXT, error);
+  }
+}
+
+/**
+ * Render the reminders view showing notes with active reminders
+ */
+async function renderRemindersView(): Promise<void> {
+  const container = document.getElementById('notes-list');
+  const countEl = document.getElementById('notes-list-count');
+  const titleEl = document.getElementById('notes-view-title');
+
+  if (!container) {
+    return;
+  }
+
+  // Update header
+  if (titleEl) {
+    titleEl.textContent = 'Reminders';
+  }
+
+  try {
+    const reminders = await listActiveReminders();
+
+    if (countEl) {
+      countEl.textContent = `${reminders.length} reminder${reminders.length !== 1 ? 's' : ''}`;
+    }
+
+    if (reminders.length === 0) {
+      container.innerHTML = `
+        <div class="text-center text-base-content/40 py-16 col-span-full">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          <p class="font-medium">No active reminders</p>
+          <p class="text-sm mt-1">Open a note and click <strong>Remind</strong> to set one</p>
+        </div>
+      `;
+      return;
+    }
+
+    // Get note IDs from reminders and batch fetch notes
+    const noteIds = [...new Set(reminders.map((r) => r.note_id))];
+    const notes: Note[] = [];
+
+    // Fetch notes individually (could be optimized with batch endpoint)
+    for (const noteId of noteIds) {
+      try {
+        const note = await invoke<Note>('get_note', { id: noteId });
+        notes.push(note);
+      } catch {
+        // Note might have been deleted
+      }
+    }
+
+    // Create a map for quick note lookup
+    const noteMap = new Map(notes.map((n) => [n.id, n]));
+
+    // Get collections for colors
+    let collections: Collection[] = [];
+    try {
+      collections = await listCollections();
+    } catch {
+      /* ignore */
+    }
+
+    // Render reminder cards
+    container.innerHTML = reminders
+      .map((reminder) => {
+        const note = noteMap.get(reminder.note_id);
+        if (!note) {
+          return ''; // Skip if note not found
+        }
+
+        const preview = extractTextPreview(note.content_json);
+        const reminderTime = formatReminderDate(reminder.trigger_time);
+        const collection = collections.find((c) => c.id === note.collection_id);
+        const color = collection?.color || null;
+        const collName = collection?.name || null;
+
+        const colorBar = color
+          ? `<div class="absolute top-0 left-0 right-0 h-1 rounded-t-lg" style="background-color: ${color}"></div>`
+          : '';
+
+        const collBadge =
+          collName && color
+            ? `<div class="flex items-center gap-1 mt-2">
+             <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: ${color}"></span>
+             <span class="text-xs text-base-content/50 truncate">${escapeHtml(collName)}</span>
+           </div>`
+            : '';
+
+        return `
+        <div class="reminder-card relative card bg-base-100 border border-base-300 hover:shadow-lg hover:border-base-content/20 cursor-pointer transition-all duration-200 overflow-hidden group" data-note-id="${note.id}">
+          ${colorBar}
+          <div class="card-body p-4">
+            <h3 class="card-title text-sm font-semibold line-clamp-1">${escapeHtml(note.title)}</h3>
+            <p class="text-xs text-base-content/60 line-clamp-2 leading-relaxed">${preview}</p>
+            <div class="flex items-center gap-2 mt-2 text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              <span class="text-xs font-medium">${reminderTime}</span>
+            </div>
+            <div class="flex items-center justify-between mt-auto pt-2">
+              <span class="text-xs text-base-content/40">${formatRelativeDate(note.updated_at)}</span>
+              <button class="popout-btn btn btn-ghost btn-xs btn-circle opacity-0 group-hover:opacity-70 transition-opacity" data-note-id="${note.id}" title="Open in floating window">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </button>
+            </div>
+            ${collBadge}
+          </div>
+        </div>
+      `;
+      })
+      .join('');
+
+    // Attach click handlers
+    container.querySelectorAll('.reminder-card').forEach((card) => {
+      card.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest('.popout-btn')) {
+          return;
+        }
+        const noteId = card.getAttribute('data-note-id');
+        if (noteId) {
+          const note = noteMap.get(noteId);
+          if (note) {
+            openNoteInEditor(note);
+          }
+        }
+      });
+    });
+
+    // Attach popout handlers
+    container.querySelectorAll('.popout-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const noteId = (btn as HTMLElement).getAttribute('data-note-id');
+        if (noteId) {
+          try {
+            await invoke('open_note_window', { noteId });
+          } catch (error) {
+            logger.error('Failed to open floating note', LOG_CONTEXT, error);
+          }
+        }
+      });
+    });
+  } catch (error) {
+    logger.error('Failed to render reminders view', LOG_CONTEXT, error);
+    container.innerHTML = `
+      <div class="alert alert-error col-span-full">
+        <span>Failed to load reminders</span>
+      </div>
+    `;
+  }
+}
+
+/**
  * Update toolbar buttons visibility based on note selection
  */
 function _updateToolbarButtons(_noteSelected: boolean): void {
@@ -358,6 +533,20 @@ async function deleteCurrentNote(): Promise<void> {
  * Refresh the notes list display
  */
 async function refreshNotesList(): Promise<void> {
+  const currentFilter = appState.currentCollectionFilter;
+
+  // Special handling for reminders view
+  if (currentFilter === 'reminders') {
+    const notesListView = document.getElementById('notes-list-view');
+    if (notesListView) {
+      await renderRemindersView();
+    }
+    // Update reminder count in sidebar
+    await updateRemindersCount();
+    await renderCollections();
+    return;
+  }
+
   let notes: Note[];
 
   try {
@@ -459,11 +648,14 @@ async function renderCollections(): Promise<void> {
       uncategorizedCount.textContent = uncategorizedNotes.length.toString();
     }
 
+    // Update reminders count
+    await updateRemindersCount();
+
     // Render collection items
     collectionsContainer.innerHTML = collections
       .map((collection) => {
         const count = allNotes.filter((n) => n.collection_id === collection.id).length;
-        const isActive = currentFilter === collection.id;
+        const isActive = appState.currentCollectionFilter === collection.id;
 
         return `
         <div class="collection-item group flex items-center gap-0.5" data-collection-id="${collection.id}">
@@ -511,8 +703,8 @@ async function renderCollections(): Promise<void> {
         const collectionId = btn.closest('.collection-item')?.getAttribute('data-collection-id');
         if (collectionId) {
           await deleteCollection(collectionId);
-          if (currentFilter === collectionId) {
-            currentFilter = 'all';
+          if (appState.currentCollectionFilter === collectionId) {
+            appState.setCurrentCollectionFilter('all');
           }
           await renderCollections();
           await refreshNotesList();
@@ -542,16 +734,21 @@ function escapeHtml(text: string): string {
 function updateCollectionActiveStates(): void {
   const allNotesBtn = document.getElementById('filter-all-notes');
   const uncategorizedBtn = document.getElementById('filter-uncategorized');
+  const remindersBtn = document.getElementById('filter-reminders');
   const collectionItems = document.querySelectorAll('.collection-btn');
+  const currentFilter = appState.currentCollectionFilter;
 
   allNotesBtn?.classList.remove('bg-base-300', 'font-medium');
   uncategorizedBtn?.classList.remove('bg-base-300', 'font-medium');
+  remindersBtn?.classList.remove('bg-base-300', 'font-medium');
   collectionItems.forEach((btn) => btn.classList.remove('bg-base-300', 'font-medium'));
 
   if (currentFilter === 'all') {
     allNotesBtn?.classList.add('bg-base-300', 'font-medium');
   } else if (currentFilter === 'uncategorized') {
     uncategorizedBtn?.classList.add('bg-base-300', 'font-medium');
+  } else if (currentFilter === 'reminders') {
+    remindersBtn?.classList.add('bg-base-300', 'font-medium');
   } else {
     const activeBtn = document.querySelector(
       `.collection-item[data-collection-id="${currentFilter}"] .collection-btn`
@@ -563,8 +760,10 @@ function updateCollectionActiveStates(): void {
 /**
  * Set the collection filter and switch to list view
  */
-async function setCollectionFilter(filter: 'all' | 'uncategorized' | string): Promise<void> {
-  currentFilter = filter;
+async function setCollectionFilter(
+  filter: 'all' | 'uncategorized' | 'reminders' | string
+): Promise<void> {
+  appState.setCurrentCollectionFilter(filter);
   updateCollectionActiveStates();
 
   // If we're in editor view, switch back to grid
@@ -623,6 +822,11 @@ function setupCollectionHandlers(): void {
   document
     .getElementById('filter-uncategorized')
     ?.addEventListener('click', () => setCollectionFilter('uncategorized'));
+
+  // Reminders filter
+  document
+    .getElementById('filter-reminders')
+    ?.addEventListener('click', () => setCollectionFilter('reminders'));
 }
 
 /**

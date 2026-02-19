@@ -14,8 +14,12 @@ pub async fn create_note(
     state: State<'_, AppState>,
     title: String,
     content_json: String,
+    collection_id: Option<String>,
 ) -> Result<Note> {
-    state.notes_service.create_note(title, content_json).await
+    state
+        .notes_service
+        .create_note(title, content_json, collection_id)
+        .await
 }
 
 /// Get a note by ID
@@ -115,7 +119,10 @@ pub async fn quick_capture_from_clipboard(
     .to_string();
 
     // Create the note
-    let note = state.notes_service.create_note(title, content_json).await?;
+    let note = state
+        .notes_service
+        .create_note(title, content_json, None)
+        .await?;
 
     // Open in sticky note window
     if let Err(e) =
