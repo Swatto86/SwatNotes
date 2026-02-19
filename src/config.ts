@@ -36,5 +36,5 @@ export const DEFAULT_NOTE_CONTENT = JSON.stringify({ ops: [{ insert: '\n' }] });
 export const DEFAULT_NOTE_TITLE = 'Untitled';
 
 // Application info
-export const APP_VERSION = '2.0.8';
+export const APP_VERSION = '2.0.9';
 export const APP_NAME = 'SwatNotes';
