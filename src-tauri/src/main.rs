@@ -71,6 +71,7 @@ fn main() {
             commands::create_reminder,
             commands::list_active_reminders,
             commands::delete_reminder,
+            commands::update_reminder,
             commands::get_hotkey_settings,
             commands::update_hotkey_settings,
             commands::get_autostart_state,

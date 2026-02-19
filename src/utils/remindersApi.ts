@@ -45,3 +45,26 @@ export async function listActiveReminders(): Promise<Reminder[]> {
 export async function deleteReminder(id: string): Promise<void> {
   return await invoke('delete_reminder', { id });
 }
+
+/**
+ * Update an existing reminder
+ * @param id - Reminder ID to update
+ * @param triggerTime - New trigger time
+ * @param settings - Optional updated notification settings
+ * @returns Promise resolving to the updated reminder
+ */
+export async function updateReminder(
+  id: string,
+  triggerTime: Date,
+  settings?: ReminderCreateSettings
+): Promise<Reminder> {
+  const triggerTimeStr = triggerTime.toISOString();
+  return await invoke('update_reminder', {
+    id,
+    triggerTime: triggerTimeStr,
+    soundEnabled: settings?.sound_enabled ?? null,
+    soundType: settings?.sound_type ?? null,
+    shakeEnabled: settings?.shake_enabled ?? null,
+    glowEnabled: settings?.glow_enabled ?? null,
+  });
+}

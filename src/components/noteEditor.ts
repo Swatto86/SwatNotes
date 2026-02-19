@@ -13,7 +13,12 @@ import {
   deleteAttachment,
   readFileAsBytes,
 } from '../utils/attachmentsApi';
-import { createReminder, listActiveReminders, deleteReminder } from '../utils/remindersApi';
+import {
+  createReminder,
+  listActiveReminders,
+  deleteReminder,
+  updateReminder,
+} from '../utils/remindersApi';
 import {
   listCollections,
   updateNoteCollection,
@@ -504,6 +509,9 @@ function setupReminders(note: Note): { loadReminders: () => Promise<void> } {
   const cancelReminderBtn = document.getElementById('cancel-reminder-btn');
   const reminderDatetime = document.getElementById('reminder-datetime') as HTMLInputElement;
 
+  // Track which reminder is being edited (null = creating new)
+  let editingReminderId: string | null = null;
+
   // Set minimum datetime to now
   const now = new Date();
   const localDatetime = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
@@ -511,6 +519,97 @@ function setupReminders(note: Note): { loadReminders: () => Promise<void> } {
     .slice(0, 16);
   if (reminderDatetime) {
     reminderDatetime.min = localDatetime;
+  }
+
+  /**
+   * Reset the reminder form to default state for creating a new reminder
+   */
+  function resetFormForCreate(): void {
+    editingReminderId = null;
+    if (reminderDatetime) {
+      reminderDatetime.value = localDatetime;
+    }
+    // Reset settings toggle and checkboxes to defaults
+    const settingsToggle = document.getElementById('reminder-settings-toggle') as HTMLInputElement;
+    const soundEnabled = document.getElementById('reminder-sound-enabled') as HTMLInputElement;
+    const soundType = document.getElementById('reminder-sound-type') as HTMLSelectElement;
+    const shakeEnabled = document.getElementById('reminder-shake-enabled') as HTMLInputElement;
+    const glowEnabled = document.getElementById('reminder-glow-enabled') as HTMLInputElement;
+
+    if (settingsToggle) {
+      settingsToggle.checked = false;
+    }
+    if (soundEnabled) {
+      soundEnabled.checked = true;
+    }
+    if (soundType) {
+      soundType.value = 'whoosh';
+    }
+    if (shakeEnabled) {
+      shakeEnabled.checked = true;
+    }
+    if (glowEnabled) {
+      glowEnabled.checked = true;
+    }
+
+    // Update save button text
+    if (saveReminderBtn) {
+      saveReminderBtn.textContent = 'Save';
+    }
+  }
+
+  /**
+   * Populate the form with existing reminder data for editing
+   */
+  function populateFormForEdit(reminder: Reminder): void {
+    editingReminderId = reminder.id;
+
+    // Convert trigger_time to local datetime-local format
+    const triggerDate = new Date(reminder.trigger_time);
+    const localTriggerDatetime = new Date(
+      triggerDate.getTime() - triggerDate.getTimezoneOffset() * 60000
+    )
+      .toISOString()
+      .slice(0, 16);
+
+    if (reminderDatetime) {
+      reminderDatetime.value = localTriggerDatetime;
+    }
+
+    // Populate settings
+    const settingsToggle = document.getElementById('reminder-settings-toggle') as HTMLInputElement;
+    const soundEnabled = document.getElementById('reminder-sound-enabled') as HTMLInputElement;
+    const soundType = document.getElementById('reminder-sound-type') as HTMLSelectElement;
+    const shakeEnabled = document.getElementById('reminder-shake-enabled') as HTMLInputElement;
+    const glowEnabled = document.getElementById('reminder-glow-enabled') as HTMLInputElement;
+
+    // If reminder has custom settings, expand the settings panel
+    const hasCustomSettings =
+      reminder.sound_enabled !== null ||
+      reminder.sound_type !== null ||
+      reminder.shake_enabled !== null ||
+      reminder.glow_enabled !== null;
+
+    if (settingsToggle) {
+      settingsToggle.checked = hasCustomSettings;
+    }
+    if (soundEnabled) {
+      soundEnabled.checked = reminder.sound_enabled ?? true;
+    }
+    if (soundType) {
+      soundType.value = reminder.sound_type ?? 'whoosh';
+    }
+    if (shakeEnabled) {
+      shakeEnabled.checked = reminder.shake_enabled ?? true;
+    }
+    if (glowEnabled) {
+      glowEnabled.checked = reminder.glow_enabled ?? true;
+    }
+
+    // Update save button text
+    if (saveReminderBtn) {
+      saveReminderBtn.textContent = 'Update';
+    }
   }
 
   // Load and display reminders
@@ -543,15 +642,38 @@ function setupReminders(note: Note): { loadReminders: () => Promise<void> } {
               <p class="text-xs text-base-content/50">Reminder will notify you at this time</p>
             </div>
           </div>
-          <button class="btn btn-ghost btn-sm btn-circle delete-reminder" data-id="${reminder.id}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div class="flex gap-1">
+            <button class="btn btn-ghost btn-sm btn-circle edit-reminder" data-reminder='${JSON.stringify(reminder).replace(/'/g, '&#39;')}' title="Edit reminder">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+            <button class="btn btn-ghost btn-sm btn-circle delete-reminder" data-id="${reminder.id}" title="Delete reminder">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
       `
         )
         .join('');
+
+      // Attach edit handlers
+      remindersList.querySelectorAll('.edit-reminder').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const reminderData = btn.getAttribute('data-reminder');
+          if (reminderData) {
+            try {
+              const reminder: Reminder = JSON.parse(reminderData);
+              populateFormForEdit(reminder);
+              reminderForm?.classList.remove('hidden');
+            } catch (error) {
+              logger.error('Failed to parse reminder data', LOG_CONTEXT, error);
+            }
+          }
+        });
+      });
 
       // Attach delete handlers
       remindersList.querySelectorAll('.delete-reminder').forEach((btn) => {
@@ -572,15 +694,8 @@ function setupReminders(note: Note): { loadReminders: () => Promise<void> } {
   }
 
   addReminderBtn?.addEventListener('click', () => {
+    resetFormForCreate();
     reminderForm?.classList.remove('hidden');
-    if (reminderDatetime) {
-      reminderDatetime.value = localDatetime;
-    }
-    // Reset settings toggle when opening the form
-    const settingsToggle = document.getElementById('reminder-settings-toggle') as HTMLInputElement;
-    if (settingsToggle) {
-      settingsToggle.checked = false;
-    }
   });
 
   // Play sound preview when changing the sound type dropdown
@@ -591,6 +706,7 @@ function setupReminders(note: Note): { loadReminders: () => Promise<void> } {
 
   cancelReminderBtn?.addEventListener('click', () => {
     reminderForm?.classList.add('hidden');
+    editingReminderId = null;
   });
 
   saveReminderBtn?.addEventListener('click', async () => {
@@ -622,12 +738,21 @@ function setupReminders(note: Note): { loadReminders: () => Promise<void> } {
           }
         : undefined;
 
-      await createReminder(note.id, triggerDate, settings);
+      if (editingReminderId) {
+        // Update existing reminder
+        await updateReminder(editingReminderId, triggerDate, settings);
+      } else {
+        // Create new reminder
+        await createReminder(note.id, triggerDate, settings);
+      }
+
       reminderForm?.classList.add('hidden');
+      editingReminderId = null;
       await loadReminders();
     } catch (error) {
-      logger.error('Failed to create reminder', LOG_CONTEXT, error);
-      showAlert('Failed to create reminder: ' + error, { title: 'Error', type: 'error' });
+      const action = editingReminderId ? 'update' : 'create';
+      logger.error(`Failed to ${action} reminder`, LOG_CONTEXT, error);
+      showAlert(`Failed to ${action} reminder: ` + error, { title: 'Error', type: 'error' });
     }
   });
 

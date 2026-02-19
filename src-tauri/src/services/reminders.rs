@@ -67,6 +67,29 @@ impl RemindersService {
         self.repo.delete_reminder(id).await
     }
 
+    /// Update an existing reminder
+    pub async fn update_reminder(
+        &self,
+        id: &str,
+        trigger_time: DateTime<Utc>,
+        sound_enabled: Option<bool>,
+        sound_type: Option<String>,
+        shake_enabled: Option<bool>,
+        glow_enabled: Option<bool>,
+    ) -> Result<Reminder> {
+        tracing::info!("Updating reminder {} to trigger at {}", id, trigger_time);
+        self.repo
+            .update_reminder(
+                id,
+                trigger_time,
+                sound_enabled,
+                sound_type,
+                shake_enabled,
+                glow_enabled,
+            )
+            .await
+    }
+
     /// Start the background scheduler
     pub fn start_scheduler(self) {
         tokio::spawn(async move {

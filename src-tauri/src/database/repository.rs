@@ -348,6 +348,37 @@ impl Repository {
         Ok(())
     }
 
+    /// Update an existing reminder
+    pub async fn update_reminder(
+        &self,
+        id: &str,
+        trigger_time: chrono::DateTime<Utc>,
+        sound_enabled: Option<bool>,
+        sound_type: Option<String>,
+        shake_enabled: Option<bool>,
+        glow_enabled: Option<bool>,
+    ) -> Result<Reminder> {
+        let sql = format!(
+            "UPDATE reminders SET trigger_time = ?, sound_enabled = ?, sound_type = ?, shake_enabled = ?, glow_enabled = ? WHERE id = ? AND triggered = 0 RETURNING {}",
+            REMINDER_COLUMNS
+        );
+        let reminder = sqlx::query_as::<_, Reminder>(&sql)
+            .bind(trigger_time)
+            .bind(sound_enabled)
+            .bind(&sound_type)
+            .bind(shake_enabled)
+            .bind(glow_enabled)
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?
+            .ok_or_else(|| {
+                AppError::Generic(format!("Reminder not found or already triggered: {}", id))
+            })?;
+
+        tracing::debug!("Updated reminder: {}", id);
+        Ok(reminder)
+    }
+
     /// Get/set settings
     pub async fn get_setting(&self, key: &str) -> Result<Option<String>> {
         let value: Option<String> = sqlx::query_scalar("SELECT value FROM settings WHERE key = ?")

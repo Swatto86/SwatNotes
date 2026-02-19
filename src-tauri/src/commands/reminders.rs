@@ -48,3 +48,33 @@ pub async fn list_active_reminders(state: State<'_, AppState>) -> Result<Vec<Rem
 pub async fn delete_reminder(state: State<'_, AppState>, id: String) -> Result<()> {
     state.reminders_service.delete_reminder(&id).await
 }
+
+/// Update an existing reminder
+#[tauri::command]
+pub async fn update_reminder(
+    state: State<'_, AppState>,
+    id: String,
+    trigger_time: String,
+    sound_enabled: Option<bool>,
+    sound_type: Option<String>,
+    shake_enabled: Option<bool>,
+    glow_enabled: Option<bool>,
+) -> Result<Reminder> {
+    use chrono::DateTime;
+
+    let trigger_dt = DateTime::parse_from_rfc3339(&trigger_time)
+        .map_err(|e| AppError::Generic(format!("Invalid datetime: {}", e)))?
+        .with_timezone(&chrono::Utc);
+
+    state
+        .reminders_service
+        .update_reminder(
+            &id,
+            trigger_dt,
+            sound_enabled,
+            sound_type,
+            shake_enabled,
+            glow_enabled,
+        )
+        .await
+}
