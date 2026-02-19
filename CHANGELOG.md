@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Edit reminders — modify existing reminder time and notification settings
 - Verification pipeline (`scripts/verify.ps1`) — single-command repo health check
 - CI workflow (`.github/workflows/ci.yml`) — gates PRs on full verification
 - PR template with verification mandate

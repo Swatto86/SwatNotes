@@ -210,7 +210,7 @@ Commands are registered in `main.rs` via `tauri::generate_handler![]`.
 | **Windows** | `open_note_window`, `create_new_sticky_note`, `set_last_focused_note_window`, `toggle_last_focused_note_window`, `open_settings_window`, `open_main_window_and_focus_search`, `toggle_main_window`, `toggle_settings_window`, `toggle_all_note_windows`, `quick_capture_from_clipboard` |
 | **Attachments** | `create_attachment`, `list_attachments`, `get_attachment_data`, `delete_attachment` |
 | **Backup** | `create_backup`, `list_backups`, `restore_backup`, `delete_backup`, `pick_backup_directory`, `get_backup_directory` |
-| **Reminders** | `create_reminder`, `list_active_reminders`, `delete_reminder`, `get_reminder_settings`, `update_reminder_settings` |
+| **Reminders** | `create_reminder`, `list_active_reminders`, `update_reminder`, `delete_reminder`, `get_reminder_settings`, `update_reminder_settings` |
 | **Settings** | `get_hotkey_settings`, `update_hotkey_settings`, `get_autostart_state`, `set_autostart`, `toggle_autostart`, `store_auto_backup_password`, `has_auto_backup_password`, `delete_auto_backup_password`, `get_auto_backup_settings`, `update_auto_backup_settings`, `get_behavior_settings`, `update_behavior_settings` |
 | **Collections** | `create_collection`, `get_collection`, `list_collections`, `update_collection`, `delete_collection`, `update_note_collection`, `list_notes_in_collection`, `list_uncategorized_notes`, `count_notes_in_collection` |
 | **Update** | `check_for_update`, `download_and_install_update` |

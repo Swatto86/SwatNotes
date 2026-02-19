@@ -693,4 +693,170 @@ describe('Reminders', () => {
       }
     });
   });
+
+  describe('Editing Reminders', () => {
+    /**
+     * Helper to create a reminder and return to a known state
+     */
+    async function createTestReminder(): Promise<void> {
+      const addReminderBtn = await $('#add-reminder-btn');
+      await addReminderBtn.scrollIntoView();
+      await addReminderBtn.click();
+      await browser.pause(300);
+
+      // Set a date 2 days from now
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 2);
+      const year = futureDate.getFullYear();
+      const month = String(futureDate.getMonth() + 1).padStart(2, '0');
+      const day = String(futureDate.getDate()).padStart(2, '0');
+      const datetimeValue = `${year}-${month}-${day}T10:00`;
+
+      await browser.execute((val: string) => {
+        const input = document.getElementById('reminder-datetime') as HTMLInputElement;
+        if (input) {
+          input.value = val;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }, datetimeValue);
+      await browser.pause(200);
+
+      const saveBtn = await $('#save-reminder-btn');
+      await saveBtn.click();
+      await browser.pause(500);
+    }
+
+    before(async () => {
+      // Ensure a note is open
+      if (!(await isNoteEditorOpen())) {
+        await ensureNoteOpenInEditor();
+      }
+      // Create a reminder for testing edit functionality
+      await createTestReminder();
+    });
+
+    it('should display edit button on reminder items', async () => {
+      const editButtons = await $$('.edit-reminder');
+      expect(editButtons.length).toBeGreaterThan(0);
+
+      for (const btn of editButtons) {
+        await expect(btn).toBeDisplayed();
+        await expect(btn).toBeClickable();
+      }
+    });
+
+    it('should have edit button with pencil icon', async () => {
+      const editBtn = await $('.edit-reminder');
+      const svg = await editBtn.$('svg');
+      await expect(svg).toBeDisplayed();
+    });
+
+    it('should open form with reminder data when clicking edit', async () => {
+      const editBtn = await $('.edit-reminder');
+      await editBtn.click();
+      await browser.pause(300);
+
+      // Form should be visible
+      const reminderForm = await $('#reminder-form');
+      await expect(reminderForm).toBeDisplayed();
+
+      // Datetime input should have a value (the existing reminder's datetime)
+      const datetimeInput = await $('#reminder-datetime');
+      const value = await datetimeInput.getValue();
+      expect(value).toBeTruthy();
+      expect(value.length).toBeGreaterThan(0);
+    });
+
+    it('should show Update text on save button when editing', async () => {
+      // Form should still be open from previous test
+      const saveBtn = await $('#save-reminder-btn');
+      const text = await saveBtn.getText();
+      expect(text).toContain('Update');
+    });
+
+    it('should be able to modify datetime when editing', async () => {
+      // Change the datetime to a different value
+      const newDate = new Date();
+      newDate.setDate(newDate.getDate() + 5);
+      const year = newDate.getFullYear();
+      const month = String(newDate.getMonth() + 1).padStart(2, '0');
+      const day = String(newDate.getDate()).padStart(2, '0');
+      const newDatetimeValue = `${year}-${month}-${day}T15:30`;
+
+      await browser.execute((val: string) => {
+        const input = document.getElementById('reminder-datetime') as HTMLInputElement;
+        if (input) {
+          input.value = val;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }, newDatetimeValue);
+      await browser.pause(200);
+
+      const datetimeInput = await $('#reminder-datetime');
+      const value = await datetimeInput.getValue();
+      expect(value).toBe(newDatetimeValue);
+    });
+
+    it('should save updated reminder and close form', async () => {
+      const saveBtn = await $('#save-reminder-btn');
+      await saveBtn.click();
+      await browser.pause(500);
+
+      // Form should be hidden after saving
+      const reminderForm = await $('#reminder-form');
+      expect(await reminderForm.isDisplayed()).toBe(false);
+    });
+
+    it('should show Save text when creating new (not editing)', async () => {
+      // Open form for new reminder (not edit)
+      const addReminderBtn = await $('#add-reminder-btn');
+      await addReminderBtn.click();
+      await browser.pause(300);
+
+      const saveBtn = await $('#save-reminder-btn');
+      const text = await saveBtn.getText();
+      expect(text).toContain('Save');
+      expect(text).not.toContain('Update');
+
+      // Cancel to clean up
+      const cancelBtn = await $('#cancel-reminder-btn');
+      await cancelBtn.click();
+      await browser.pause(200);
+    });
+
+    it('should reset form when canceling edit and opening new', async () => {
+      // Click edit on existing reminder
+      const editBtn = await $('.edit-reminder');
+      await editBtn.click();
+      await browser.pause(300);
+
+      // Save button should show Update
+      let saveBtn = await $('#save-reminder-btn');
+      let text = await saveBtn.getText();
+      expect(text).toContain('Update');
+
+      // Cancel the edit
+      const cancelBtn = await $('#cancel-reminder-btn');
+      await cancelBtn.click();
+      await browser.pause(200);
+
+      // Now click Add Reminder (new)
+      const addReminderBtn = await $('#add-reminder-btn');
+      await addReminderBtn.click();
+      await browser.pause(300);
+
+      // Save button should show Save (not Update)
+      saveBtn = await $('#save-reminder-btn');
+      text = await saveBtn.getText();
+      expect(text).toContain('Save');
+      expect(text).not.toContain('Update');
+
+      // Cancel to clean up
+      const cancelBtn2 = await $('#cancel-reminder-btn');
+      await cancelBtn2.click();
+      await browser.pause(200);
+    });
+  });
 });
