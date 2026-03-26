@@ -382,7 +382,7 @@ pub async fn update_reminder_settings(
 
 // ===== Behavior Settings =====
 
-/// Get behavior settings (minimize/close to tray, auto-save delay)
+/// Get behavior settings (tray behavior, launch behavior, auto-save delay)
 #[tauri::command]
 pub async fn get_behavior_settings(state: State<'_, AppState>) -> Result<BehaviorSettings> {
     state.settings_service.get_behavior().await
@@ -403,6 +403,7 @@ pub async fn update_behavior_settings(
     tracing::info!(
         minimize_to_tray = settings.minimize_to_tray,
         close_to_tray = settings.close_to_tray,
+        start_hidden_to_tray = settings.start_hidden_to_tray,
         auto_save_delay = settings.auto_save_delay,
         "Behavior settings updated"
     );

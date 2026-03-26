@@ -156,6 +156,9 @@ pub struct BehaviorSettings {
     /// Whether to close to system tray instead of quitting
     #[serde(default = "default_true")]
     pub close_to_tray: bool,
+    /// Whether to keep the main dashboard hidden in tray on launch
+    #[serde(default = "default_false")]
+    pub start_hidden_to_tray: bool,
     /// Auto-save delay in milliseconds (minimum 100ms)
     #[serde(default = "default_auto_save_delay")]
     pub auto_save_delay: u32,
@@ -163,6 +166,10 @@ pub struct BehaviorSettings {
 
 fn default_true() -> bool {
     true
+}
+
+fn default_false() -> bool {
+    false
 }
 
 fn default_auto_save_delay() -> u32 {
@@ -174,6 +181,7 @@ impl Default for BehaviorSettings {
         Self {
             minimize_to_tray: true,
             close_to_tray: true,
+            start_hidden_to_tray: false,
             auto_save_delay: default_auto_save_delay(),
         }
     }
@@ -276,7 +284,7 @@ impl SettingsService {
         Ok(())
     }
 
-    /// Get behavior settings (minimize/close to tray, auto-save delay)
+    /// Get behavior settings (tray behavior, launch behavior, auto-save delay)
     pub async fn get_behavior(&self) -> Result<BehaviorSettings> {
         let settings = self.load().await?;
         Ok(settings.behavior)
@@ -320,6 +328,9 @@ mod tests {
         assert_eq!(settings.reminders.shake_duration, 600);
         assert!(settings.reminders.glow_enabled);
         assert_eq!(settings.reminders.sound_type, "whoosh");
+
+        // Verify default behavior settings
+        assert!(!settings.behavior.start_hidden_to_tray);
     }
 
     #[tokio::test]

@@ -18,6 +18,7 @@ const THEME_KEY = 'swatnotes-theme';
 interface BehaviorSettings {
   minimize_to_tray: boolean;
   close_to_tray: boolean;
+  start_hidden_to_tray: boolean;
   auto_save_delay: number;
 }
 
@@ -223,7 +224,12 @@ async function loadBehaviorSettings(): Promise<BehaviorSettings> {
     return await invoke<BehaviorSettings>('get_behavior_settings');
   } catch (error) {
     logger.error('Failed to load behavior settings', LOG_CONTEXT, error);
-    return { minimize_to_tray: true, close_to_tray: true, auto_save_delay: 1000 };
+    return {
+      minimize_to_tray: true,
+      close_to_tray: true,
+      start_hidden_to_tray: false,
+      auto_save_delay: 1000,
+    };
   }
 }
 
@@ -591,6 +597,29 @@ function setupEventHandlers(): void {
           // Revert on error
           closeToTrayCheckbox.checked = !closeToTrayCheckbox.checked;
           behaviorSettings.close_to_tray = closeToTrayCheckbox.checked;
+        }
+      });
+    }
+
+    // Start hidden to tray checkbox
+    const startHiddenToTrayCheckbox = document.getElementById(
+      'start-hidden-to-tray-checkbox'
+    ) as HTMLInputElement;
+    if (startHiddenToTrayCheckbox) {
+      startHiddenToTrayCheckbox.checked = behaviorSettings.start_hidden_to_tray;
+      startHiddenToTrayCheckbox.addEventListener('change', async () => {
+        behaviorSettings.start_hidden_to_tray = startHiddenToTrayCheckbox.checked;
+        try {
+          await saveBehaviorSettings(behaviorSettings);
+          const state = startHiddenToTrayCheckbox.checked ? 'enabled' : 'disabled';
+          showStatusMessage(`Start hidden to tray ${state}`);
+        } catch (error) {
+          logger.error('Failed to save behavior settings', LOG_CONTEXT, error);
+          showStatusMessage('Failed to save start hidden to tray setting', 'error');
+          await showAlert('Failed to save settings: ' + error, { title: 'Error', type: 'error' });
+          // Revert on error
+          startHiddenToTrayCheckbox.checked = !startHiddenToTrayCheckbox.checked;
+          behaviorSettings.start_hidden_to_tray = startHiddenToTrayCheckbox.checked;
         }
       });
     }

@@ -205,8 +205,9 @@ pub fn setup(app: &mut App) -> Result<()> {
 
     // Check for updates on startup
     let app_handle = app.handle().clone();
+    let settings_service = state.settings_service.clone();
     tauri::async_runtime::spawn(async move {
-        check_for_update_on_startup(app_handle).await;
+        check_for_update_on_startup(app_handle, settings_service).await;
     });
 
     tracing::info!("Application initialized successfully");
@@ -216,8 +217,19 @@ pub fn setup(app: &mut App) -> Result<()> {
 
 /// Check for updates on application startup
 /// If an update is available, show the update-required window and hide the main window
-async fn check_for_update_on_startup(app: tauri::AppHandle) {
+async fn check_for_update_on_startup(app: tauri::AppHandle, settings_service: SettingsService) {
     tracing::info!("Checking for updates on startup...");
+
+    let start_hidden_to_tray = match settings_service.get_behavior().await {
+        Ok(behavior) => behavior.start_hidden_to_tray,
+        Err(e) => {
+            tracing::warn!(
+                "Failed to load behavior settings for startup visibility: {}. Defaulting to visible launch.",
+                e
+            );
+            false
+        }
+    };
 
     // Check for updates using the existing command
     match crate::commands::check_for_update(app.clone()).await {
@@ -263,22 +275,32 @@ async fn check_for_update_on_startup(app: tauri::AppHandle) {
                 }
             } else {
                 tracing::info!("Application is up to date");
-                // Show the main window
+                // Show the main window unless user prefers hidden launch
                 if let Some(main_window) = app.get_webview_window("main") {
-                    let _ = main_window.show();
-                    let _ = main_window.set_focus();
+                    if start_hidden_to_tray {
+                        let _ = main_window.hide();
+                        tracing::info!("Start hidden to tray enabled, keeping main window hidden");
+                    } else {
+                        let _ = main_window.show();
+                        let _ = main_window.set_focus();
+                    }
                 }
             }
         }
         Err(e) => {
-            // If update check fails (no internet, etc.), show the main window and continue
+            // If update check fails (no internet, etc.), continue with launch visibility setting
             tracing::warn!(
                 "Failed to check for updates: {}. Continuing without update check.",
                 e
             );
             if let Some(main_window) = app.get_webview_window("main") {
-                let _ = main_window.show();
-                let _ = main_window.set_focus();
+                if start_hidden_to_tray {
+                    let _ = main_window.hide();
+                    tracing::info!("Start hidden to tray enabled, keeping main window hidden");
+                } else {
+                    let _ = main_window.show();
+                    let _ = main_window.set_focus();
+                }
             }
         }
     }

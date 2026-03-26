@@ -891,6 +891,7 @@ async fn test_settings_defaults() {
     assert!(app.reminders.sound_enabled);
     assert!(app.reminders.shake_enabled);
     assert!(app.reminders.glow_enabled);
+    assert!(!app.behavior.start_hidden_to_tray);
 }
 
 #[tokio::test]
@@ -905,6 +906,7 @@ async fn test_settings_round_trip() {
     app.auto_backup.enabled = true;
     app.auto_backup.frequency = "daily".to_string();
     app.reminders.sound_type = "chime".to_string();
+    app.behavior.start_hidden_to_tray = true;
     settings.save(&app).await.unwrap();
 
     // Reload from disk
@@ -914,6 +916,7 @@ async fn test_settings_round_trip() {
     assert!(loaded.auto_backup.enabled);
     assert_eq!(loaded.auto_backup.frequency, "daily");
     assert_eq!(loaded.reminders.sound_type, "chime");
+    assert!(loaded.behavior.start_hidden_to_tray);
 }
 
 #[tokio::test]
