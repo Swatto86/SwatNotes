@@ -1351,7 +1351,9 @@ if (document.readyState === 'loading') {
 }
 
 // Export for inline onclick handlers (legacy, may not be needed)
-(window as Window & { restoreBackup?: (backupId: string) => Promise<void> }).restoreBackup = async (backupId: string) => {
+(window as Window & { restoreBackup?: (backupId: string) => Promise<void> }).restoreBackup = async (
+  backupId: string
+) => {
   const password = await showPrompt('Enter backup password:', {
     title: 'Restore Backup',
     input: { type: 'password', placeholder: 'Backup password' },

@@ -16,7 +16,7 @@ import { logger } from './utils/logger';
 import { extractTextPreview, formatRelativeDate, formatReminderDate } from './utils/formatters';
 import { listActiveReminders } from './utils/remindersApi';
 
-import type { AppInfo, Note, Collection } from './types';
+import type { AppInfo, Note, Collection, UpdateInfo } from './types';
 import {
   listCollections,
   createCollection,
@@ -26,6 +26,7 @@ import {
   listUncategorizedNotes,
   COLLECTION_COLORS,
 } from './utils/collectionsApi';
+import { downloadAndInstallUpdate } from './utils/updateApi';
 
 const LOG_CONTEXT = 'Main';
 
@@ -880,6 +881,13 @@ async function init(): Promise<void> {
     await refreshNotesList();
   });
 
+  // Listen for periodic backend update checks (GitHub releases)
+  await listen<UpdateInfo>('update-available', (event) => {
+    const updateInfo = event.payload;
+    logger.info(`Update available: v${updateInfo.version || 'unknown'}`, LOG_CONTEXT);
+    handleUpdateAvailable(updateInfo);
+  });
+
   // Show main window after theme and content are loaded (prevents white flash)
   // Main window is created with visible: false in tauri.conf.json
   try {
@@ -891,6 +899,34 @@ async function init(): Promise<void> {
   }
 
   logger.info('SwatNotes initialized successfully!', LOG_CONTEXT);
+}
+
+/**
+ * Handle update available event from periodic backend checks.
+ * Updates the version badge to indicate update and makes it clickable to install.
+ */
+function handleUpdateAvailable(updateInfo: UpdateInfo): void {
+  const versionBadge = document.getElementById('version-badge');
+  if (versionBadge && updateInfo.version) {
+    versionBadge.textContent = `Update v${updateInfo.version}`;
+    versionBadge.classList.add('badge-warning', 'cursor-pointer');
+    versionBadge.title = `Click to download and install v${updateInfo.version}`;
+    versionBadge.onclick = async () => {
+      if (
+        window.confirm(
+          `Install update to v${updateInfo.version}? App will need to be restarted after download.`
+        )
+      ) {
+        try {
+          await downloadAndInstallUpdate();
+          versionBadge.textContent = 'Updating...';
+        } catch (error) {
+          logger.error('Failed to start update download', LOG_CONTEXT, error);
+          showAlert('Update failed. Try from the About page or tray menu.', { type: 'error' });
+        }
+      }
+    };
+  }
 }
 
 // Run on DOM ready

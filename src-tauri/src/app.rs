@@ -12,8 +12,10 @@ use crate::services::{
 use crate::storage::BlobStore;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use tauri::webview::Color;
-use tauri::{App, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{App, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
+use tokio::time::interval;
 
 /// Dark background color to prevent white flash when opening windows
 const WINDOW_BACKGROUND_COLOR: Color = Color(26, 26, 26, 255);
@@ -210,6 +212,18 @@ pub fn setup(app: &mut App) -> Result<()> {
         check_for_update_on_startup(app_handle, settings_service).await;
     });
 
+    // Schedule periodic update checks (every 6 hours) using GitHub releases
+    // Non-blocking notification to avoid interrupting active use
+    let app_handle_periodic = app.handle().clone();
+    tauri::async_runtime::spawn(async move {
+        let mut intv = interval(Duration::from_secs(6 * 60 * 60));
+        intv.tick().await; // skip immediate check after startup
+        loop {
+            intv.tick().await;
+            periodic_update_check(app_handle_periodic.clone()).await;
+        }
+    });
+
     tracing::info!("Application initialized successfully");
 
     Ok(())
@@ -302,6 +316,32 @@ async fn check_for_update_on_startup(app: tauri::AppHandle, settings_service: Se
                     let _ = main_window.set_focus();
                 }
             }
+        }
+    }
+}
+
+/// Periodic background check for updates using GitHub releases API.
+/// Emits "update-available" event for frontend to display a non-blocking banner or badge.
+async fn periodic_update_check(app: tauri::AppHandle) {
+    tracing::debug!("Running periodic update check...");
+
+    match crate::commands::check_for_update(app.clone()).await {
+        Ok(update_info) if update_info.available => {
+            let version = update_info.version.as_deref().unwrap_or("unknown");
+            tracing::info!(
+                "Update available during periodic check: {} -> v{}",
+                update_info.current_version,
+                version
+            );
+
+            // Emit event for frontend (UI banner, toast, or settings badge)
+            let _ = app.emit("update-available", update_info);
+        }
+        Ok(_) => {
+            tracing::debug!("No update available in periodic check");
+        }
+        Err(e) => {
+            tracing::warn!("Periodic update check failed: {}", e);
         }
     }
 }

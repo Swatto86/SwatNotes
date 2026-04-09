@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Periodic automatic update checks (every 6 hours) for new GitHub releases using background tokio interval task in app.rs
+- `update-available` Tauri event emission and frontend handler in main.ts that updates version badge to clickable "Update vX.Y.Z" for one-click install
+- Non-blocking UX for updates (system notification prepared via event; avoids forcing update-required window during active use)
 - Edit reminders — modify existing reminder time and notification settings
 - Verification pipeline (`scripts/verify.ps1`) — single-command repo health check
 - CI workflow (`.github/workflows/ci.yml`) — gates PRs on full verification

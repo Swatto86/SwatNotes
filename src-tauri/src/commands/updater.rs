@@ -32,7 +32,7 @@ struct GitHubAsset {
 }
 
 /// Information about an available update
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct UpdateInfo {
     /// Whether an update is available
     pub available: bool,
