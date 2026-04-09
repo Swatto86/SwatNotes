@@ -236,35 +236,38 @@ async function renderNotesGrid(notes: Note[]): Promise<void> {
     })
     .join('');
 
-  // Attach click handlers
-  container.querySelectorAll('.note-grid-card').forEach((card) => {
-    card.addEventListener('click', (e) => {
+  // Attach click handlers using delegation to prevent memory leaks
+  if (!container.hasAttribute('data-events-bound')) {
+    container.addEventListener('click', async (e) => {
       const target = e.target as HTMLElement;
-      if (target.closest('.popout-btn')) {
+      
+      // Handle popout button
+      const popoutBtn = target.closest('.popout-btn');
+      if (popoutBtn) {
+        e.stopPropagation();
+        const noteId = popoutBtn.getAttribute('data-note-id');
+        if (noteId) {
+          try {
+            await invoke('open_note_window', { noteId });
+          } catch (error) {
+            logger.error('Failed to open floating note', LOG_CONTEXT, error);
+          }
+        }
         return;
-      } // handled separately
-      const noteId = card.getAttribute('data-note-id');
-      const note = notes.find((n) => n.id === noteId);
-      if (note) {
-        openNoteInEditor(note);
       }
-    });
-  });
-
-  // Attach popout handlers
-  container.querySelectorAll('.popout-btn').forEach((btn) => {
-    btn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const noteId = (btn as HTMLElement).getAttribute('data-note-id');
-      if (noteId) {
-        try {
-          await invoke('open_note_window', { noteId });
-        } catch (error) {
-          logger.error('Failed to open floating note', LOG_CONTEXT, error);
+      
+      // Handle note card click
+      const card = target.closest('.note-grid-card');
+      if (card) {
+        const noteId = card.getAttribute('data-note-id');
+        const note = currentNotes.find((n) => n.id === noteId);
+        if (note) {
+          openNoteInEditor(note);
         }
       }
     });
-  });
+    container.setAttribute('data-events-bound', 'true');
+  }
 }
 
 /**

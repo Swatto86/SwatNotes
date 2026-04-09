@@ -328,14 +328,20 @@ function setupAttachments(
         )
         .join('');
 
-      // Attach delete handlers
-      attachmentsList.querySelectorAll('.delete-attachment').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          const id = btn.getAttribute('data-id');
-          await deleteAttachment(id!);
-          await loadAttachments();
+      // Attach delete handlers using delegation
+      if (!attachmentsList.hasAttribute('data-events-bound')) {
+        attachmentsList.addEventListener('click', async (e) => {
+          const btn = (e.target as HTMLElement).closest('.delete-attachment');
+          if (btn) {
+            const id = btn.getAttribute('data-id');
+            if (id) {
+              await deleteAttachment(id);
+              await loadAttachments();
+            }
+          }
         });
-      });
+        attachmentsList.setAttribute('data-events-bound', 'true');
+      }
     } catch (error) {
       logger.error('Failed to load attachments', LOG_CONTEXT, error);
       attachmentsList.innerHTML = '<p class="text-error text-sm">Failed to load attachments</p>';

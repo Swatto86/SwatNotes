@@ -176,6 +176,7 @@ impl Repository {
     /// Soft delete a note
     pub async fn delete_note(&self, id: &str) -> Result<()> {
         let now = Utc::now();
+        let mut tx = self.pool.begin().await?;
 
         let rows = sqlx::query(
             r#"
@@ -184,19 +185,22 @@ impl Repository {
         )
         .bind(now)
         .bind(id)
-        .execute(&self.pool)
+        .execute(&mut *tx)
         .await?
         .rows_affected();
 
         if rows == 0 {
+            tx.rollback().await?;
             return Err(AppError::NoteNotFound(id.to_string()));
         }
 
         // Delete all reminders for this note (soft-deleted notes shouldn't have active reminders)
         sqlx::query("DELETE FROM reminders WHERE note_id = ?")
             .bind(id)
-            .execute(&self.pool)
+            .execute(&mut *tx)
             .await?;
+
+        tx.commit().await?;
 
         tracing::debug!("Soft deleted note and removed reminders: {}", id);
         Ok(())
@@ -703,31 +707,34 @@ impl Repository {
         }
 
         tracing::info!("Pruning {} soft-deleted notes", count);
+        let mut tx = self.pool.begin().await?;
 
         for (note_id,) in &deleted_note_ids {
             // Delete FTS entries
             sqlx::query("DELETE FROM notes_fts WHERE note_id = ?")
                 .bind(note_id)
-                .execute(&self.pool)
+                .execute(&mut *tx)
                 .await?;
 
             // Delete attachments metadata (blobs are handled separately)
             sqlx::query("DELETE FROM attachments WHERE note_id = ?")
                 .bind(note_id)
-                .execute(&self.pool)
+                .execute(&mut *tx)
                 .await?;
 
             // Delete reminders (should already be deleted during soft-delete, but ensure cleanup)
             sqlx::query("DELETE FROM reminders WHERE note_id = ?")
                 .bind(note_id)
-                .execute(&self.pool)
+                .execute(&mut *tx)
                 .await?;
         }
 
         // Finally delete all soft-deleted notes
         sqlx::query("DELETE FROM notes WHERE deleted_at IS NOT NULL")
-            .execute(&self.pool)
+            .execute(&mut *tx)
             .await?;
+
+        tx.commit().await?;
 
         tracing::info!("Successfully pruned {} notes", count);
         Ok(count)
