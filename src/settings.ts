@@ -378,7 +378,7 @@ function formatRelativeTime(date: Date): string {
 /**
  * Update the prominent last backup display
  */
-function updateLastBackupDisplay(backups: any[]): void {
+function updateLastBackupDisplay(backups: Backup[]): void {
   const lastBackupTime = document.getElementById('last-backup-time');
   const lastBackupAge = document.getElementById('last-backup-age');
 
@@ -419,7 +419,7 @@ function updateLastBackupDisplay(backups: any[]): void {
  */
 async function loadBackupsList(): Promise<void> {
   try {
-    const backups = await invoke<any[]>('list_backups');
+    const backups = await invoke<Backup[]>('list_backups');
     const backupsList = document.getElementById('backups-list');
 
     // Sort by timestamp (newest first)
@@ -1351,7 +1351,7 @@ if (document.readyState === 'loading') {
 }
 
 // Export for inline onclick handlers (legacy, may not be needed)
-(window as any).restoreBackup = async (backupId: string) => {
+(window as Window & { restoreBackup?: (backupId: string) => Promise<void> }).restoreBackup = async (backupId: string) => {
   const password = await showPrompt('Enter backup password:', {
     title: 'Restore Backup',
     input: { type: 'password', placeholder: 'Backup password' },

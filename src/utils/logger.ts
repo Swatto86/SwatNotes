@@ -28,9 +28,10 @@ interface LoggerConfig {
 }
 
 /** Default configuration - enabled in development, minimal in production */
+const env = (import.meta as { env?: { DEV?: boolean } }).env || {};
 const DEFAULT_CONFIG: LoggerConfig = {
-  level: (import.meta as any).env?.DEV ? LogLevel.DEBUG : LogLevel.WARN,
-  timestamps: (import.meta as any).env?.DEV ?? false,
+  level: env.DEV ? LogLevel.DEBUG : LogLevel.WARN,
+  timestamps: env.DEV ?? false,
   enabled: true,
 };
 
@@ -151,6 +152,6 @@ export { LogLevel as Level };
 
 // Expose logger globally for debugging in browser console
 if (typeof window !== 'undefined') {
-  (window as any).__logger = logger;
-  (window as any).__LogLevel = LogLevel;
+  (window as { __logger?: typeof logger; __LogLevel?: typeof LogLevel }).__logger = logger;
+  (window as { __logger?: typeof logger; __LogLevel?: typeof LogLevel }).__LogLevel = LogLevel;
 }

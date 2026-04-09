@@ -102,7 +102,7 @@ export interface AppInfo {
 export interface QuillDelta {
   ops: Array<{
     insert: string | object;
-    attributes?: Record<string, any>;
+    attributes?: Record<string, unknown>;
   }>;
 }
 

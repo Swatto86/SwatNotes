@@ -390,7 +390,7 @@ function setupAttachments(
 
   // Clipboard paste handler for images and smart text formatting
   const pasteHandler = async (e: ClipboardEvent) => {
-    const clipboardData = e.clipboardData || (window as any).clipboardData;
+    const clipboardData = e.clipboardData;
     if (!clipboardData) {
       return;
     }
@@ -685,11 +685,13 @@ function setupReminders(note: Note): { loadReminders: () => Promise<void> } {
       remindersList.querySelectorAll('.delete-reminder').forEach((btn) => {
         btn.addEventListener('click', async () => {
           const id = btn.getAttribute('data-id');
-          try {
-            await deleteReminder(id!);
-            await loadReminders();
-          } catch (error) {
-            logger.error('Failed to delete reminder', LOG_CONTEXT, error);
+          if (id) {
+            try {
+              await deleteReminder(id);
+              await loadReminders();
+            } catch (error) {
+              logger.error('Failed to delete reminder', LOG_CONTEXT, error);
+            }
           }
         });
       });

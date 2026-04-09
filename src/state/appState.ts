@@ -71,8 +71,10 @@ class AppState {
     currentCollectionFilter: 'all',
   };
 
-  private subscribers: Map<StateChangeEvent, Set<StateSubscriber<any> | GlobalSubscriber>> =
-    new Map();
+  private subscribers: Map<
+    StateChangeEvent,
+    Set<StateSubscriber<keyof AppStateData> | GlobalSubscriber>
+  > = new Map();
 
   // ============================================================================
   // Getters - Read state values
@@ -242,7 +244,10 @@ class AppState {
     if (!this.subscribers.has(event)) {
       this.subscribers.set(event, new Set());
     }
-    this.subscribers.get(event)!.add(callback);
+    const subscribers = this.subscribers.get(event);
+    if (subscribers) {
+      subscribers.add(callback);
+    }
 
     // Return unsubscribe function
     return () => {
@@ -313,5 +318,5 @@ export const appState = new AppState();
 
 // Export for direct access in tests or debugging
 if (typeof window !== 'undefined') {
-  (window as any).__appState = appState;
+  (window as { __appState?: typeof appState }).__appState = appState;
 }

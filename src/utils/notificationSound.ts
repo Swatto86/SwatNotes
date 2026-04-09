@@ -16,7 +16,7 @@ export type SoundType = 'whoosh' | 'chime' | 'bell' | 'gentle' | 'alert';
  */
 export function playNotificationSound(soundType?: SoundType | string): void {
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const audioContext = new window.AudioContext();
 
     switch (soundType || 'whoosh') {
       case 'chime':

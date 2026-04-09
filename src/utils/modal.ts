@@ -213,7 +213,8 @@ function createModal(options: CreateModalOptions): HTMLElement {
  * Show modal
  */
 function showModal(modal: HTMLElement): void {
-  (modal as any).showModal();
+  const dialog = modal as HTMLDialogElement;
+  dialog.showModal();
 
   // Focus input if present
   const input = modal.querySelector('input');
@@ -226,7 +227,8 @@ function showModal(modal: HTMLElement): void {
  * Close and remove modal
  */
 function closeModal(modal: HTMLElement): void {
-  (modal as any).close();
+  const dialog = modal as HTMLDialogElement;
+  dialog.close();
   setTimeout(() => {
     modal.remove();
   }, 200);

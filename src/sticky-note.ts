@@ -466,6 +466,11 @@ async function saveNote(): Promise<void> {
     return;
   }
 
+  if (!noteId) {
+    logger.error('Cannot save: no noteId', LOG_CONTEXT);
+    return;
+  }
+
   // Get title from input
   const titleInput = document.getElementById('note-title') as HTMLInputElement;
   const title = titleInput?.value.trim() || generateTitleFromContent(editor);
@@ -476,7 +481,7 @@ async function saveNote(): Promise<void> {
     const content = editor.getContents();
     const contentJson = JSON.stringify(content);
 
-    await updateNote(noteId!, title, contentJson, titleModified);
+    await updateNote(noteId, title, contentJson, titleModified);
 
     // Update current note reference
     if (currentNote) {
@@ -755,7 +760,7 @@ function setupAttachmentHandlers(): void {
 
   // Clipboard paste handler for images and smart text formatting
   const pasteHandler = async (e: ClipboardEvent) => {
-    const clipboardData = e.clipboardData || (window as any).clipboardData;
+    const clipboardData = e.clipboardData;
     if (!clipboardData) {
       return;
     }

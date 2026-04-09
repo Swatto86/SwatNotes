@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - WAL checkpoint bug: backups now flush WAL before copying db.sqlite
 - Clippy warnings: collapsible_if, implicit_saturating_sub, bool_assert_comparison
 - Integration test correctness: soft-delete assertions, backup prerequisites, pool reconnect
+- Usability/production issues: main window show() to prevent flash/hidden state, stale closure in notes grid clicks, non-null assertions and `any` types (Backup[], unknown, dialog casts, ImportMeta, window exposure, Quill blots, clipboard/AudioContext), modal/dialog typing, logger/env safety, reminder delete guards, paste handlers (modernized). All verify/tests/TS/lint now clean.
 
 ## [1.0.9] - 2025-01-01
 

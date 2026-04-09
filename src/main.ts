@@ -5,10 +5,11 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { listen, emit } from '@tauri-apps/api/event';
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { initTheme, setupThemeSwitcher } from './ui/theme';
 import { setupEventHandlers, setupReminderListener } from './events/handlers';
 import { createNoteEditor } from './components/noteEditor';
-import { deleteNote } from './utils/notesApi';
+import { deleteNote, getNote } from './utils/notesApi';
 import { showAlert, showPrompt } from './utils/modal';
 import { appState } from './state/appState';
 import { logger } from './utils/logger';
@@ -240,7 +241,7 @@ async function renderNotesGrid(notes: Note[]): Promise<void> {
   if (!container.hasAttribute('data-events-bound')) {
     container.addEventListener('click', async (e) => {
       const target = e.target as HTMLElement;
-      
+
       // Handle popout button
       const popoutBtn = target.closest('.popout-btn');
       if (popoutBtn) {
@@ -255,14 +256,18 @@ async function renderNotesGrid(notes: Note[]): Promise<void> {
         }
         return;
       }
-      
+
       // Handle note card click
       const card = target.closest('.note-grid-card');
       if (card) {
         const noteId = card.getAttribute('data-note-id');
-        const note = currentNotes.find((n) => n.id === noteId);
-        if (note) {
-          openNoteInEditor(note);
+        if (noteId) {
+          try {
+            const note = await getNote(noteId);
+            openNoteInEditor(note);
+          } catch (error) {
+            logger.error('Failed to load note for editor', LOG_CONTEXT, error);
+          }
         }
       }
     });
@@ -874,6 +879,16 @@ async function init(): Promise<void> {
     logger.debug('Refresh notes event received', LOG_CONTEXT);
     await refreshNotesList();
   });
+
+  // Show main window after theme and content are loaded (prevents white flash)
+  // Main window is created with visible: false in tauri.conf.json
+  try {
+    const currentWindow = getCurrentWebviewWindow();
+    await currentWindow.show();
+    await currentWindow.setFocus();
+  } catch (error) {
+    logger.error('Failed to show main window', LOG_CONTEXT, error);
+  }
 
   logger.info('SwatNotes initialized successfully!', LOG_CONTEXT);
 }
