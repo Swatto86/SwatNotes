@@ -146,6 +146,11 @@ describe('Settings Window', () => {
       await expect(checkbox).toBeDisplayed();
     });
 
+    it('should display start hidden to tray checkbox', async () => {
+      const checkbox = await $('#start-hidden-to-tray-checkbox');
+      await expect(checkbox).toBeDisplayed();
+    });
+
     it('should display start with Windows checkbox', async () => {
       const checkbox = await $('#start-with-windows-checkbox');
       await expect(checkbox).toBeDisplayed();
@@ -179,12 +184,28 @@ describe('Settings Window', () => {
       await checkbox.click();
     });
 
+    it('should be able to toggle start hidden to tray', async () => {
+      const checkbox = await $('#start-hidden-to-tray-checkbox');
+      const initialState = await checkbox.isSelected();
+
+      await checkbox.click();
+      await browser.pause(200);
+
+      const newState = await checkbox.isSelected();
+      expect(newState).not.toBe(initialState);
+
+      // Restore original state
+      await checkbox.click();
+    });
+
     it('should have checkboxes be interactive', async () => {
       const minimizeCheckbox = await $('#minimize-to-tray-checkbox');
       const closeCheckbox = await $('#close-to-tray-checkbox');
+      const startHiddenCheckbox = await $('#start-hidden-to-tray-checkbox');
 
       await expect(minimizeCheckbox).toBeClickable();
       await expect(closeCheckbox).toBeClickable();
+      await expect(startHiddenCheckbox).toBeClickable();
     });
   });
 
