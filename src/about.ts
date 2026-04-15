@@ -8,7 +8,10 @@ import { getVersion } from '@tauri-apps/api/app';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { open } from '@tauri-apps/plugin-shell';
 import { checkForUpdate } from './utils/updateApi';
+import { logger } from './utils/logger';
 import type { AppInfo, UpdateInfo } from './types';
+
+const LOG_CONTEXT = 'About';
 
 // Initialize about window
 document.addEventListener('DOMContentLoaded', async () => {
@@ -19,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const info = await invoke<AppInfo>('get_app_info');
     appDataDir = info.app_data_dir;
   } catch (err) {
-    console.error('Failed to get app info:', err);
+    logger.error('Failed to get app info', LOG_CONTEXT, err);
   }
 
   // Set version
@@ -30,7 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       versionText.textContent = `Version ${version}`;
     }
   } catch (err) {
-    console.error('Failed to get version:', err);
+    logger.error('Failed to get version', LOG_CONTEXT, err);
   }
 
   // Show window after content is loaded (window is created hidden to prevent flash)
@@ -39,7 +42,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await window.show();
     await window.setFocus();
   } catch (err) {
-    console.error('Failed to show window:', err);
+    logger.error('Failed to show window', LOG_CONTEXT, err);
   }
 
   // Open data directory
@@ -49,7 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         await open(appDataDir);
       } catch (err) {
-        console.error('Failed to open data directory:', err);
+        logger.error('Failed to open data directory', LOG_CONTEXT, err);
       }
     }
   });
@@ -79,7 +82,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (err) {
       updateStatus.classList.add('text-error');
       updateStatus.textContent = 'Failed to check for updates';
-      console.error('Update check failed:', err);
+      logger.error('Update check failed', LOG_CONTEXT, err);
     }
   });
 });

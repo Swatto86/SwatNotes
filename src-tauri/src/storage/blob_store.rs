@@ -124,6 +124,8 @@ impl BlobStore {
         Ok(hashes)
     }
 
+    // Clippy false positive: `self` is used inside the pinned future for the recursive call,
+    // but clippy cannot see through the Pin<Box<dyn Future>> indirection.
     #[allow(clippy::only_used_in_recursion)]
     fn scan_directory<'a>(
         &'a self,

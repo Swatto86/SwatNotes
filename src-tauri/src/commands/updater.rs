@@ -244,9 +244,11 @@ pub async fn download_and_install_update(app: AppHandle) -> Result<()> {
 
         tracing::info!("Downloaded {} bytes", bytes.len());
 
-        std::fs::write(&installer_path, &bytes).map_err(|e| {
-            crate::error::AppError::Generic(format!("Failed to write installer: {}", e))
-        })?;
+        tokio::fs::write(&installer_path, &bytes)
+            .await
+            .map_err(|e| {
+                crate::error::AppError::Generic(format!("Failed to write installer: {}", e))
+            })?;
 
         tracing::info!("Installer downloaded successfully, launching...");
 

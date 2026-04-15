@@ -15,9 +15,9 @@ import { formatFileSize, getFileIconSvg } from './formatters';
 
 const LOG_CONTEXT = 'QuillBlots';
 
-// Get the base classes from Quill
+// Get the base class from Quill (typed as any because Quill.import returns untyped registry entries)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const BlockEmbed = Quill.import('blots/block/embed') as any;
-const _Inline = Quill.import('blots/inline') as any;
 
 /**
  * Attachment Image Blot

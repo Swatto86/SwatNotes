@@ -31,6 +31,7 @@ function createMockNote(overrides: Partial<Note> = {}): Note {
 // Helper to create a mock editor instance
 function createMockEditor(): NoteEditorInstance {
   return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     quill: {} as any,
     destroy: vi.fn(),
   };

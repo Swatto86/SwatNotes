@@ -8,8 +8,8 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { LogicalPosition } from '@tauri-apps/api/dpi';
 import { listen, emit } from '@tauri-apps/api/event';
 import Quill from 'quill';
-import type { Note, Reminder, ReminderSettings, Attachment } from './types';
-import { showAlert } from './utils/modal';
+import type { Note, Reminder, ReminderSettings, Attachment, Collection } from './types';
+import { showAlert, showPrompt } from './utils/modal';
 import { createReminder, listActiveReminders, deleteReminder } from './utils/remindersApi';
 import { updateNote } from './utils/notesApi';
 import { logger } from './utils/logger';
@@ -36,8 +36,6 @@ import {
   createCollection,
   COLLECTION_COLORS,
 } from './utils/collectionsApi';
-import { showPrompt } from './utils/modal';
-import type { Collection } from './types';
 
 // Register custom blots once at module load
 registerAttachmentBlots();
@@ -592,7 +590,10 @@ function setupReminderHandlers(): void {
           }
         : undefined;
 
-      await createReminder(noteId!, triggerDate, settings);
+      if (!noteId) {
+        throw new Error('No note ID available');
+      }
+      await createReminder(noteId, triggerDate, settings);
       reminderModal?.close();
 
       // Reset the settings panel for next time

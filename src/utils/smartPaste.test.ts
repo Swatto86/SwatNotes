@@ -53,7 +53,7 @@ describe('smartPaste', () => {
 
         // Check for list formatting
         const listOps = result.ops.filter(
-          (op) => op.attributes && (op.attributes as any).list === 'bullet'
+          (op) => op.attributes && op.attributes['list'] === 'bullet'
         );
         expect(listOps.length).toBe(3);
       });
@@ -62,7 +62,7 @@ describe('smartPaste', () => {
         const result = processSmartPaste('* First\n* Second');
 
         const listOps = result.ops.filter(
-          (op) => op.attributes && (op.attributes as any).list === 'bullet'
+          (op) => op.attributes && op.attributes['list'] === 'bullet'
         );
         expect(listOps.length).toBe(2);
       });
@@ -71,7 +71,7 @@ describe('smartPaste', () => {
         const result = processSmartPaste('1. First item\n2. Second item\n3. Third item');
 
         const listOps = result.ops.filter(
-          (op) => op.attributes && (op.attributes as any).list === 'ordered'
+          (op) => op.attributes && op.attributes['list'] === 'ordered'
         );
         expect(listOps.length).toBe(3);
       });
@@ -80,7 +80,7 @@ describe('smartPaste', () => {
         const result = processSmartPaste('- Parent\n  - Child\n  - Child 2');
 
         const indentedOps = result.ops.filter(
-          (op) => op.attributes && (op.attributes as any).indent === 1
+          (op) => op.attributes && op.attributes['indent'] === 1
         );
         expect(indentedOps.length).toBe(2);
       });
@@ -91,18 +91,18 @@ describe('smartPaste', () => {
         const result = processSmartPaste('Check out https://example.com for more info.');
 
         const linkOp = result.ops.find(
-          (op) => op.attributes && (op.attributes as any).link === 'https://example.com'
+          (op) => op.attributes && op.attributes['link'] === 'https://example.com'
         );
         expect(linkOp).toBeDefined();
         expect(linkOp?.insert).toBe('https://example.com');
-        expect((linkOp?.attributes as any)?.color).toBe('#0891b2');
+        expect(linkOp?.attributes?.['color']).toBe('#0891b2');
       });
 
       it('should handle www URLs and add https', () => {
         const result = processSmartPaste('Visit www.example.com today!');
 
         const linkOp = result.ops.find(
-          (op) => op.attributes && (op.attributes as any).link === 'https://www.example.com'
+          (op) => op.attributes && op.attributes['link'] === 'https://www.example.com'
         );
         expect(linkOp).toBeDefined();
       });
@@ -111,10 +111,10 @@ describe('smartPaste', () => {
         const result = processSmartPaste('Contact us at hello@example.com');
 
         const emailOp = result.ops.find(
-          (op) => op.attributes && (op.attributes as any).link === 'mailto:hello@example.com'
+          (op) => op.attributes && op.attributes['link'] === 'mailto:hello@example.com'
         );
         expect(emailOp).toBeDefined();
-        expect((emailOp?.attributes as any)?.color).toBe('#059669');
+        expect(emailOp?.attributes?.['color']).toBe('#059669');
       });
     });
 
@@ -122,9 +122,7 @@ describe('smartPaste', () => {
       it('should detect fenced code blocks', () => {
         const result = processSmartPaste('```\nconst x = 1;\nconsole.log(x);\n```');
 
-        const codeOps = result.ops.filter(
-          (op) => op.attributes && (op.attributes as any)['code-block']
-        );
+        const codeOps = result.ops.filter((op) => op.attributes && op.attributes['code-block']);
         expect(codeOps.length).toBeGreaterThan(0);
       });
     });
@@ -155,26 +153,24 @@ For more details, visit https://project.example.com or contact team@example.com`
 
         // Should have headers
         const headerOps = result.ops.filter(
-          (op) =>
-            op.attributes &&
-            ((op.attributes as any).header === 1 || (op.attributes as any).header === 2)
+          (op) => op.attributes && (op.attributes['header'] === 1 || op.attributes['header'] === 2)
         );
         expect(headerOps.length).toBeGreaterThan(0);
 
         // Should have bullet list
         const bulletOps = result.ops.filter(
-          (op) => op.attributes && (op.attributes as any).list === 'bullet'
+          (op) => op.attributes && op.attributes['list'] === 'bullet'
         );
         expect(bulletOps.length).toBe(3);
 
         // Should have ordered list
         const orderedOps = result.ops.filter(
-          (op) => op.attributes && (op.attributes as any).list === 'ordered'
+          (op) => op.attributes && op.attributes['list'] === 'ordered'
         );
         expect(orderedOps.length).toBe(3);
 
         // Should have links
-        const linkOps = result.ops.filter((op) => op.attributes && (op.attributes as any).link);
+        const linkOps = result.ops.filter((op) => op.attributes && op.attributes['link']);
         expect(linkOps.length).toBe(2); // URL and email
       });
     });

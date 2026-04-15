@@ -220,6 +220,7 @@ describe('logger', () => {
       const config = logger.getConfig();
 
       // Modifying returned config should not affect logger
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (config as any).level = LogLevel.NONE;
 
       const newConfig = logger.getConfig();
